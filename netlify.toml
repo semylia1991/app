@@ -1,5 +1,5 @@
 [build]
-  base    = "glowkey"
+  
   command = "npm run build"
   publish = "dist"
 
