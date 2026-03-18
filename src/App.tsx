@@ -93,14 +93,14 @@ export default function App() {
       const mimeType = match[1];
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang);
       setResult(analysis);
+      // Delete photo only on success
+      setFile(null);
+      setPreviewUrl(null);
     } catch (err) {
       console.error(err);
       setError(t[lang].error);
     } finally {
       setIsAnalyzing(false);
-      // Delete photo
-      setFile(null);
-      setPreviewUrl(null);
     }
   };
  
@@ -168,6 +168,7 @@ export default function App() {
                   type="file" 
                   ref={fileInputRef} 
                   onChange={handleFileChange} 
+                  onClick={(e) => e.stopPropagation()}
                   accept="image/*" 
                   className="hidden" 
                 />
