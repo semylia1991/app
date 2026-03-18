@@ -6,7 +6,6 @@ import { defineConfig } from 'vite';
 // GEMINI_API_KEY must NOT be exposed to the browser.
 // All AI calls go through the Netlify Function in netlify/functions/gemini.mjs
 export default defineConfig({
-  base: '/glowkey/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -20,4 +19,3 @@ export default defineConfig({
     },
   },
 });
- 
