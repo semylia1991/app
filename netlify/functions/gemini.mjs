@@ -7,7 +7,7 @@ const getAI = () => {
 };
 
 // Use a stable, released model
-const MODEL = "gemini-2.0-flash";
+const MODEL = "gemini-2.5-flash-preview-04-17";
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
