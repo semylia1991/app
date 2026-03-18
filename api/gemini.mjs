@@ -6,7 +6,7 @@ const getAI = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-const MODEL = "gemini-2.0-flash";
+const MODEL = "gemini-2.0-flash-001";
 
 export default async function handler(req, res) {
   // CORS headers
