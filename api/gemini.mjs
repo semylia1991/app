@@ -6,96 +6,97 @@ const getAI = () => {
   return new GoogleGenAI({ apiKey });
 };
 
+// Use a stable, released model
 const MODEL = "gemini-2.0-flash";
 
-export default async function handler(req, res) {
-  // CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+const json = (data, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 
+export default async (req) => {
   if (req.method === "OPTIONS") {
-    return res.status(204).end();
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
   }
 
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return json({ error: "Method not allowed" }, 405);
   }
 
-  let body = req.body;
-  if (!body) {
-    return res.status(400).json({ error: "Invalid JSON body" });
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "Invalid JSON body" }, 400);
   }
 
   try {
     const ai = getAI();
     const { action } = body;
 
-    // ── SimpleChat ──────────────────────
+    // ── SimpleChat (/api/gemini without action field) ──────────────────────
     if (!action) {
       const { message } = body;
-      if (!message) return res.status(400).json({ error: "message is required" });
+      if (!message) return json({ error: "message is required" }, 400);
 
       const response = await ai.models.generateContent({
         model: MODEL,
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: message }],
-          },
-        ],
+        contents: message,
       });
-
-      return res.status(200).json({ response: response.text() });
+      return json({ response: response.text });
     }
 
-    // ── Analyze ─────────────────────────
+    // ── Analyze product image ──────────────────────────────────────────────
     if (action === "analyze") {
       const { base64Image, mimeType, language } = body;
       if (!base64Image || !mimeType || !language) {
-        return res.status(400).json({ error: "base64Image, mimeType, and language are required" });
+        return json({ error: "base64Image, mimeType, and language are required" }, 400);
       }
 
       const prompt = `
-You are an expert cosmetic safety analyst and INCI decoder.
-Analyze the provided image of a cosmetic product or its ingredient list.
-Extract the product name, brand, and INCI ingredients. Correct any OCR errors.
-If data is missing, search your knowledge base (EWG Skin Deep, CosDNA, INCI Decoder, PubChem, CIR, EU CosIng).
-NEVER invent ingredients, ratings, or studies. If data is not found, state "Data not found in public databases.".
+        You are an expert cosmetic safety analyst and INCI decoder.
+        Analyze the provided image of a cosmetic product or its ingredient list.
+        Extract the product name, brand, and INCI ingredients. Correct any OCR errors.
+        If data is missing, search your knowledge base (EWG Skin Deep, CosDNA, INCI Decoder, PubChem, CIR, EU CosIng).
+        NEVER invent ingredients, ratings, or studies. If data is not found, state "Data not found in public databases." (translated to the requested language).
+        
+        Provide the analysis in ${language}.
+        
+        Formatting Rules:
+        - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
+        - analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
+        - alternatives: List product names in **bold**, each on a new line.
+        - usage: Use this exact format with emojis. Use DOUBLE NEWLINES between items to create clear paragraphs:
+          📋 How to Apply: [details]
 
-Provide the analysis in ${language}.
+          ⏰ Frequency: [details]
 
-Formatting Rules:
-- productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
-- analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
-- alternatives: List product names in **bold**, each on a new line.
+          👤 Best Suited For: [details]
+        - benefits: Use this style with emojis and bullet points. Use DOUBLE NEWLINES between categories:
+          🧱 [Benefit Category]:
+          • [Ingredient/Mechanism] [description]
 
-- usage: Use this exact format with emojis. Use DOUBLE NEWLINES between items:
-📋 How to Apply: [details]
+          💧 [Benefit Category]:
+          • [Ingredient/Mechanism] [description]
+        
+        Ensure the output strictly follows the JSON schema.
+      `;
 
-⏰ Frequency: [details]
-
-👤 Best Suited For: [details]
-
-- benefits: Use this style with emojis and bullet points. Use DOUBLE NEWLINES between categories:
-🧱 [Benefit Category]:
-• [Ingredient/Mechanism] [description]
-
-💧 [Benefit Category]:
-• [Ingredient/Mechanism] [description]
-
-Ensure the output strictly follows the JSON schema.
-`;
-
-      const imageData = base64Image.includes(",")
-        ? base64Image.split(",")[1]
-        : base64Image;
+      // Strip data-URL prefix if present (e.g. "data:image/jpeg;base64,...")
+      const imageData = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
 
       const response = await ai.models.generateContent({
         model: MODEL,
         contents: [
           {
-            role: "user",
             parts: [
               { text: prompt },
               { inlineData: { data: imageData, mimeType } },
@@ -104,79 +105,107 @@ Ensure the output strictly follows the JSON schema.
         ],
         config: {
           responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              productName:  { type: Type.STRING },
+              brand:        { type: Type.STRING },
+              productType:  { type: Type.STRING },
+              analysis:     { type: Type.STRING },
+              ingredients: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    name:        { type: Type.STRING },
+                    status:      { type: Type.STRING, enum: ["🟢", "🟡", "🔴"] },
+                    description: { type: Type.STRING },
+                  },
+                },
+              },
+              usage:        { type: Type.STRING },
+              benefits:     { type: Type.STRING },
+              sideEffects:  { type: Type.STRING },
+              warnings:     { type: Type.STRING },
+              interactions: { type: Type.STRING },
+              shelfLife:    { type: Type.STRING },
+              alternatives: { type: Type.STRING },
+            },
+            required: [
+              "productName", "brand", "productType", "analysis", "ingredients",
+              "usage", "benefits", "sideEffects", "warnings", "interactions",
+              "shelfLife", "alternatives",
+            ],
+          },
         },
       });
 
-      res.setHeader("Content-Type", "application/json");
-      return res.status(200).send(response.text());
+      // response.text is already valid JSON (responseMimeType: application/json)
+      return new Response(response.text, {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // ── Translate ───────────────────────
+    // ── Translate analysis result ──────────────────────────────────────────
     if (action === "translate") {
       const { result, targetLanguage } = body;
       if (!result || !targetLanguage) {
-        return res.status(400).json({ error: "result and targetLanguage are required" });
+        return json({ error: "result and targetLanguage are required" }, 400);
       }
 
       const prompt = `
-Translate this JSON to ${targetLanguage}.
-Return ONLY valid JSON.
-
-${JSON.stringify(result)}
-`;
+        Translate the following JSON object representing a cosmetic product analysis into ${targetLanguage}.
+        Maintain all formatting (emojis, bold text, newlines, bullet points).
+        Do NOT translate brand names or product names if they are proper nouns.
+        Respond ONLY with valid JSON matching the same schema. No preamble, no markdown fences.
+        
+        JSON to translate:
+        ${JSON.stringify(result)}
+      `;
 
       const response = await ai.models.generateContent({
         model: MODEL,
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
-        config: {
-          responseMimeType: "application/json",
-        },
+        contents: prompt,
+        config: { responseMimeType: "application/json" },
       });
 
-      res.setHeader("Content-Type", "application/json");
-      return res.status(200).send(response.text());
+      return new Response(response.text, {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // ── Ask ─────────────────────────────
+    // ── Ask follow-up question ─────────────────────────────────────────────
     if (action === "ask") {
       const { question, context, language } = body;
       if (!question || !context || !language) {
-        return res.status(400).json({ error: "question, context, and language are required" });
+        return json({ error: "question, context, and language are required" }, 400);
       }
 
       const prompt = `
-Context:
-${JSON.stringify(context)}
-
-Question: ${question}
-Answer in ${language}.
-`;
+        You are an expert cosmetic safety analyst.
+        Context about the product:
+        ${JSON.stringify(context)}
+        
+        User question: ${question}
+        
+        Answer in ${language}. Be concise and helpful.
+      `;
 
       const response = await ai.models.generateContent({
         model: MODEL,
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
+        contents: prompt,
       });
 
-      return res.status(200).json({ answer: response.text() });
+      return json({ answer: response.text || "" });
     }
 
-    return res.status(400).json({ error: `Unknown action: "${action}"` });
+    return json({ error: `Unknown action: "${action}"` }, 400);
 
   } catch (err) {
-    console.error("Gemini error:", err);
-    return res.status(500).json({
-      error: "Internal server error",
-      details: err.message,
-    });
+    console.error("Gemini function error:", err);
+    return json({ error: "Internal server error", details: err.message }, 500);
   }
-}
+};
+
