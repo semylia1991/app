@@ -6,8 +6,10 @@ import dotenv from "dotenv";
  
 dotenv.config({ path: ".env.local" });
  
-const MODEL = "gemini-2.0-flash";
- 
+// ОБНОВЛЕНО: Используем актуальную модель 2026 года
+// gemini-3.1-flash-preview (или просто gemini-3.1-flash, когда выйдет из превью)
+const MODEL = "gemini-3.1-flash-preview";
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
