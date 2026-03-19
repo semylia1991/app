@@ -8,7 +8,7 @@ const getAI = () => {
 
 // ОБНОВЛЕНО: Используем актуальную модель 2026 года
 
-const MODEL = "gemini-1.5-flash";
+const MODEL = "gemini-2.0-flash-lite";
 
 // ── Rate limiting (in-memory, per IP) ────────────────────────────────────────
 // Netlify functions can be recycled between requests, so this is a best-effort
