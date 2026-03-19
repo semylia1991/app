@@ -162,8 +162,40 @@ Ensure the output strictly follows the JSON schema.
           },
         ],
         config: {
-          responseMimeType: "application/json",
+  responseMimeType: "application/json",
+  responseSchema: {
+    type: "object",
+    properties: {
+      productName:  { type: "string" },
+      brand:        { type: "string" },
+      productType:  { type: "string" },
+      analysis:     { type: "string" },
+      ingredients: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name:        { type: "string" },
+            status:      { type: "string", enum: ["🟢", "🟡", "🔴"] },
+            description: { type: "string" },
+          },
         },
+      },
+      usage:        { type: "string" },
+      benefits:     { type: "string" },
+      sideEffects:  { type: "string" },
+      warnings:     { type: "string" },
+      interactions: { type: "string" },
+      shelfLife:    { type: "string" },
+      alternatives: { type: "string" },
+    },
+    required: [
+      "productName", "brand", "productType", "analysis", "ingredients",
+      "usage", "benefits", "sideEffects", "warnings", "interactions",
+      "shelfLife", "alternatives"
+    ],
+  },
+},
       });
 
       res.setHeader("Content-Type", "application/json");
