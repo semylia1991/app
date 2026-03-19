@@ -39,15 +39,37 @@ async function callFunction<T>(body: object): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function compressImage(base64: string): Promise<{ data: string; mimeType: string }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1024;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
+        else                { width  = Math.round((width  * MAX) / height); height = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+      resolve({ data: dataUrl, mimeType: "image/jpeg" });
+    };
+    img.src = base64;
+  });
+}
+
 export async function analyzeProductImage(
   base64Image: string,
   mimeType: string,
   language: string
 ): Promise<AnalysisResult> {
+  const compressed = await compressImage(base64Image);
   return callFunction<AnalysisResult>({
     action: "analyze",
-    base64Image,
-    mimeType,
+    base64Image: compressed.data,
+    mimeType: compressed.mimeType,
     language,
   });
 }
