@@ -6,7 +6,7 @@ import dotenv from "dotenv";
  
 dotenv.config({ path: ".env.local" });
  
-const MODEL = "gemini-1.5-flash";
+const MODEL = "gemini-2.0-flash";
  
 async function startServer() {
   const app = express();
