@@ -105,7 +105,7 @@ export default async function handler(req, res) {
         ],
       });
 
-      return res.status(200).json({ response: response.text() });
+      return res.status(200).json({ response: response.text });
     }
 
     // ── Analyze ─────────────────────────
@@ -167,7 +167,7 @@ Ensure the output strictly follows the JSON schema.
       });
 
       res.setHeader("Content-Type", "application/json");
-      return res.status(200).send(response.text());
+      return res.status(200).send(response.text);
     }
 
     // ── Translate ───────────────────────
@@ -198,7 +198,7 @@ ${JSON.stringify(result)}
       });
 
       res.setHeader("Content-Type", "application/json");
-      return res.status(200).send(response.text());
+      return res.status(200).send(response.text);
     }
 
     // ── Ask ─────────────────────────────
@@ -226,7 +226,7 @@ Answer in ${language}.
         ],
       });
 
-      return res.status(200).json({ answer: response.text() });
+      return res.status(200).json({ answer: response.text });
     }
 
     return res.status(400).json({ error: `Unknown action: "${action}"` });
