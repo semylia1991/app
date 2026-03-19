@@ -8,7 +8,7 @@ dotenv.config({ path: ".env.local" });
  
 // ОБНОВЛЕНО: Используем актуальную модель 2026 года
 
-const MODEL = "gemini-2.0-flash-lite";
+const MODEL = "gemini-2.5-flash";
 
 async function startServer() {
   const app = express();
