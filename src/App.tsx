@@ -1,8 +1,11 @@
+App · TSX
+Copy
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-
+ 
 import { t, Language } from './i18n';
 import { analyzeProductImage, AnalysisResult, translateAnalysisResult } from './services/ai';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -10,17 +13,17 @@ import { CookieBanner } from './components/CookieBanner';
 import { LegalModal, PrivacyPolicyContent, ImpressumContent } from './components/LegalModals';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { AskAI } from './components/AskAI';
-
+ 
 // ── helpers for formatted sections ──────────────────────────────────────────
-
+ 
 function splitParagraphs(text: string): string[] {
   return text.split('\n\n').map(s => s.trim()).filter(Boolean);
 }
-
+ 
 function UsageSection({ text }: { text: string }) {
   const blocks = splitParagraphs(text);
   return (
-    <div className="space-y-3 text-sm text-[#4A4A4A]">
+    <div className="space-y-4 text-sm text-[#4A4A4A]">
       {blocks.map((block, i) => {
         const colonIdx = block.indexOf(':');
         if (colonIdx !== -1) {
@@ -29,11 +32,13 @@ function UsageSection({ text }: { text: string }) {
           const label = rawLabel.replace(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*/u, '');
           const body = block.slice(colonIdx + 1).trim();
           return (
-            <p key={i}>
-              {emoji && <span className="mr-1">{emoji}</span>}
-              <strong className="text-[#2C3E50]">{label}</strong>
-              {body ? ' ' + body : ''}
-            </p>
+            <div key={i} className="flex flex-col gap-0.5">
+              <p className="flex items-center gap-1">
+                {emoji && <span>{emoji}</span>}
+                <strong className="text-[#2C3E50]">{label}</strong>
+              </p>
+              {body && <p className="pl-6 leading-relaxed">{body}</p>}
+            </div>
           );
         }
         return <p key={i}>{block}</p>;
@@ -41,7 +46,7 @@ function UsageSection({ text }: { text: string }) {
     </div>
   );
 }
-
+ 
 function BenefitsSection({ text }: { text: string }) {
   const blocks = splitParagraphs(text);
   return (
@@ -67,7 +72,7 @@ function BenefitsSection({ text }: { text: string }) {
     </div>
   );
 }
-
+ 
 function AlternativesSection({ text }: { text: string }) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   return (
@@ -89,9 +94,9 @@ function AlternativesSection({ text }: { text: string }) {
     </div>
   );
 }
-
+ 
 // ── main component ───────────────────────────────────────────────────────────
-
+ 
 export default function App() {
   const [lang, setLang] = useState<Language>('en');
   const [file, setFile] = useState<File | null>(null);
@@ -101,23 +106,23 @@ export default function App() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-
+ 
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
-
+ 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isFirstRender = useRef(true);
-
+ 
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-
+ 
     if (!result || isAnalyzing) return;
-
+ 
     let cancelled = false;
-
+ 
     const translate = async () => {
       setIsTranslating(true);
       try {
@@ -135,15 +140,15 @@ export default function App() {
         }
       }
     };
-
+ 
     translate();
-
+ 
     return () => {
       cancelled = true;
       setIsTranslating(false);
     };
   }, [lang]);
-
+ 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -156,17 +161,17 @@ export default function App() {
       setError(null);
     }
   };
-
+ 
   const handleAnalyze = async () => {
     if (!previewUrl || !consent) return;
-
+ 
     setIsAnalyzing(true);
     setError(null);
-
+ 
     try {
       const match = previewUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
       if (!match) throw new Error("Invalid image format");
-
+ 
       const mimeType = match[1];
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang);
       setResult(analysis);
@@ -179,7 +184,7 @@ export default function App() {
       setIsAnalyzing(false);
     }
   };
-
+ 
   const handleReset = () => {
     setFile(null);
     setPreviewUrl(null);
@@ -187,15 +192,15 @@ export default function App() {
     setConsent(false);
     setError(null);
   };
-
+ 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <div className="fixed top-0 left-0 w-full h-32 bg-gradient-to-b from-[#B89F7A]/10 to-transparent pointer-events-none" />
       <div className="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#B89F7A]/10 to-transparent pointer-events-none" />
-
+ 
       <header className="pt-8 pb-4 px-4 text-center relative z-10">
         <LanguageSelector currentLang={lang} onSelect={setLang} />
-
+ 
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -210,7 +215,7 @@ export default function App() {
         </motion.div>
         <div className="w-24 h-[1px] bg-[#D4C3A3] mx-auto mt-6" />
       </header>
-
+ 
       <main className="flex-grow flex flex-col items-center justify-center p-4 relative z-10">
         <AnimatePresence mode="wait">
           {!result ? (
@@ -226,7 +231,7 @@ export default function App() {
                   {t[lang].description}
                 </p>
               </div>
-
+ 
               <div
                 className="relative aspect-[3/4] border-2 border-dashed border-[#D4C3A3] rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-[#B89F7A]/5 transition-colors overflow-hidden group"
                 onClick={() => fileInputRef.current?.click()}
@@ -248,7 +253,7 @@ export default function App() {
                   className="hidden"
                 />
               </div>
-
+ 
               {previewUrl && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -269,14 +274,14 @@ export default function App() {
                       {t[lang].consent}
                     </span>
                   </label>
-
+ 
                   {error && (
                     <div className="text-red-800 text-xs bg-red-50 p-3 border border-red-200 rounded-sm flex items-start gap-2">
                       <AlertCircle size={14} className="shrink-0 mt-0.5" />
                       <span>{error}</span>
                     </div>
                   )}
-
+ 
                   <button
                     onClick={handleAnalyze}
                     disabled={!consent || isAnalyzing}
@@ -314,75 +319,77 @@ export default function App() {
                   </div>
                 )}
               </div>
-
+ 
               <div className="space-y-2">
                 <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={20} />} defaultOpen>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.analysis}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
-
+ 
                 {/* Ingredients — compact */}
                 <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />}>
                   <ul className="space-y-1">
                     {result.ingredients.map((ing, idx) => (
-                      <li key={idx} className="flex items-center gap-2 py-1 border-b border-[#D4C3A3]/20 last:border-0">
-                        <span className="text-base shrink-0">{ing.status}</span>
-                        <span className="font-semibold text-[#2C3E50] text-xs uppercase tracking-wide shrink-0">{ing.name}</span>
-                        <span className="text-xs text-[#4A4A4A]">{ing.description}</span>
+                      <li key={idx} className="flex items-start gap-2 py-1.5 border-b border-[#D4C3A3]/20 last:border-0">
+                        <span className="text-base shrink-0 mt-0.5">{ing.status}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-[#2C3E50] text-xs uppercase tracking-wide">{ing.name}</span>
+                          <span className="text-xs text-[#4A4A4A] leading-snug">{ing.description}</span>
+                        </div>
                       </li>
                     ))}
                   </ul>
                 </CollapsibleSection>
-
+ 
                 {/* Usage — bold headers */}
                 <CollapsibleSection title={t[lang].usage} icon={<Info size={20} />}>
                   <UsageSection text={result.usage} />
                 </CollapsibleSection>
-
+ 
                 {/* Benefits — bold headers */}
                 <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={20} />}>
                   <BenefitsSection text={result.benefits} />
                 </CollapsibleSection>
-
+ 
                 <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={20} />}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.sideEffects}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
-
+ 
                 <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={20} />}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.warnings}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
-
+ 
                 <CollapsibleSection title={t[lang].interactions} icon={<Zap size={20} />}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.interactions}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
-
+ 
                 <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={20} />}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.shelfLife}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
-
+ 
                 {/* Alternatives — bold product names */}
                 <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
                   <AlternativesSection text={result.alternatives} />
                 </CollapsibleSection>
               </div>
-
+ 
               <AskAI lang={lang} context={result} />
-
+ 
               <div className="mt-8 pt-6 border-t border-[#D4C3A3] space-y-4">
                 <div className="bg-[#B89F7A]/5 p-4 rounded-sm border border-[#B89F7A]/20 text-xs text-[#4A4A4A] space-y-2">
                   <p><strong>Transparency:</strong> {t[lang].aiTransparency}</p>
                   <p><strong>Disclaimer:</strong> {t[lang].aiDisclaimer}</p>
                 </div>
-
+ 
                 <button
                   onClick={handleReset}
                   className="w-full py-4 regency-button tracking-widest"
@@ -394,7 +401,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
-
+ 
       <footer className="py-6 text-center text-xs text-[#B89F7A] relative z-10">
         <p className="mb-2">{t[lang].footerText}</p>
         <div className="flex justify-center gap-4">
@@ -407,16 +414,16 @@ export default function App() {
           </button>
         </div>
       </footer>
-
+ 
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
-
+ 
       <LegalModal
         isOpen={isPrivacyOpen}
         onClose={() => setIsPrivacyOpen(false)}
         title={t[lang].privacyPolicy}
         content={<PrivacyPolicyContent />}
       />
-
+ 
       <LegalModal
         isOpen={isImpressumOpen}
         onClose={() => setIsImpressumOpen(false)}
