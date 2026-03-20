@@ -325,7 +325,7 @@ export default function App() {
                   </div>
                 </CollapsibleSection>
  
-               <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
+              <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
   <div className="space-y-3 text-sm text-[#4A4A4A]">
     {result.alternatives.split(/\n+/).filter(Boolean).map((line, i) => {
       const cleaned = line.replace(/^\*+|\*+$/g, '').trim();
