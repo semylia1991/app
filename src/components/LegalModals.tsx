@@ -34,7 +34,7 @@ export function LegalModal({ isOpen, onClose, title, content }: Props) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 m-auto w-full max-w-2xl h-fit max-h-[80vh] bg-[#FDFBF7] regency-border p-8 z-50 overflow-y-auto shadow-2xl rounded-sm"
+            className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-2xl max-h-[90vh] bg-[#FDFBF7] regency-border p-8 z-50 overflow-y-auto shadow-2xl rounded-sm"
           >
             <button
               onClick={onClose}
