@@ -230,7 +230,7 @@ export default function App() {
               </div>
  
               <div
-                className="relative aspect-[3/4] border-2 border-dashed border-[#D4C3A3] rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-[#B89F7A]/5 transition-colors overflow-hidden group"
+                className="relative aspect-[3/2] border-2 border-dashed border-[#D4C3A3] rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-[#B89F7A]/5 transition-colors overflow-hidden group"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {previewUrl ? (
