@@ -378,5 +378,7 @@ export const t = {
     questions: "الأسئلة",
     limitReached: "تم الوصول إلى حد الأسئلة (5/5)",
     translating: "جارٍ الترجمة..."
+  },
+};
   }
 };
