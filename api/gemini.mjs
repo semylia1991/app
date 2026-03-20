@@ -127,7 +127,7 @@ Provide the analysis in ${language}.
 Formatting Rules:
 - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
 - analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
-- alternatives: List product names in **bold**, each on a new line.
+- alternatives: For each alternative, write the product name in **bold** followed by " — " and one sentence in normal text explaining why this product was chosen as an alternative (e.g. similar ingredients, same skin concern, gentler formula, etc.). Each product on a new line.
 
 - usage: Use this exact format with emojis. Use DOUBLE NEWLINES between items:
 📋 How to Apply: [details]
