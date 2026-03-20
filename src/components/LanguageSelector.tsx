@@ -1,6 +1,3 @@
-Languageselector · TSX
-Copy
-
 import React from 'react';
 import { Language } from '../i18n';
 import { Sparkles } from 'lucide-react';
