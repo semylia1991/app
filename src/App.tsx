@@ -248,30 +248,58 @@ export default function App() {
                 </CollapsibleSection>
  
                 <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />}>
-                  <ul className="space-y-4">
-                    {result.ingredients.map((ing, idx) => (
-                      <li key={idx} className="flex flex-col sm:flex-row sm:items-start gap-2 border-b border-[#D4C3A3]/20 pb-3 last:border-0">
-                        <div className="flex items-center gap-2 sm:w-1/3 shrink-0">
-                          <span className="text-lg" title={ing.status === '🟢' ? t[lang].safe : ing.status === '🟡' ? t[lang].moderateRisk : t[lang].caution}>{ing.status}</span>
-                          <span className="font-semibold text-[#2C3E50] text-sm uppercase tracking-wide">{ing.name}</span>
-                        </div>
-                        <span className="text-sm italic text-[#4A4A4A]">{ing.description}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <ul className="space-y-1">
+  {result.ingredients.map((ing, idx) => (
+    <li key={idx} className="flex items-center gap-2 py-1 border-b border-[#D4C3A3]/20 last:border-0">
+      <span className="text-base shrink-0">{ing.status}</span>
+      <span className="font-semibold text-[#2C3E50] text-xs uppercase tracking-wide shrink-0">{ing.name}</span>
+      <span className="text-xs text-[#4A4A4A]">{ing.description}</span>
+    </li>
+  ))}
+</ul>
                 </CollapsibleSection>
  
-                <CollapsibleSection title={t[lang].usage} icon={<Info size={20} />}>
-                  <div className="prose prose-sm prose-stone max-w-none">
-                    <ReactMarkdown>{result.usage}</ReactMarkdown>
-                  </div>
-                </CollapsibleSection>
+               <CollapsibleSection title={t[lang].usage} icon={<Info size={20} />}>
+  <div className="space-y-3 text-sm text-[#4A4A4A]">
+    {result.usage.split(/\n\n+/).filter(Boolean).map((block, i) => {
+      const colonIdx = block.indexOf(':');
+      if (colonIdx !== -1) {
+        const label = block.slice(0, colonIdx + 1).replace(/^[📋⏰👤]\s*/, '');
+        const body  = block.slice(colonIdx + 1).trim();
+        const emoji = block.match(/^[📋⏰👤]/)?.[0] ?? '';
+        return (
+          <p key={i}>
+            <span className="font-bold text-[#2C3E50]">{emoji} {label}</span>{' '}
+            {body}
+          </p>
+        );
+      }
+      return <p key={i}>{block}</p>;
+    })}
+  </div>
+</CollapsibleSection>
  
                 <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={20} />}>
-                  <div className="prose prose-sm prose-stone max-w-none">
-                    <ReactMarkdown>{result.benefits}</ReactMarkdown>
-                  </div>
-                </CollapsibleSection>
+  <div className="space-y-3 text-sm text-[#4A4A4A]">
+    {result.benefits.split(/\n\n+/).filter(Boolean).map((block, i) => {
+      const lines = block.split('\n').filter(Boolean);
+      const header = lines[0];
+      const rest   = lines.slice(1);
+      const isHeader = /[:：]$/.test(header) || /^[🧱💧✨🌿⚡🛡️💫🔬]/.test(header);
+      if (isHeader && rest.length > 0) {
+        return (
+          <div key={i}>
+            <p className="font-bold text-[#2C3E50] mb-1">{header}</p>
+            {rest.map((line, j) => (
+              <p key={j} className="ml-2">{line.replace(/^•\s*/, '• ')}</p>
+            ))}
+          </div>
+        );
+      }
+      return <p key={i}>{block}</p>;
+    })}
+  </div>
+</CollapsibleSection>
  
                 <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={20} />}>
                   <div className="prose prose-sm prose-stone max-w-none">
@@ -297,12 +325,26 @@ export default function App() {
                   </div>
                 </CollapsibleSection>
  
-                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
-                  <div className="prose prose-sm prose-stone max-w-none">
-                    <ReactMarkdown>{result.alternatives}</ReactMarkdown>
-                  </div>
-                </CollapsibleSection>
-              </div>
+               <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
+  <div className="space-y-3 text-sm text-[#4A4A4A]">
+    {result.alternatives.split(/\n+/).filter(Boolean).map((line, i) => {
+      const cleaned = line.replace(/^\*+|\*+$/g, '').trim();
+      const dashIdx = cleaned.search(/\s[—–-]\s/);
+      if (dashIdx !== -1) {
+        const name = cleaned.slice(0, dashIdx).trim();
+        const desc = cleaned.slice(dashIdx).replace(/^[\s—–-]+/, '').trim();
+        return (
+          <p key={i}>
+            <span className="font-bold text-[#2C3E50]">{name}</span>
+            {' — '}
+            {desc}
+          </p>
+        );
+      }
+      return <p key={i} className="font-bold text-[#2C3E50]">{cleaned}</p>;
+    })}
+  </div>
+</CollapsibleSection>
  
               <AskAI lang={lang} context={result} />
  
