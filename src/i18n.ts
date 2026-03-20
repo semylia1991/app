@@ -380,5 +380,4 @@ export const t = {
     translating: "جارٍ الترجمة..."
   },
 };
-  }
-};
+ 
