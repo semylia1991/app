@@ -1,3 +1,6 @@
+Languageselector · TSX
+Copy
+
 import React from 'react';
 import { Language } from '../i18n';
 import { Sparkles } from 'lucide-react';
@@ -11,7 +14,7 @@ const LANGUAGES: { code: Language; flag: string; label: string }[] = [
   { code: 'en', flag: '🇬🇧', label: 'EN' },
   { code: 'de', flag: '🇩🇪', label: 'DE' },
   { code: 'ru', flag: '🇷🇺', label: 'RU' },
-  { code: 'ua', flag: '🇺🇦', label: 'UA' },
+  { code: 'uk', flag: '🇺🇦', label: 'UA' },
   { code: 'es', flag: '🇪🇸', label: 'ES' },
   { code: 'fr', flag: '🇫🇷', label: 'FR' },
   { code: 'it', flag: '🇮🇹', label: 'IT' },
