@@ -1,3 +1,6 @@
+App · TSX
+Copy
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2 } from 'lucide-react';
@@ -10,6 +13,7 @@ import { CookieBanner } from './components/CookieBanner';
 import { LegalModal, PrivacyPolicyContent, ImpressumContent } from './components/LegalModals';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { AskAI } from './components/AskAI';
+import { LoadingScreen } from './components/LoadingScreen';
  
 // ── helpers for formatted sections ──────────────────────────────────────────
  
@@ -20,7 +24,7 @@ function splitParagraphs(text: string): string[] {
 function UsageSection({ text }: { text: string }) {
   const blocks = splitParagraphs(text);
   return (
-    <div className="space-y-4 text-sm text-[#4A4A4A]">
+    <div className="space-y-3 text-sm text-[#4A4A4A]">
       {blocks.map((block, i) => {
         const colonIdx = block.indexOf(':');
         if (colonIdx !== -1) {
@@ -29,13 +33,11 @@ function UsageSection({ text }: { text: string }) {
           const label = rawLabel.replace(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*/u, '');
           const body = block.slice(colonIdx + 1).trim();
           return (
-            <div key={i} className="flex flex-col gap-0.5">
-              <p className="flex items-center gap-1">
-                {emoji && <span>{emoji}</span>}
-                <strong className="text-[#2C3E50]">{label}</strong>
-              </p>
-              {body && <p className="pl-6 leading-relaxed">{body}</p>}
-            </div>
+            <p key={i}>
+              {emoji && <span className="mr-1">{emoji}</span>}
+              <strong className="text-[#2C3E50]">{label}</strong>
+              {body ? ' ' + body : ''}
+            </p>
           );
         }
         return <p key={i}>{block}</p>;
@@ -230,7 +232,7 @@ export default function App() {
               </div>
  
               <div
-                className="relative aspect-[3/2] border-2 border-dashed border-[#D4C3A3] rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-[#B89F7A]/5 transition-colors overflow-hidden group"
+                className="relative aspect-[3/4] border-2 border-dashed border-[#D4C3A3] rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-[#B89F7A]/5 transition-colors overflow-hidden group"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {previewUrl ? (
@@ -324,15 +326,15 @@ export default function App() {
                   </div>
                 </CollapsibleSection>
  
-                {/* Ingredients — compact */}
+                {/* Ingredients — compact, description under name */}
                 <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />}>
-                  <ul className="space-y-1">
+                  <ul className="space-y-2">
                     {result.ingredients.map((ing, idx) => (
-                      <li key={idx} className="flex items-start gap-2 py-1.5 border-b border-[#D4C3A3]/20 last:border-0">
+                      <li key={idx} className="flex items-start gap-2 py-1 border-b border-[#D4C3A3]/20 last:border-0">
                         <span className="text-base shrink-0 mt-0.5">{ing.status}</span>
-                        <div className="flex flex-col min-w-0">
+                        <div className="flex flex-col">
                           <span className="font-semibold text-[#2C3E50] text-xs uppercase tracking-wide">{ing.name}</span>
-                          <span className="text-xs text-[#4A4A4A] leading-snug">{ing.description}</span>
+                          <span className="text-xs text-[#4A4A4A]">{ing.description}</span>
                         </div>
                       </li>
                     ))}
@@ -412,6 +414,8 @@ export default function App() {
         </div>
       </footer>
  
+      <LoadingScreen isVisible={isAnalyzing} lang={lang} />
+ 
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
  
       <LegalModal
@@ -430,3 +434,4 @@ export default function App() {
     </div>
   );
 }
+ 
