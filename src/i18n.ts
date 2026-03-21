@@ -42,6 +42,10 @@ export const t = {
     questions: "Questions",
     limitReached: "Question limit reached (5/5)",
     translating: "Translating..."
+    signIn: "Sign in with Google",
+    signOut: "Sign out",
+    history: "History",
+    noHistory: "No scans yet.",
   },
   ru: {
     title: "GlowKey AI",
@@ -84,6 +88,10 @@ export const t = {
     questions: "Вопросов",
     limitReached: "Лимит вопросов исчерпан (5/5)",
     translating: "Перевод..."
+    signIn: "Войти через Google",
+    signOut: "Выйти",
+    history: "История",
+    noHistory: "Сканирований пока нет.",
   },
   de: {
     title: "GlowKey AI",
@@ -126,6 +134,10 @@ export const t = {
     questions: "Fragen",
     limitReached: "Fragenlimit erreicht (5/5)",
     translating: "Übersetzung..."
+    signIn: "Mit Google anmelden",
+    signOut: "Abmelden",
+    history: "Verlauf",
+    noHistory: "Noch keine Scans.",
   },
   uk: {
     title: "GlowKey AI",
@@ -168,6 +180,10 @@ export const t = {
     questions: "Питань",
     limitReached: "Ліміт питань вичерпано (5/5)",
     translating: "Переклад..."
+    signIn: "Увійти через Google",
+    signOut: "Вийти",
+    history: "Історія",
+    noHistory: "Сканувань ще немає.",
   },
   es: {
     title: "GlowKey AI",
@@ -210,6 +226,10 @@ export const t = {
     questions: "Preguntas",
     limitReached: "Límite de preguntas alcanzado (5/5)",
     translating: "Traduciendo..."
+    signIn: "Entrar con Google",
+    signOut: "Cerrar sesión",
+    history: "Historial",
+    noHistory: "Aún no hay escaneos.",
   },
   fr: {
     title: "GlowKey AI",
@@ -252,6 +272,10 @@ export const t = {
     questions: "Questions",
     limitReached: "Limite de questions atteinte (5/5)",
     translating: "Traduction..."
+    signIn: "Se connecter avec Google",
+    signOut: "Se déconnecter",
+    history: "Historique",
+    noHistory: "Aucun scan pour l'instant.",
   },
   it: {
     title: "GlowKey AI",
@@ -294,6 +318,10 @@ export const t = {
     questions: "Domande",
     limitReached: "Limite domande raggiunto (5/5)",
     translating: "Traduzione..."
+    signIn: "Accedi con Google",
+    signOut: "Esci",
+    history: "Cronologia",
+    noHistory: "Nessuna scansione ancora.",
   },
   tr: {
     title: "GlowKey AI",
@@ -336,6 +364,10 @@ export const t = {
     questions: "Sorular",
     limitReached: "Soru limiti doldu (5/5)",
     translating: "Çevriliyor..."
+    signIn: "Google ile giriş yap",
+    signOut: "Çıkış yap",
+    history: "Geçmiş",
+    noHistory: "Henüz tarama yok.",
   },
   ar: {
     title: "GlowKey AI",
@@ -378,6 +410,9 @@ export const t = {
     questions: "الأسئلة",
     limitReached: "تم الوصول إلى حد الأسئلة (5/5)",
     translating: "جارٍ الترجمة..."
+    signIn: "الدخول عبر Google",
+    signOut: "تسجيل الخروج",
+    history: "السجل",
+    noHistory: "لا توجد عمليات مسح بعد.",
   },
 };
- 
