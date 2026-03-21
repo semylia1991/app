@@ -2,15 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import type { User } from '@supabase/supabase-js';
  
 import { t, Language } from './i18n';
 import { analyzeProductImage, AnalysisResult, translateAnalysisResult } from './services/ai';
+import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
 import { LegalModal, PrivacyPolicyContent, ImpressumContent } from './components/LegalModals';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
+import { AuthButton } from './components/AuthButton';
+import { ScanHistory } from './components/ScanHistory';
  
 // ── helpers for formatted sections ──────────────────────────────────────────
  
@@ -102,6 +106,7 @@ export default function App() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
  
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
@@ -158,6 +163,16 @@ export default function App() {
     }
   };
  
+  const saveScanToHistory = async (analysis: AnalysisResult) => {
+    if (!user) return;
+    await supabase.from('scan_history').insert({
+      user_id: user.id,
+      product_name: analysis.productName,
+      brand: analysis.brand,
+      result: analysis,
+    });
+  };
+ 
   const handleAnalyze = async () => {
     if (!previewUrl || !consent) return;
  
@@ -173,6 +188,7 @@ export default function App() {
       setResult(analysis);
       setFile(null);
       setPreviewUrl(null);
+      await saveScanToHistory(analysis);
     } catch (err) {
       console.error(err);
       setError(t[lang].error);
@@ -194,13 +210,25 @@ export default function App() {
       <div className="fixed top-0 left-0 w-full h-32 bg-gradient-to-b from-[#B89F7A]/10 to-transparent pointer-events-none" />
       <div className="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#B89F7A]/10 to-transparent pointer-events-none" />
  
-      <header className="pt-8 pb-4 px-4 text-center relative z-10">
+      <header className="pt-6 pb-4 px-4 text-center relative z-10">
+        {/* Auth row */}
+        <div className="flex items-center justify-end gap-2 mb-3">
+          {user && (
+            <ScanHistory
+              user={user}
+              lang={lang}
+              onSelect={(r) => { setResult(r); }}
+            />
+          )}
+          <AuthButton lang={lang} onUserChange={setUser} />
+        </div>
+ 
         <LanguageSelector currentLang={lang} onSelect={setLang} />
  
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-8 mb-2"
+          className="mt-6 mb-2"
         >
           <h2 className="text-xs font-serif tracking-[0.3em] text-[#B89F7A] uppercase mb-2">
             {t[lang].subtitle}
@@ -229,7 +257,7 @@ export default function App() {
               </div>
  
               <div
-                className="relative aspect-[3/4] border-2 border-dashed border-[#D4C3A3] rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-[#B89F7A]/5 transition-colors overflow-hidden group"
+                className="relative aspect-[3/2] border-2 border-dashed border-[#D4C3A3] rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-[#B89F7A]/5 transition-colors overflow-hidden group"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {previewUrl ? (
@@ -323,7 +351,6 @@ export default function App() {
                   </div>
                 </CollapsibleSection>
  
-                {/* Ingredients — compact, description under name */}
                 <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />}>
                   <ul className="space-y-2">
                     {result.ingredients.map((ing, idx) => (
@@ -338,12 +365,10 @@ export default function App() {
                   </ul>
                 </CollapsibleSection>
  
-                {/* Usage — bold headers */}
                 <CollapsibleSection title={t[lang].usage} icon={<Info size={20} />}>
                   <UsageSection text={result.usage} />
                 </CollapsibleSection>
  
-                {/* Benefits — bold headers */}
                 <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={20} />}>
                   <BenefitsSection text={result.benefits} />
                 </CollapsibleSection>
@@ -372,7 +397,6 @@ export default function App() {
                   </div>
                 </CollapsibleSection>
  
-                {/* Alternatives — bold product names */}
                 <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
                   <AlternativesSection text={result.alternatives} />
                 </CollapsibleSection>
@@ -412,7 +436,6 @@ export default function App() {
       </footer>
  
       <LoadingScreen isVisible={isAnalyzing} lang={lang} />
- 
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
  
       <LegalModal
@@ -431,4 +454,3 @@ export default function App() {
     </div>
   );
 }
- 
