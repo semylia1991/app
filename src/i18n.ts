@@ -41,7 +41,7 @@ export const t = {
     error: "An error occurred during analysis. Please try again.",
     questions: "Questions",
     limitReached: "Question limit reached (5/5)",
-    translating: "Translating..."
+    translating: "Translating...",
     signIn: "Sign in with Google",
     signOut: "Sign out",
     history: "History",
@@ -87,7 +87,7 @@ export const t = {
     error: "Произошла ошибка при анализе. Пожалуйста, попробуйте еще раз.",
     questions: "Вопросов",
     limitReached: "Лимит вопросов исчерпан (5/5)",
-    translating: "Перевод..."
+    translating: "Перевод...",
     signIn: "Войти через Google",
     signOut: "Выйти",
     history: "История",
@@ -133,7 +133,7 @@ export const t = {
     error: "Bei der Analyse ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.",
     questions: "Fragen",
     limitReached: "Fragenlimit erreicht (5/5)",
-    translating: "Übersetzung..."
+    translating: "Übersetzung...",
     signIn: "Mit Google anmelden",
     signOut: "Abmelden",
     history: "Verlauf",
@@ -179,7 +179,7 @@ export const t = {
     error: "Сталася помилка під час аналізу. Будь ласка, спробуйте ще раз.",
     questions: "Питань",
     limitReached: "Ліміт питань вичерпано (5/5)",
-    translating: "Переклад..."
+    translating: "Переклад...",
     signIn: "Увійти через Google",
     signOut: "Вийти",
     history: "Історія",
@@ -225,7 +225,7 @@ export const t = {
     error: "Ocurrió un error durante el análisis. Por favor, inténtalo de nuevo.",
     questions: "Preguntas",
     limitReached: "Límite de preguntas alcanzado (5/5)",
-    translating: "Traduciendo..."
+    translating: "Traduciendo...",
     signIn: "Entrar con Google",
     signOut: "Cerrar sesión",
     history: "Historial",
@@ -271,7 +271,7 @@ export const t = {
     error: "Une erreur s'est produite lors de l'analyse. Veuillez réessayer.",
     questions: "Questions",
     limitReached: "Limite de questions atteinte (5/5)",
-    translating: "Traduction..."
+    translating: "Traduction...",
     signIn: "Se connecter avec Google",
     signOut: "Se déconnecter",
     history: "Historique",
@@ -317,7 +317,7 @@ export const t = {
     error: "Si è verificato un errore durante l'analisi. Riprova.",
     questions: "Domande",
     limitReached: "Limite domande raggiunto (5/5)",
-    translating: "Traduzione..."
+    translating: "Traduzione...",
     signIn: "Accedi con Google",
     signOut: "Esci",
     history: "Cronologia",
@@ -363,7 +363,7 @@ export const t = {
     error: "Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin.",
     questions: "Sorular",
     limitReached: "Soru limiti doldu (5/5)",
-    translating: "Çevriliyor..."
+    translating: "Çevriliyor...",
     signIn: "Google ile giriş yap",
     signOut: "Çıkış yap",
     history: "Geçmiş",
@@ -409,7 +409,7 @@ export const t = {
     error: "حدث خطأ أثناء التحليل. يرجى المحاولة مرة أخرى.",
     questions: "الأسئلة",
     limitReached: "تم الوصول إلى حد الأسئلة (5/5)",
-    translating: "جارٍ الترجمة..."
+    translating: "جارٍ الترجمة...",
     signIn: "الدخول عبر Google",
     signOut: "تسجيل الخروج",
     history: "السجل",
