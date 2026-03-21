@@ -60,6 +60,18 @@ async function compressImage(base64: string): Promise<{ data: string; mimeType: 
   });
 }
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  ru: "Russian",
+  de: "German",
+  uk: "Ukrainian",
+  es: "Spanish",
+  fr: "French",
+  it: "Italian",
+  tr: "Turkish",
+  ar: "Arabic",
+};
+
 export async function analyzeProductImage(
   base64Image: string,
   mimeType: string,
@@ -70,7 +82,7 @@ export async function analyzeProductImage(
     action: "analyze",
     base64Image: compressed.data,
     mimeType: compressed.mimeType,
-    language,
+    language: LANGUAGE_NAMES[language] || "English",
   });
 }
 
