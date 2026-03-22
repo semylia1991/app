@@ -113,6 +113,11 @@ export default function App() {
  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isFirstRender = useRef(true);
+  // The result as it came from the initial analysis (source language).
+  // Never overwritten — used as the source for all translations.
+  const originalResult = useRef<AnalysisResult | null>(null);
+  // lang → translated AnalysisResult. Populated on first translation for each lang.
+  const translationCache = useRef<Map<Language, AnalysisResult>>(new Map());
  
   useEffect(() => {
     if (isFirstRender.current) {
@@ -120,15 +125,23 @@ export default function App() {
       return;
     }
  
-    if (!result || isAnalyzing) return;
+    if (!originalResult.current || isAnalyzing) return;
+ 
+    // Cache hit — instant switch, no API call.
+    const cached = translationCache.current.get(lang);
+    if (cached) {
+      setResult(cached);
+      return;
+    }
  
     let cancelled = false;
  
     const translate = async () => {
       setIsTranslating(true);
       try {
-        const translated = await translateAnalysisResult(result, lang);
+        const translated = await translateAnalysisResult(originalResult.current!, lang);
         if (!cancelled) {
+          translationCache.current.set(lang, translated);
           setResult(translated);
         }
       } catch (err) {
@@ -185,6 +198,10 @@ export default function App() {
  
       const mimeType = match[1];
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang);
+      // Store the original and seed the cache for the current language
+      // so switching away and back doesn't trigger a redundant translate call.
+      originalResult.current = analysis;
+      translationCache.current = new Map([[lang, analysis]]);
       setResult(analysis);
       setFile(null);
       setPreviewUrl(null);
@@ -203,6 +220,8 @@ export default function App() {
     setResult(null);
     setConsent(false);
     setError(null);
+    originalResult.current = null;
+    translationCache.current = new Map();
   };
  
   return (
@@ -217,7 +236,11 @@ export default function App() {
             <ScanHistory
               user={user}
               lang={lang}
-              onSelect={(r) => { setResult(r); }}
+              onSelect={(r) => {
+                originalResult.current = r;
+                translationCache.current = new Map([[lang, r]]);
+                setResult(r);
+              }}
             />
           )}
           <AuthButton lang={lang} onUserChange={setUser} />
