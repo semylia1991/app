@@ -1,14 +1,20 @@
 // All Gemini calls go through the Netlify Function /api/gemini.
 // The API key is NEVER sent to the browser.
-
+ 
 const FUNCTION_URL = "/api/gemini";
-
+ 
 export interface Ingredient {
   name: string;
   status: "🟢" | "🟡" | "🔴";
   description: string;
 }
-
+ 
+export interface Alternative {
+  name: string;
+  brand: string;
+  reason: string;
+}
+ 
 export interface AnalysisResult {
   productName: string;
   brand: string;
@@ -21,24 +27,24 @@ export interface AnalysisResult {
   warnings: string;
   interactions: string;
   shelfLife: string;
-  alternatives: string;
+  alternatives: Alternative[];
 }
-
+ 
 async function callFunction<T>(body: object): Promise<T> {
   const res = await fetch(FUNCTION_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-
+ 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Unknown error" }));
     throw new Error(err.error || `HTTP ${res.status}`);
   }
-
+ 
   return res.json() as Promise<T>;
 }
-
+ 
 async function compressImage(base64: string): Promise<{ data: string; mimeType: string }> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -59,7 +65,7 @@ async function compressImage(base64: string): Promise<{ data: string; mimeType: 
     img.src = base64;
   });
 }
-
+ 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
   ru: "Russian",
@@ -71,7 +77,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   tr: "Turkish",
   ar: "Arabic",
 };
-
+ 
 export async function analyzeProductImage(
   base64Image: string,
   mimeType: string,
@@ -85,7 +91,7 @@ export async function analyzeProductImage(
     language: LANGUAGE_NAMES[language] || "English",
   });
 }
-
+ 
 export async function translateAnalysisResult(
   result: AnalysisResult,
   targetLanguage: string
@@ -96,7 +102,7 @@ export async function translateAnalysisResult(
     targetLanguage,
   });
 }
-
+ 
 export async function askFollowUpQuestion(
   question: string,
   context: AnalysisResult,
