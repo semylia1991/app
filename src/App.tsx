@@ -1,3 +1,4 @@
+import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -78,7 +79,7 @@ function BenefitsSection({ text }: { text: string }) {
  
 // ── Product hero image (main results header) ─────────────────────────────────
  
-function ProductHeroImage({ name, brand }: { name: string; brand: string }) {
+function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: string; userPhoto?: string | null }) {
   const [src, setSrc] = useState<string | null>(null);
   const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
  
@@ -86,12 +87,19 @@ function ProductHeroImage({ name, brand }: { name: string; brand: string }) {
     let cancelled = false;
     fetchProductImage(name, brand).then((url) => {
       if (!cancelled) {
-        setSrc(url);
-        setState(url ? 'loaded' : 'error');
+        if (url) {
+          setSrc(url);
+          setState('loaded');
+        } else if (userPhoto) {
+          setSrc(userPhoto);
+          setState('loaded');
+        } else {
+          setState('error');
+        }
       }
     });
     return () => { cancelled = true; };
-  }, [name, brand]);
+  }, [name, brand, userPhoto]);
  
   if (state === 'error') return null;
  
@@ -120,6 +128,7 @@ export default function App() {
   const [lang, setLang] = useState<Language>('en');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [scanPhotoUrl, setScanPhotoUrl] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -132,10 +141,7 @@ export default function App() {
  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isFirstRender = useRef(true);
-  // The result as it came from the initial analysis (source language).
-  // Never overwritten — used as the source for all translations.
   const originalResult = useRef<AnalysisResult | null>(null);
-  // lang → translated AnalysisResult. Populated on first translation for each lang.
   const translationCache = useRef<Map<Language, AnalysisResult>>(new Map());
  
   useEffect(() => {
@@ -146,7 +152,6 @@ export default function App() {
  
     if (!originalResult.current || isAnalyzing) return;
  
-    // Cache hit — instant switch, no API call.
     const cached = translationCache.current.get(lang);
     if (cached) {
       setResult(cached);
@@ -210,7 +215,7 @@ export default function App() {
  
     setIsAnalyzing(true);
     setError(null);
-    posthog.capture('scan_started', { lang })
+    posthog.capture('scan_started', { lang });
  
     try {
       const match = previewUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
@@ -218,23 +223,24 @@ export default function App() {
  
       const mimeType = match[1];
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang);
-      // Store the original and seed the cache for the current language
-      // so switching away and back doesn't trigger a redundant translate call.
+ 
       originalResult.current = analysis;
       translationCache.current = new Map([[lang, analysis]]);
       setResult(analysis);
+      setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
       await saveScanToHistory(analysis);
-     posthog.capture('scan_completed', {
-  product_name: analysis.productName,
-  brand: analysis.brand,
-  lang,
-})
+ 
+      posthog.capture('scan_completed', {
+        product_name: analysis.productName,
+        brand: analysis.brand,
+        lang,
+      });
     } catch (err) {
       console.error(err);
       setError(t[lang].error);
-     posthog.capture('scan_error', { lang })
+      posthog.capture('scan_error', { lang });
     } finally {
       setIsAnalyzing(false);
     }
@@ -243,6 +249,7 @@ export default function App() {
   const handleReset = () => {
     setFile(null);
     setPreviewUrl(null);
+    setScanPhotoUrl(null);
     setResult(null);
     setConsent(false);
     setError(null);
@@ -257,23 +264,26 @@ export default function App() {
  
       <header className="pt-6 pb-4 px-4 text-center relative">
         {/* Auth row */}
-        <div className="flex items-center justify-end gap-2 mb-3">
-          {user && (
-            <ScanHistory
-              user={user}
-              lang={lang}
-              onSelect={(r) => {
-                originalResult.current = r;
-                translationCache.current = new Map([[lang, r]]);
-                setResult(r);
-              }}
-            />
-          )}
-          <AuthButton lang={lang} onUserChange={(u) => {
-  setUser(u)
-  if (u) posthog.identify(u.id, { email: u.email })
-  else posthog.reset()
-}} />
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <img src={logo} alt="logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+          <div className="flex items-center gap-2">
+            {user && (
+              <ScanHistory
+                user={user}
+                lang={lang}
+                onSelect={(r) => {
+                  originalResult.current = r;
+                  translationCache.current = new Map([[lang, r]]);
+                  setResult(r);
+                }}
+              />
+            )}
+            <AuthButton lang={lang} onUserChange={(u) => {
+              setUser(u);
+              if (u) posthog.identify(u.id, { email: u.email });
+              else posthog.reset();
+            }} />
+          </div>
         </div>
  
         <LanguageSelector currentLang={lang} onSelect={setLang} />
@@ -387,7 +397,7 @@ export default function App() {
                 <h2 className="text-sm font-serif tracking-[0.2em] text-[#B89F7A] uppercase mb-4">
                   {t[lang].ingredientAnalysis}
                 </h2>
-                <ProductHeroImage name={result.productName} brand={result.brand} />
+                <ProductHeroImage name={result.productName} brand={result.brand} userPhoto={scanPhotoUrl} />
                 <h3 className="text-2xl font-serif text-[#2C3E50] mb-1">{result.productName}</h3>
                 <p className="text-sm text-[#4A4A4A] italic">{result.brand}</p>
                 {isTranslating && (
@@ -438,9 +448,7 @@ export default function App() {
                 </CollapsibleSection>
  
                 <CollapsibleSection title={t[lang].interactions} icon={<Zap size={20} />}>
-                  <div className="prose prose-sm prose-stone max-w-none">
-                    <ReactMarkdown>{result.interactions}</ReactMarkdown>
-                  </div>
+                  <BenefitsSection text={result.interactions} />
                 </CollapsibleSection>
  
                 <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={20} />}>
