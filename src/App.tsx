@@ -10,6 +10,8 @@ import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
 import { LegalModal, PrivacyPolicyContent, ImpressumContent } from './components/LegalModals';
+import { fetchProductImage } from './lib/productImage';
+import { AlternativesSection } from './components/AlternativesSection';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -73,24 +75,40 @@ function BenefitsSection({ text }: { text: string }) {
   );
 }
  
-function AlternativesSection({ text }: { text: string }) {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+// ── Product hero image (main results header) ─────────────────────────────────
+ 
+function ProductHeroImage({ name, brand }: { name: string; brand: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
+ 
+  useEffect(() => {
+    let cancelled = false;
+    fetchProductImage(name, brand).then((url) => {
+      if (!cancelled) {
+        setSrc(url);
+        setState(url ? 'loaded' : 'error');
+      }
+    });
+    return () => { cancelled = true; };
+  }, [name, brand]);
+ 
+  if (state === 'error') return null;
+ 
   return (
-    <div className="space-y-3 text-sm text-[#4A4A4A]">
-      {lines.map((line, i) => {
-        const cleaned = line.replace(/\*\*/g, '').trim();
-        const match = cleaned.match(/^(.+?)\s[—–-]\s(.+)$/);
-        if (match) {
-          return (
-            <p key={i}>
-              <strong className="text-[#2C3E50]">{match[1]}</strong>
-              {' — '}
-              {match[2]}
-            </p>
-          );
-        }
-        return <p key={i} className="font-bold text-[#2C3E50]">{cleaned}</p>;
-      })}
+    <div className="flex justify-center mb-4">
+      <div className="w-28 h-28 rounded-sm border border-[#D4C3A3] bg-[#F5F0E8] overflow-hidden flex items-center justify-center shadow-sm">
+        {state === 'loading' && (
+          <div className="w-6 h-6 rounded-full border-2 border-[#B89F7A]/30 border-t-[#B89F7A] animate-spin" />
+        )}
+        {state === 'loaded' && src && (
+          <img
+            src={src}
+            alt={name}
+            className="w-full h-full object-contain p-2"
+            onError={() => setState('error')}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -354,9 +372,10 @@ export default function App() {
               className="w-full max-w-2xl bg-[#FDFBF7] regency-border p-6 md:p-10 shadow-xl"
             >
               <div className="text-center mb-8 border-b border-[#D4C3A3] pb-6">
-                <h2 className="text-sm font-serif tracking-[0.2em] text-[#B89F7A] uppercase mb-2">
+                <h2 className="text-sm font-serif tracking-[0.2em] text-[#B89F7A] uppercase mb-4">
                   {t[lang].ingredientAnalysis}
                 </h2>
+                <ProductHeroImage name={result.productName} brand={result.brand} />
                 <h3 className="text-2xl font-serif text-[#2C3E50] mb-1">{result.productName}</h3>
                 <p className="text-sm text-[#4A4A4A] italic">{result.brand}</p>
                 {isTranslating && (
@@ -421,7 +440,7 @@ export default function App() {
                 </CollapsibleSection>
  
                 <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
-                  <AlternativesSection text={result.alternatives} />
+                  <AlternativesSection alternatives={result.alternatives} />
                 </CollapsibleSection>
               </div>
  
@@ -477,3 +496,4 @@ export default function App() {
     </div>
   );
 }
+ 
