@@ -210,6 +210,7 @@ export default function App() {
  
     setIsAnalyzing(true);
     setError(null);
+    posthog.capture('scan_started', { lang })
  
     try {
       const match = previewUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
@@ -225,9 +226,15 @@ export default function App() {
       setFile(null);
       setPreviewUrl(null);
       await saveScanToHistory(analysis);
+     posthog.capture('scan_completed', {
+  product_name: analysis.productName,
+  brand: analysis.brand,
+  lang,
+})
     } catch (err) {
       console.error(err);
       setError(t[lang].error);
+     posthog.capture('scan_error', { lang })
     } finally {
       setIsAnalyzing(false);
     }
@@ -262,7 +269,11 @@ export default function App() {
               }}
             />
           )}
-          <AuthButton lang={lang} onUserChange={setUser} />
+          <AuthButton lang={lang} onUserChange={(u) => {
+  setUser(u)
+  if (u) posthog.identify(u.id, { email: u.email })
+  else posthog.reset()
+}} />
         </div>
  
         <LanguageSelector currentLang={lang} onSelect={setLang} />
