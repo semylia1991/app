@@ -7,9 +7,9 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
  
 // ОБНОВЛЕНО: Используем актуальную модель 2026 года
-
+ 
 const MODEL = "gemini-2.5-flash";
-
+ 
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -59,7 +59,7 @@ async function startServer() {
           Formatting Rules:
           - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
           - analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
-          - alternatives: List product names in **bold**, each on a new line.
+          - alternatives: Return 3–5 real products as a JSON array. Each item: "name" (product name), "brand" (manufacturer), "reason" (one sentence why it's a good alternative).
           - usage: Use this exact format with emojis. Use DOUBLE NEWLINES between items to create clear paragraphs:
             📋 How to Apply: [details]
  
@@ -107,7 +107,18 @@ async function startServer() {
                 warnings:     { type: Type.STRING },
                 interactions: { type: Type.STRING },
                 shelfLife:    { type: Type.STRING },
-                alternatives: { type: Type.STRING },
+                alternatives: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      name:   { type: Type.STRING },
+                      brand:  { type: Type.STRING },
+                      reason: { type: Type.STRING },
+                    },
+                    required: ["name", "brand", "reason"],
+                  },
+                },
               },
               required: [
                 "productName", "brand", "productType", "analysis", "ingredients",
