@@ -1,6 +1,5 @@
 import React from 'react';
 import { Language } from '../i18n';
-import { Sparkles } from 'lucide-react';
  
 interface Props {
   currentLang: Language;
@@ -22,14 +21,6 @@ const LANGUAGES: { code: Language; flag: string; label: string }[] = [
 export function LanguageSelector({ currentLang, onSelect }: Props) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="text-[#B89F7A]">
-        <div className="relative">
-          <Sparkles size={20} strokeWidth={1.5} />
-          <span className="absolute -top-1 -right-1 text-[9px] font-bold">+</span>
-          <span className="absolute -bottom-1 -left-1 text-[9px] font-bold">-</span>
-        </div>
-      </div>
- 
       <div className="flex flex-wrap justify-center gap-1">
         {LANGUAGES.map(({ code, flag, label }) => (
           <button
