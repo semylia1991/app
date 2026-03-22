@@ -127,7 +127,7 @@ Provide the analysis in ${language}.
 Formatting Rules:
 - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
 - analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
-- alternatives: For each alternative, write the product name in **bold** followed by " — " and one sentence in normal text explaining why this product was chosen as an alternative (e.g. similar ingredients, same skin concern, gentler formula, etc.). Each product on a new line.
+- alternatives: Return 3–5 real products as a JSON array. Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence why it is a good alternative — similar ingredients, same concern, gentler formula, etc.).
 
 - usage: Use this exact format with emojis. Use DOUBLE NEWLINES between items:
 📋 How to Apply: [details]
@@ -187,7 +187,18 @@ Ensure the output strictly follows the JSON schema.
       warnings:     { type: "string" },
       interactions: { type: "string" },
       shelfLife:    { type: "string" },
-      alternatives: { type: "string" },
+      alternatives: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name:   { type: "string" },
+            brand:  { type: "string" },
+            reason: { type: "string" },
+          },
+          required: ["name", "brand", "reason"],
+        },
+      },
     },
     required: [
       "productName", "brand", "productType", "analysis", "ingredients",
