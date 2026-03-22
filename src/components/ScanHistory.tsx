@@ -5,18 +5,57 @@ import { supabase, ScanRecord } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { t, Language } from '../i18n';
 import { AnalysisResult } from '../services/ai';
-
+import { fetchProductImage } from '../lib/productImage';
+ 
 interface Props {
   user: User;
   lang: Language;
   onSelect: (result: AnalysisResult) => void;
 }
-
+ 
+// ── Thumbnail with lazy Open Beauty Facts fetch ──────────────────────────────
+function ScanThumbnail({ name, brand }: { name: string; brand: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
+ 
+  useEffect(() => {
+    let cancelled = false;
+    fetchProductImage(name, brand).then((url) => {
+      if (!cancelled) {
+        setSrc(url);
+        setState(url ? 'loaded' : 'error');
+      }
+    });
+    return () => { cancelled = true; };
+  }, [name, brand]);
+ 
+  return (
+    <div className="shrink-0 w-12 h-12 rounded-sm border border-[#D4C3A3]/50 bg-[#F5F0E8] overflow-hidden flex items-center justify-center">
+      {state === 'loading' && (
+        <div className="w-4 h-4 rounded-full border-2 border-[#B89F7A]/30 border-t-[#B89F7A] animate-spin" />
+      )}
+      {state === 'loaded' && src && (
+        <img
+          src={src}
+          alt={name}
+          className="w-full h-full object-contain p-0.5"
+          onError={() => setState('error')}
+        />
+      )}
+      {state === 'error' && (
+        <svg viewBox="0 0 40 56" className="w-6 h-8 text-[#D4C3A3]" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 0h10v5h3a2 2 0 0 1 2 2v4a8 8 0 0 1 4 7v28a8 8 0 0 1-8 8H14a8 8 0 0 1-8-8V18a8 8 0 0 1 4-7V7a2 2 0 0 1 2-2h3V0z" opacity=".4"/>
+        </svg>
+      )}
+    </div>
+  );
+}
+ 
 export function ScanHistory({ user, lang, onSelect }: Props) {
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
+ 
   const fetchScans = async () => {
     setLoading(true);
     const { data } = await supabase
@@ -28,17 +67,17 @@ export function ScanHistory({ user, lang, onSelect }: Props) {
     setScans(data || []);
     setLoading(false);
   };
-
+ 
   useEffect(() => {
     if (isOpen) fetchScans();
   }, [isOpen]);
-
+ 
   const deleteScan = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     await supabase.from('scan_history').delete().eq('id', id);
     setScans(prev => prev.filter(s => s.id !== id));
   };
-
+ 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString(lang === 'ar' ? 'ar' : lang === 'uk' ? 'uk' : lang, {
@@ -48,7 +87,7 @@ export function ScanHistory({ user, lang, onSelect }: Props) {
       minute: '2-digit',
     });
   };
-
+ 
   return (
     <>
       <button
@@ -58,7 +97,7 @@ export function ScanHistory({ user, lang, onSelect }: Props) {
         <Clock size={12} />
         <span>{t[lang].history}</span>
       </button>
-
+ 
       <AnimatePresence>
         {isOpen && (
           <>
@@ -82,7 +121,7 @@ export function ScanHistory({ user, lang, onSelect }: Props) {
                   <X size={20} />
                 </button>
               </div>
-
+ 
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {loading && (
                   <p className="text-center text-[#B89F7A] text-sm py-8">...</p>
@@ -101,6 +140,7 @@ export function ScanHistory({ user, lang, onSelect }: Props) {
                       setIsOpen(false);
                     }}
                   >
+                    <ScanThumbnail name={scan.product_name} brand={scan.brand} />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-[#2C3E50] text-sm truncate">{scan.product_name}</p>
                       <p className="text-xs text-[#B89F7A] italic truncate">{scan.brand}</p>
