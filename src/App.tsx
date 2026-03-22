@@ -244,10 +244,10 @@ export default function App() {
  
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <div className="fixed top-0 left-0 w-full h-32 bg-gradient-to-b from-[#B89F7A]/10 to-transparent pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#B89F7A]/10 to-transparent pointer-events-none" />
+      <div className="fixed top-0 left-0 w-full h-32 bg-gradient-to-b from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
  
-      <header className="pt-6 pb-4 px-4 text-center relative z-10">
+      <header className="pt-6 pb-4 px-4 text-center relative">
         {/* Auth row */}
         <div className="flex items-center justify-end gap-2 mb-3">
           {user && (
@@ -281,7 +281,7 @@ export default function App() {
         <div className="w-24 h-[1px] bg-[#D4C3A3] mx-auto mt-6" />
       </header>
  
-      <main className="flex-grow flex flex-col items-center justify-center p-4 relative z-10">
+      <main className="flex-grow flex flex-col items-center justify-center p-4 relative">
         <AnimatePresence mode="wait">
           {!result ? (
             <motion.div
@@ -462,7 +462,7 @@ export default function App() {
         </AnimatePresence>
       </main>
  
-      <footer className="py-6 text-center text-xs text-[#B89F7A] relative z-10">
+      <footer className="py-6 text-center text-xs text-[#B89F7A] relative">
         <p className="mb-2">{t[lang].footerText}</p>
         <div className="flex justify-center gap-4">
           <button onClick={() => setIsPrivacyOpen(true)} className="hover:text-[#2C3E50] transition-colors underline decoration-[#B89F7A]/30 underline-offset-4">
