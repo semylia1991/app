@@ -129,19 +129,26 @@ Formatting Rules:
 - analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
 - alternatives: Return 3–5 real products as a JSON array. Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence why it is a good alternative — similar ingredients, same concern, gentler formula, etc.).
 
-- usage: Use this exact format with emojis. Use DOUBLE NEWLINES between items:
-📋 How to Apply: [details]
+- usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
+📋 [translated label for "How to Apply"]: [details]
 
-⏰ Frequency: [details]
+⏰ [translated label for "Frequency"]: [details]
 
-👤 Best Suited For: [details]
+👤 [translated label for "Best Suited For"]: [details]
 
-- benefits: Use this style with emojis and bullet points. Use DOUBLE NEWLINES between categories:
-🧱 [Benefit Category]:
+- benefits: Use this style with emojis and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
+🧱 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
 
-💧 [Benefit Category]:
+💧 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
+
+- sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names into ${language}. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
+⚠️ [translated side effect category name]:
+• [Ingredient] [description of potential reaction]
+
+🔴 [translated side effect category name]:
+• [Ingredient] [description of potential reaction]
 
 Ensure the output strictly follows the JSON schema.
 `;
