@@ -416,9 +416,7 @@ export default function App() {
                 </CollapsibleSection>
  
                 <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={20} />}>
-                  <div className="prose prose-sm prose-stone max-w-none">
-                    <ReactMarkdown>{result.sideEffects}</ReactMarkdown>
-                  </div>
+                  <BenefitsSection text={result.sideEffects} />
                 </CollapsibleSection>
  
                 <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={20} />}>
@@ -493,6 +491,9 @@ export default function App() {
         title={t[lang].impressum}
         content={<ImpressumContent />}
       />
+    </div>
+  );
+}
     </div>
   );
 }
