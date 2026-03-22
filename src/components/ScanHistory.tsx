@@ -1,167 +1,534 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, Trash2, ChevronRight, X } from 'lucide-react';
-import { supabase, ScanRecord } from '../lib/supabase';
-import type { User } from '@supabase/supabase-js';
-import { t, Language } from '../i18n';
-import { AnalysisResult } from '../services/ai';
-import { fetchProductImage } from '../lib/productImage';
+import { Loader2 } from 'lucide-react';
+import { Language } from '../i18n';
+ 
+interface Quote { author: string; text: string; }
+ 
+const QUOTES: Record<Language, Quote[]> = {
+  ru: [
+    { author: "Albert Einstein", text: "«Воображение важнее знаний, потому что именно оно позволяет человеку выходить за пределы очевидного и создавать будущее»" },
+    { author: "Steve Jobs", text: "«Единственный способ делать великую работу — любить то, что ты делаешь, несмотря на трудности и сомнения»" },
+    { author: "Nelson Mandela", text: "«Всё кажется невозможным до тех пор, пока это не сделано, и именно вера определяет силу человека»" },
+    { author: "Walt Disney", text: "«Если ты можешь мечтать об этом, значит способен это осуществить, если приложишь усилия и проявишь настойчивость»" },
+    { author: "Oprah Winfrey", text: "«Превращение ран в мудрость — это путь роста, который делает человека сильнее и помогает достигать большего»" },
+    { author: "Tony Robbins", text: "«Качество жизни определяется качеством вопросов, которые ты себе задаёшь, а не обстоятельствами вокруг»" },
+    { author: "Elon Musk", text: "«Если что-то действительно важно, ты делаешь это даже тогда, когда вероятность успеха невелика»" },
+    { author: "Henry Ford", text: "«Думаешь ли ты, что сможешь, или думаешь, что не сможешь — в обоих случаях ты прав»" },
+    { author: "Bruce Lee", text: "«Успешный человек — это обычный человек с лазерным фокусом на цели и дисциплиной»" },
+    { author: "Maya Angelou", text: "«Ты не можешь контролировать всё происходящее, но можешь контролировать свою реакцию и отношение»" },
+    { author: "Confucius", text: "«Не важно, как медленно ты идёшь, главное — не останавливаться и продолжать движение вперёд»" },
+    { author: "Napoleon Hill", text: "«Всё, что разум может представить и во что он может поверить, он способен достичь»" },
+    { author: "Mark Twain", text: "«Через годы ты будешь больше сожалеть о том, чего не сделал, чем о том, что сделал»" },
+    { author: "Jim Rohn", text: "«Либо ты управляешь днём, либо день управляет тобой, и выбор всегда остаётся за тобой»" },
+    { author: "Dwayne Johnson", text: "«Успех связан не с величием, а с последовательностью ежедневных усилий и дисциплины»" },
+    { author: "Serena Williams", text: "«Сила приходит не только от побед, но и от борьбы, которая делает тебя устойчивее»" },
+    { author: "Bill Gates", text: "«Успех — плохой учитель, потому что заставляет умных людей думать, что они не могут проиграть»" },
+    { author: "Jack Ma", text: "«Если ты не сдаёшься, у тебя всегда есть шанс, даже если путь кажется длинным и сложным»" },
+    { author: "Arnold Schwarzenegger", text: "«Сила не приходит от побед, она приходит от борьбы и преодоления трудностей»" },
+    { author: "Sheryl Sandberg", text: "«Успех достигается теми, кто не боится заявлять о себе и брать ответственность»" },
+    { author: "Michael Jordan", text: "«Я промахнулся тысячи раз, но именно это сделало меня тем, кем я стал, потому что каждая ошибка — это часть пути к успеху»" },
+    { author: "Jeff Bezos", text: "«Важно быть готовым к экспериментам, потому что именно они ведут к настоящим прорывам и новым возможностям»" },
+    { author: "Marie Curie", text: "«Ничего в жизни не стоит бояться, нужно лишь понимать происходящее и продолжать двигаться вперёд несмотря на трудности»" },
+    { author: "Stephen King", text: "«Талант дёшев, настоящую ценность создают дисциплина, упорство и готовность работать, когда другие уже сдались»" },
+    { author: "Paulo Coelho", text: "«Когда ты действительно чего-то хочешь, весь мир начинает помогать тебе найти путь к достижению этой цели»" },
+    { author: "Barack Obama", text: "«Перемены не придут сами по себе, если мы будем ждать других людей или более подходящего момента»" },
+    { author: "Malala Yousafzai", text: "«Один человек, одна книга и одна идея могут изменить ход истории, если есть смелость действовать»" },
+    { author: "Thomas Edison", text: "«Гений — это один процент вдохновения и девяносто девять процентов тяжёлого труда и постоянных попыток»" },
+    { author: "Leonardo da Vinci", text: "«Простота — это результат глубокого понимания, а не отсутствие сложности, и она требует большого мастерства»" },
+    { author: "Richard Branson", text: "«Ошибки неизбежны, но именно через них человек учится, развивается и достигает настоящего успеха»" },
+    { author: "Kobe Bryant", text: "«Будь одержим процессом развития, потому что результат всегда является следствием того, что ты делаешь каждый день»" },
+    { author: "Zig Ziglar", text: "«Ты можешь получить всё, что хочешь, если поможешь другим людям получить то, что важно для них»" },
+    { author: "Dale Carnegie", text: "«Настоящий успех строится на умении понимать людей и выстраивать с ними эффективное взаимодействие»" },
+    { author: "Ralph Waldo Emerson", text: "«Быть собой в мире, который постоянно пытается тебя изменить, — это уже огромное достижение»" },
+    { author: "Sun Tzu", text: "«Победа достигается ещё до начала битвы благодаря подготовке, дисциплине и стратегическому мышлению»" },
+    { author: "Peter Drucker", text: "«Лучший способ предсказать будущее — это активно создавать его своими действиями уже сегодня»" },
+    { author: "Gary Vaynerchuk", text: "«Терпение и последовательность важнее быстрого результата, потому что именно они формируют устойчивый успех»" },
+    { author: "Angela Merkel", text: "«Даже самые сложные проблемы можно решить, если сохранять настойчивость и искать пути через диалог и сотрудничество»" },
+    { author: "Friedrich Nietzsche", text: "«Тот, у кого есть смысл жить, способен выдержать почти любые трудности и продолжать движение вперёд»" },
+    { author: "Isaac Newton", text: "«Я видел дальше только потому, что стоял на плечах гигантов, и это показывает важность знаний и опыта предыдущих поколений»" },
+    { author: "Nikola Tesla", text: "«Будущее принадлежит тем, кто способен мыслить шире привычных рамок и не боится идти против общепринятых ограничений»" },
+    { author: "Frida Kahlo", text: "«Страдание может стать источником силы и самовыражения, если человек находит в нём смысл и продолжает двигаться вперёд»" },
+    { author: "George Bernard Shaw", text: "«Прогресс невозможен без перемен, а перемены требуют смелости отказаться от привычного и двигаться в неизвестность»" },
+    { author: "Muhammad Ali", text: "«Невозможное — это всего лишь мнение, которое существует до тех пор, пока кто-то не докажет обратное своими действиями»" },
+    { author: "Carl Jung", text: "«То, чему ты сопротивляешься, продолжает существовать, поэтому важно осознавать и принимать происходящее, чтобы двигаться дальше»" },
+    { author: "Sigmund Freud", text: "«Понимание себя — это основа внутренней свободы, которая позволяет человеку принимать осознанные решения и жить полной жизнью»" },
+    { author: "Andrew Carnegie", text: "«Богатство приходит к тем, кто умеет сотрудничать, объединять усилия и использовать возможности, которые даёт взаимодействие»" },
+    { author: "Benjamin Franklin", text: "«Энергия и настойчивость побеждают всё, если человек направляет их на достижение конкретной цели и не отвлекается»" },
+    { author: "Eleanor Roosevelt", text: "«Будущее принадлежит тем, кто верит в красоту своих мечт и готов работать ради их воплощения несмотря на трудности»" },
+    { author: "Viktor Frankl", text: "«У человека можно отнять почти всё, кроме свободы выбирать своё отношение к происходящему и находить смысл в любой ситуации»" },
+  ],
+  en: [
+    { author: "Albert Einstein", text: "«Imagination is more important than knowledge, for it allows a person to go beyond the obvious and create the future»" },
+    { author: "Steve Jobs", text: "«The only way to do great work is to love what you do, despite the difficulties and doubts»" },
+    { author: "Nelson Mandela", text: "«Everything seems impossible until it is done, and it is faith that determines the strength of a person»" },
+    { author: "Walt Disney", text: "«If you can dream it, you can achieve it, if you put in the effort and show persistence»" },
+    { author: "Oprah Winfrey", text: "«Turning wounds into wisdom is the path of growth that makes a person stronger and helps achieve more»" },
+    { author: "Tony Robbins", text: "«The quality of your life is determined by the quality of the questions you ask yourself, not the circumstances around you»" },
+    { author: "Elon Musk", text: "«If something is truly important, you do it even when the odds of success are low»" },
+    { author: "Henry Ford", text: "«Whether you think you can or think you can't — you're right»" },
+    { author: "Bruce Lee", text: "«A successful person is an ordinary person with laser focus on goals and discipline»" },
+    { author: "Maya Angelou", text: "«You cannot control everything that happens, but you can control your reaction and attitude»" },
+    { author: "Confucius", text: "«It does not matter how slowly you go, as long as you do not stop and keep moving forward»" },
+    { author: "Napoleon Hill", text: "«Whatever the mind can conceive and believe, it can achieve»" },
+    { author: "Mark Twain", text: "«Twenty years from now you will be more disappointed by the things you didn't do than by the ones you did»" },
+    { author: "Jim Rohn", text: "«Either you run the day or the day runs you, and the choice always remains with you»" },
+    { author: "Dwayne Johnson", text: "«Success isn't about greatness, it's about consistency in daily effort and discipline»" },
+    { author: "Serena Williams", text: "«Strength comes not only from victories, but from the struggle that makes you more resilient»" },
+    { author: "Bill Gates", text: "«Success is a lousy teacher because it seduces smart people into thinking they can't lose»" },
+    { author: "Jack Ma", text: "«If you don't give up, you always have a chance, even if the path seems long and difficult»" },
+    { author: "Arnold Schwarzenegger", text: "«Strength does not come from winning, it comes from struggle and overcoming difficulties»" },
+    { author: "Sheryl Sandberg", text: "«Success is achieved by those who are not afraid to speak up and take responsibility»" },
+    { author: "Michael Jordan", text: "«I have missed thousands of shots, but that is what made me who I am, because every mistake is part of the path to success»" },
+    { author: "Jeff Bezos", text: "«It's important to be willing to experiment, because they lead to real breakthroughs and new opportunities»" },
+    { author: "Marie Curie", text: "«Nothing in life is to be feared, only to be understood, and you must keep moving forward despite difficulties»" },
+    { author: "Stephen King", text: "«Talent is cheap; what matters is discipline, persistence, and the willingness to work when others have already quit»" },
+    { author: "Paulo Coelho", text: "«When you really want something, the whole world starts helping you find the path to achieving that goal»" },
+    { author: "Barack Obama", text: "«Change will not come if we wait for other people or a better moment»" },
+    { author: "Malala Yousafzai", text: "«One person, one book, and one idea can change the course of history, if there is courage to act»" },
+    { author: "Thomas Edison", text: "«Genius is one percent inspiration and ninety-nine percent hard work and constant attempts»" },
+    { author: "Leonardo da Vinci", text: "«Simplicity is the result of deep understanding, not the absence of complexity, and it requires great mastery»" },
+    { author: "Richard Branson", text: "«Mistakes are inevitable, but it is through them that a person learns, grows, and achieves true success»" },
+    { author: "Kobe Bryant", text: "«Be obsessed with the process of development, because results are always a consequence of what you do every day»" },
+    { author: "Zig Ziglar", text: "«You can have everything you want in life if you help enough other people get what they want»" },
+    { author: "Dale Carnegie", text: "«True success is built on the ability to understand people and build effective relationships with them»" },
+    { author: "Ralph Waldo Emerson", text: "«To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment»" },
+    { author: "Sun Tzu", text: "«Victory is achieved before the battle begins through preparation, discipline, and strategic thinking»" },
+    { author: "Peter Drucker", text: "«The best way to predict the future is to actively create it with your actions today»" },
+    { author: "Gary Vaynerchuk", text: "«Patience and consistency matter more than quick results, because they form lasting success»" },
+    { author: "Angela Merkel", text: "«Even the most complex problems can be solved if you maintain persistence and seek solutions through dialogue»" },
+    { author: "Friedrich Nietzsche", text: "«He who has a why to live can bear almost any how»" },
+    { author: "Isaac Newton", text: "«If I have seen further, it is by standing on the shoulders of giants, showing the importance of knowledge and experience»" },
+    { author: "Nikola Tesla", text: "«The future belongs to those who can think beyond conventional limits and are not afraid to go against accepted boundaries»" },
+    { author: "Frida Kahlo", text: "«Suffering can become a source of strength and self-expression, if a person finds meaning in it and keeps moving forward»" },
+    { author: "George Bernard Shaw", text: "«Progress is impossible without change, and change requires the courage to abandon the familiar and move into the unknown»" },
+    { author: "Muhammad Ali", text: "«Impossible is just an opinion that exists until someone proves otherwise with their actions»" },
+    { author: "Carl Jung", text: "«What you resist persists, so it is important to acknowledge and accept what is happening in order to move forward»" },
+    { author: "Sigmund Freud", text: "«Understanding yourself is the foundation of inner freedom, which allows a person to make conscious decisions and live fully»" },
+    { author: "Andrew Carnegie", text: "«Wealth comes to those who know how to collaborate, unite efforts, and use the opportunities that interaction provides»" },
+    { author: "Benjamin Franklin", text: "«Energy and persistence conquer all things, if a person directs them toward a specific goal and stays focused»" },
+    { author: "Eleanor Roosevelt", text: "«The future belongs to those who believe in the beauty of their dreams and are willing to work to bring them to life»" },
+    { author: "Viktor Frankl", text: "«Everything can be taken from a person except the freedom to choose one's attitude in any given set of circumstances»" },
+  ],
+  de: [
+    { author: "Albert Einstein", text: "«Fantasie ist wichtiger als Wissen, denn sie erlaubt es dem Menschen, über das Offensichtliche hinauszugehen und die Zukunft zu gestalten»" },
+    { author: "Steve Jobs", text: "«Der einzige Weg, großartige Arbeit zu leisten, ist zu lieben, was man tut, trotz aller Schwierigkeiten und Zweifel»" },
+    { author: "Nelson Mandela", text: "«Alles scheint unmöglich, bis es getan ist, und der Glaube bestimmt die Stärke eines Menschen»" },
+    { author: "Walt Disney", text: "«Wenn du es träumen kannst, kannst du es auch erreichen, wenn du Einsatz zeigst und Ausdauer beweist»" },
+    { author: "Oprah Winfrey", text: "«Wunden in Weisheit zu verwandeln ist der Weg des Wachstums, der einen Menschen stärker macht»" },
+    { author: "Tony Robbins", text: "«Die Qualität deines Lebens wird durch die Qualität der Fragen bestimmt, die du dir selbst stellst»" },
+    { author: "Elon Musk", text: "«Wenn etwas wirklich wichtig ist, tust du es, auch wenn die Erfolgswahrscheinlichkeit gering ist»" },
+    { author: "Henry Ford", text: "«Egal ob du denkst, du kannst es, oder du denkst, du kannst es nicht — du hast in beiden Fällen recht»" },
+    { author: "Bruce Lee", text: "«Ein erfolgreicher Mensch ist ein gewöhnlicher Mensch mit einem Laserfokus auf seine Ziele und Disziplin»" },
+    { author: "Maya Angelou", text: "«Du kannst nicht alles kontrollieren, was passiert, aber du kannst deine Reaktion und deine Einstellung kontrollieren»" },
+    { author: "Confucius", text: "«Es spielt keine Rolle, wie langsam du gehst, solange du nicht aufhörst und weiter voranschreitest»" },
+    { author: "Napoleon Hill", text: "«Was der Geist begreifen und glauben kann, das kann er auch erreichen»" },
+    { author: "Mark Twain", text: "«In zwanzig Jahren wirst du mehr über die Dinge enttäuscht sein, die du nicht getan hast, als über die, die du getan hast»" },
+    { author: "Jim Rohn", text: "«Entweder du steuerst den Tag oder der Tag steuert dich, und die Wahl liegt immer bei dir»" },
+    { author: "Dwayne Johnson", text: "«Erfolg hat nichts mit Größe zu tun, sondern mit der Konsequenz täglicher Anstrengung und Disziplin»" },
+    { author: "Serena Williams", text: "«Stärke kommt nicht nur von Siegen, sondern auch vom Kampf, der dich widerstandsfähiger macht»" },
+    { author: "Bill Gates", text: "«Erfolg ist ein schlechter Lehrer, weil er kluge Menschen glauben lässt, sie könnten nicht verlieren»" },
+    { author: "Jack Ma", text: "«Wenn du nicht aufgibst, hast du immer eine Chance, auch wenn der Weg lang und schwierig erscheint»" },
+    { author: "Arnold Schwarzenegger", text: "«Stärke kommt nicht vom Siegen, sie kommt vom Kämpfen und vom Überwinden von Schwierigkeiten»" },
+    { author: "Sheryl Sandberg", text: "«Erfolg wird von denen erreicht, die keine Angst haben, sich zu äußern und Verantwortung zu übernehmen»" },
+    { author: "Michael Jordan", text: "«Ich habe tausende Male danebengeschossen, aber genau das hat mich zu dem gemacht, der ich bin»" },
+    { author: "Jeff Bezos", text: "«Es ist wichtig, bereit zu sein zu experimentieren, denn sie führen zu echten Durchbrüchen und neuen Möglichkeiten»" },
+    { author: "Marie Curie", text: "«Nichts im Leben ist zu fürchten, es muss nur verstanden werden, und man muss trotz Schwierigkeiten weitermachen»" },
+    { author: "Stephen King", text: "«Talent ist billig; was zählt, sind Disziplin, Ausdauer und die Bereitschaft zu arbeiten, wenn andere bereits aufgegeben haben»" },
+    { author: "Paulo Coelho", text: "«Wenn du wirklich etwas willst, beginnt die ganze Welt dir zu helfen, den Weg zu diesem Ziel zu finden»" },
+    { author: "Barack Obama", text: "«Veränderungen kommen nicht von selbst, wenn wir auf andere Menschen oder den richtigen Moment warten»" },
+    { author: "Malala Yousafzai", text: "«Ein Mensch, ein Buch und eine Idee können den Lauf der Geschichte ändern, wenn der Mut vorhanden ist zu handeln»" },
+    { author: "Thomas Edison", text: "«Genie ist ein Prozent Inspiration und neunundneunzig Prozent harte Arbeit und ständige Versuche»" },
+    { author: "Leonardo da Vinci", text: "«Einfachheit ist das Ergebnis tiefen Verständnisses, nicht das Fehlen von Komplexität, und sie erfordert großes Können»" },
+    { author: "Richard Branson", text: "«Fehler sind unvermeidlich, aber durch sie lernt, wächst und erreicht der Mensch wahren Erfolg»" },
+    { author: "Kobe Bryant", text: "«Sei besessen vom Entwicklungsprozess, denn Ergebnisse sind immer die Folge dessen, was du jeden Tag tust»" },
+    { author: "Zig Ziglar", text: "«Du kannst alles bekommen, was du willst, wenn du anderen Menschen hilfst, das zu bekommen, was ihnen wichtig ist»" },
+    { author: "Dale Carnegie", text: "«Wahrer Erfolg baut auf der Fähigkeit auf, Menschen zu verstehen und effektive Beziehungen mit ihnen aufzubauen»" },
+    { author: "Ralph Waldo Emerson", text: "«Du selbst zu sein in einer Welt, die dich ständig verändern will, ist eine große Leistung»" },
+    { author: "Sun Tzu", text: "«Der Sieg wird errungen, bevor die Schlacht beginnt, durch Vorbereitung, Disziplin und strategisches Denken»" },
+    { author: "Peter Drucker", text: "«Der beste Weg, die Zukunft vorherzusagen, ist sie aktiv mit deinen heutigen Handlungen zu gestalten»" },
+    { author: "Gary Vaynerchuk", text: "«Geduld und Konsequenz sind wichtiger als schnelle Ergebnisse, denn sie bilden nachhaltigen Erfolg»" },
+    { author: "Angela Merkel", text: "«Selbst die komplexesten Probleme lassen sich lösen, wenn man Beharrlichkeit bewahrt und Wege durch Dialog sucht»" },
+    { author: "Friedrich Nietzsche", text: "«Wer ein Warum hat zu leben, erträgt fast jedes Wie»" },
+    { author: "Isaac Newton", text: "«Wenn ich weiter gesehen habe, so deshalb, weil ich auf den Schultern von Riesen stand»" },
+    { author: "Nikola Tesla", text: "«Die Zukunft gehört denen, die über konventionelle Grenzen hinaus denken und nicht fürchten, gegen Normen zu verstoßen»" },
+    { author: "Frida Kahlo", text: "«Leiden kann zur Quelle der Stärke werden, wenn der Mensch darin Sinn findet und weitergeht»" },
+    { author: "George Bernard Shaw", text: "«Fortschritt ist ohne Wandel unmöglich, und Wandel erfordert den Mut, das Gewohnte aufzugeben»" },
+    { author: "Muhammad Ali", text: "«Unmöglich ist nur eine Meinung, die existiert, bis jemand das Gegenteil mit seinen Taten beweist»" },
+    { author: "Carl Jung", text: "«Was du widerstehst, besteht weiter; deshalb ist es wichtig, das Geschehende anzunehmen, um voranzukommen»" },
+    { author: "Sigmund Freud", text: "«Sich selbst zu verstehen ist die Grundlage innerer Freiheit, die bewusste Entscheidungen ermöglicht»" },
+    { author: "Andrew Carnegie", text: "«Reichtum kommt zu denen, die zusammenarbeiten, Kräfte bündeln und die Möglichkeiten der Zusammenarbeit nutzen»" },
+    { author: "Benjamin Franklin", text: "«Energie und Beharrlichkeit besiegen alles, wenn der Mensch sie auf ein konkretes Ziel richtet»" },
+    { author: "Eleanor Roosevelt", text: "«Die Zukunft gehört denen, die an die Schönheit ihrer Träume glauben und bereit sind, dafür zu arbeiten»" },
+    { author: "Viktor Frankl", text: "«Dem Menschen kann alles genommen werden außer der Freiheit, seine Einstellung zu den Dingen selbst zu wählen»" },
+  ],
+  uk: [
+    { author: "Albert Einstein", text: "«Уява важливіша за знання, бо саме вона дозволяє людині виходити за межі очевидного і творити майбутнє»" },
+    { author: "Steve Jobs", text: "«Єдиний спосіб робити велику роботу — любити те, що ти робиш, попри труднощі й сумніви»" },
+    { author: "Nelson Mandela", text: "«Все здається неможливим доти, поки це не зроблено, і саме віра визначає силу людини»" },
+    { author: "Walt Disney", text: "«Якщо ти можеш про це мріяти, значить, здатен це здійснити, якщо докладеш зусиль і виявиш наполегливість»" },
+    { author: "Oprah Winfrey", text: "«Перетворення ран на мудрість — це шлях зростання, який робить людину сильнішою і допомагає досягати більшого»" },
+    { author: "Tony Robbins", text: "«Якість життя визначається якістю запитань, які ти ставиш собі, а не обставинами навколо»" },
+    { author: "Elon Musk", text: "«Якщо щось справді важливе, ти робиш це, навіть коли ймовірність успіху невелика»" },
+    { author: "Henry Ford", text: "«Думаєш ти, що зможеш, чи думаєш, що не зможеш — в обох випадках ти маєш рацію»" },
+    { author: "Bruce Lee", text: "«Успішна людина — це звичайна людина з лазерним фокусом на цілі та дисципліною»" },
+    { author: "Maya Angelou", text: "«Ти не можеш контролювати все, що відбувається, але можеш контролювати свою реакцію і ставлення»" },
+    { author: "Confucius", text: "«Не важливо, як повільно ти йдеш, головне — не зупинятися і продовжувати рух уперед»" },
+    { author: "Napoleon Hill", text: "«Все, що розум може уявити і в що він може повірити, він здатен досягти»" },
+    { author: "Mark Twain", text: "«Через роки ти будеш більше шкодувати про те, чого не зробив, ніж про те, що зробив»" },
+    { author: "Jim Rohn", text: "«Або ти керуєш днем, або день керує тобою, і вибір завжди залишається за тобою»" },
+    { author: "Dwayne Johnson", text: "«Успіх пов'язаний не з величчю, а з послідовністю щоденних зусиль і дисципліни»" },
+    { author: "Serena Williams", text: "«Сила приходить не лише від перемог, а й від боротьби, яка робить тебе стійкішим»" },
+    { author: "Bill Gates", text: "«Успіх — поганий учитель, бо змушує розумних людей думати, що вони не можуть програти»" },
+    { author: "Jack Ma", text: "«Якщо ти не здаєшся, у тебе завжди є шанс, навіть якщо шлях здається довгим і складним»" },
+    { author: "Arnold Schwarzenegger", text: "«Сила приходить не від перемог, вона приходить від боротьби та подолання труднощів»" },
+    { author: "Sheryl Sandberg", text: "«Успіху досягають ті, хто не боїться заявляти про себе і брати відповідальність»" },
+    { author: "Michael Jordan", text: "«Я промахувався тисячі разів, але саме це зробило мене тим, ким я став, бо кожна помилка — частина шляху»" },
+    { author: "Jeff Bezos", text: "«Важливо бути готовим до експериментів, бо саме вони ведуть до справжніх проривів і нових можливостей»" },
+    { author: "Marie Curie", text: "«Нічого в житті не варто боятися, потрібно лише розуміти, що відбувається, і рухатися вперед»" },
+    { author: "Stephen King", text: "«Талант дешевий; справжню цінність створюють дисципліна, наполегливість і готовність працювати, коли інші вже здались»" },
+    { author: "Paulo Coelho", text: "«Коли ти справді чогось хочеш, весь світ починає допомагати тобі знайти шлях до досягнення цієї мети»" },
+    { author: "Barack Obama", text: "«Зміни не прийдуть самі по собі, якщо ми будемо чекати на інших людей або більш слушний момент»" },
+    { author: "Malala Yousafzai", text: "«Одна людина, одна книга і одна ідея можуть змінити хід історії, якщо є сміливість діяти»" },
+    { author: "Thomas Edison", text: "«Геній — це один відсоток натхнення і дев'яносто дев'ять відсотків важкої праці та постійних спроб»" },
+    { author: "Leonardo da Vinci", text: "«Простота — це результат глибокого розуміння, а не відсутність складності, і вона потребує великої майстерності»" },
+    { author: "Richard Branson", text: "«Помилки неминучі, але саме через них людина навчається, розвивається і досягає справжнього успіху»" },
+    { author: "Kobe Bryant", text: "«Будь одержимий процесом розвитку, бо результат завжди є наслідком того, що ти робиш щодня»" },
+    { author: "Zig Ziglar", text: "«Ти можеш отримати все, чого хочеш, якщо допоможеш іншим людям отримати те, що важливо для них»" },
+    { author: "Dale Carnegie", text: "«Справжній успіх будується на вмінні розуміти людей і будувати з ними ефективну взаємодію»" },
+    { author: "Ralph Waldo Emerson", text: "«Бути собою у світі, який постійно намагається тебе змінити, — це вже величезне досягнення»" },
+    { author: "Sun Tzu", text: "«Перемога досягається ще до початку битви завдяки підготовці, дисципліні та стратегічному мисленню»" },
+    { author: "Peter Drucker", text: "«Найкращий спосіб передбачити майбутнє — це активно творити його своїми діями вже сьогодні»" },
+    { author: "Gary Vaynerchuk", text: "«Терпіння і послідовність важливіші за швидкий результат, бо саме вони формують стійкий успіх»" },
+    { author: "Angela Merkel", text: "«Навіть найскладніші проблеми можна вирішити, якщо зберігати наполегливість і шукати шляхи через діалог»" },
+    { author: "Friedrich Nietzsche", text: "«Той, хто має навіщо жити, здатен витримати майже будь-яке як»" },
+    { author: "Isaac Newton", text: "«Якщо я бачив далі, то лише тому, що стояв на плечах гігантів»" },
+    { author: "Nikola Tesla", text: "«Майбутнє належить тим, хто здатен мислити ширше звичних рамок і не боїться йти проти загальноприйнятих обмежень»" },
+    { author: "Frida Kahlo", text: "«Страждання може стати джерелом сили і самовираження, якщо людина знаходить у ньому сенс»" },
+    { author: "George Bernard Shaw", text: "«Прогрес неможливий без змін, а зміни вимагають сміливості відмовитися від звичного»" },
+    { author: "Muhammad Ali", text: "«Неможливе — це лише думка, яка існує доти, поки хтось не доведе протилежне своїми діями»" },
+    { author: "Carl Jung", text: "«Те, чому ти чинish опір, продовжує існувати; тому важливо усвідомлювати й приймати те, що відбувається»" },
+    { author: "Sigmund Freud", text: "«Розуміння себе — це основа внутрішньої свободи, яка дозволяє приймати усвідомлені рішення»" },
+    { author: "Andrew Carnegie", text: "«Багатство приходить до тих, хто вміє співпрацювати, об'єднувати зусилля і використовувати можливості взаємодії»" },
+    { author: "Benjamin Franklin", text: "«Енергія і наполегливість перемагають все, якщо людина спрямовує їх на досягнення конкретної мети»" },
+    { author: "Eleanor Roosevelt", text: "«Майбутнє належить тим, хто вірить у красу своїх мрій і готовий працювати заради їх здійснення»" },
+    { author: "Viktor Frankl", text: "«У людини можна відняти майже все, крім свободи вибирати своє ставлення до того, що відбувається»" },
+  ],
+  es: [
+    { author: "Albert Einstein", text: "«La imaginación es más importante que el conocimiento, porque permite ir más allá de lo obvio y crear el futuro»" },
+    { author: "Steve Jobs", text: "«La única manera de hacer un gran trabajo es amar lo que haces, a pesar de las dificultades y las dudas»" },
+    { author: "Nelson Mandela", text: "«Todo parece imposible hasta que se hace, y es la fe lo que determina la fuerza de una persona»" },
+    { author: "Walt Disney", text: "«Si puedes soñarlo, puedes lograrlo, si pones el esfuerzo y demuestras persistencia»" },
+    { author: "Oprah Winfrey", text: "«Convertir las heridas en sabiduría es el camino del crecimiento que hace a una persona más fuerte»" },
+    { author: "Tony Robbins", text: "«La calidad de tu vida está determinada por la calidad de las preguntas que te haces, no por las circunstancias»" },
+    { author: "Elon Musk", text: "«Si algo es verdaderamente importante, lo haces incluso cuando las probabilidades de éxito son bajas»" },
+    { author: "Henry Ford", text: "«Tanto si crees que puedes como si crees que no puedes, tienes razón»" },
+    { author: "Bruce Lee", text: "«Una persona exitosa es una persona ordinaria con un enfoque láser en sus metas y disciplina»" },
+    { author: "Maya Angelou", text: "«No puedes controlar todo lo que sucede, pero puedes controlar tu reacción y tu actitud»" },
+    { author: "Confucius", text: "«No importa cuán lento vayas, siempre que no te detengas y sigas avanzando»" },
+    { author: "Napoleon Hill", text: "«Todo lo que la mente puede concebir y creer, puede lograrlo»" },
+    { author: "Mark Twain", text: "«En veinte años lamentarás más las cosas que no hiciste que las que hiciste»" },
+    { author: "Jim Rohn", text: "«O tú diriges el día o el día te dirige a ti, y la elección siempre queda en tus manos»" },
+    { author: "Dwayne Johnson", text: "«El éxito no está relacionado con la grandeza, sino con la consistencia del esfuerzo diario y la disciplina»" },
+    { author: "Serena Williams", text: "«La fortaleza no solo viene de las victorias, sino de la lucha que te hace más resistente»" },
+    { author: "Bill Gates", text: "«El éxito es un mal maestro porque seduce a las personas inteligentes haciéndoles creer que no pueden perder»" },
+    { author: "Jack Ma", text: "«Si no te rindes, siempre tienes una oportunidad, aunque el camino parezca largo y difícil»" },
+    { author: "Arnold Schwarzenegger", text: "«La fortaleza no viene de ganar, viene de luchar y superar las dificultades»" },
+    { author: "Sheryl Sandberg", text: "«El éxito lo logran quienes no temen hacerse notar y asumir responsabilidades»" },
+    { author: "Michael Jordan", text: "«He fallado miles de veces, pero eso es lo que me hizo quien soy, porque cada error es parte del camino»" },
+    { author: "Jeff Bezos", text: "«Es importante estar dispuesto a experimentar, porque los experimentos conducen a avances reales y nuevas oportunidades»" },
+    { author: "Marie Curie", text: "«Nada en la vida debe temerse, solo debe entenderse, y hay que seguir avanzando a pesar de las dificultades»" },
+    { author: "Stephen King", text: "«El talento es barato; lo que tiene valor real es la disciplina, la perseverancia y la voluntad de trabajar cuando otros ya se rindieron»" },
+    { author: "Paulo Coelho", text: "«Cuando realmente quieres algo, todo el mundo empieza a ayudarte a encontrar el camino hacia esa meta»" },
+    { author: "Barack Obama", text: "«El cambio no llegará solo si esperamos a otras personas o a un momento más adecuado»" },
+    { author: "Malala Yousafzai", text: "«Una persona, un libro y una idea pueden cambiar el curso de la historia, si hay valentía para actuar»" },
+    { author: "Thomas Edison", text: "«El genio es uno por ciento de inspiración y noventa y nueve por ciento de trabajo duro y esfuerzo constante»" },
+    { author: "Leonardo da Vinci", text: "«La simplicidad es el resultado de una comprensión profunda, no la ausencia de complejidad»" },
+    { author: "Richard Branson", text: "«Los errores son inevitables, pero es a través de ellos que una persona aprende, crece y alcanza el verdadero éxito»" },
+    { author: "Kobe Bryant", text: "«Sé obsesivo con el proceso de desarrollo, porque los resultados son siempre consecuencia de lo que haces cada día»" },
+    { author: "Zig Ziglar", text: "«Puedes conseguir todo lo que quieras si ayudas a suficientes otras personas a conseguir lo que quieren»" },
+    { author: "Dale Carnegie", text: "«El verdadero éxito se construye sobre la capacidad de entender a las personas y construir relaciones efectivas»" },
+    { author: "Ralph Waldo Emerson", text: "«Ser tú mismo en un mundo que constantemente intenta cambiarte es un gran logro»" },
+    { author: "Sun Tzu", text: "«La victoria se logra antes de que comience la batalla, gracias a la preparación y al pensamiento estratégico»" },
+    { author: "Peter Drucker", text: "«La mejor manera de predecir el futuro es crearlo activamente con tus acciones de hoy»" },
+    { author: "Gary Vaynerchuk", text: "«La paciencia y la consistencia importan más que los resultados rápidos, porque forman el éxito duradero»" },
+    { author: "Angela Merkel", text: "«Incluso los problemas más complejos se pueden resolver si se mantiene la persistencia y se buscan soluciones»" },
+    { author: "Friedrich Nietzsche", text: "«Quien tiene un porqué para vivir puede soportar casi cualquier cómo»" },
+    { author: "Isaac Newton", text: "«Si he visto más lejos es porque estoy sentado sobre los hombros de gigantes»" },
+    { author: "Nikola Tesla", text: "«El futuro pertenece a quienes pueden pensar más allá de los límites convencionales»" },
+    { author: "Frida Kahlo", text: "«El sufrimiento puede convertirse en fuente de fuerza y autoexpresión si la persona encuentra sentido en él»" },
+    { author: "George Bernard Shaw", text: "«El progreso es imposible sin cambio, y el cambio requiere valentía para abandonar lo familiar»" },
+    { author: "Muhammad Ali", text: "«Imposible es solo una opinión que existe hasta que alguien demuestra lo contrario con sus acciones»" },
+    { author: "Carl Jung", text: "«Lo que resistes persiste; por eso es importante reconocer y aceptar lo que ocurre para poder avanzar»" },
+    { author: "Sigmund Freud", text: "«Comprenderse a uno mismo es la base de la libertad interior que permite tomar decisiones conscientes»" },
+    { author: "Andrew Carnegie", text: "«La riqueza llega a quienes saben colaborar, unir fuerzas y aprovechar las oportunidades de la interacción»" },
+    { author: "Benjamin Franklin", text: "«La energía y la perseverancia conquistan todas las cosas, si la persona las dirige hacia una meta concreta»" },
+    { author: "Eleanor Roosevelt", text: "«El futuro pertenece a quienes creen en la belleza de sus sueños y están dispuestos a trabajar para hacerlos realidad»" },
+    { author: "Viktor Frankl", text: "«Al ser humano se le puede arrebatar todo salvo la libertad de elegir su actitud ante cualquier situación»" },
+  ],
+  fr: [
+    { author: "Albert Einstein", text: "«L'imagination est plus importante que le savoir, car elle permet à l'homme de dépasser l'évident et de créer l'avenir»" },
+    { author: "Steve Jobs", text: "«La seule façon de faire du grand travail est d'aimer ce que l'on fait, malgré les difficultés et les doutes»" },
+    { author: "Nelson Mandela", text: "«Tout semble impossible jusqu'à ce que ce soit fait, et c'est la foi qui détermine la force d'un être humain»" },
+    { author: "Walt Disney", text: "«Si tu peux en rêver, tu peux le réaliser, si tu fais les efforts nécessaires et fais preuve de persévérance»" },
+    { author: "Oprah Winfrey", text: "«Transformer ses blessures en sagesse est le chemin de la croissance qui rend plus fort et aide à accomplir davantage»" },
+    { author: "Tony Robbins", text: "«La qualité de votre vie est déterminée par la qualité des questions que vous vous posez, pas par les circonstances»" },
+    { author: "Elon Musk", text: "«Si quelque chose est vraiment important, vous le faites même lorsque les chances de succès sont faibles»" },
+    { author: "Henry Ford", text: "«Que vous pensiez que vous pouvez ou que vous ne pouvez pas, dans les deux cas vous avez raison»" },
+    { author: "Bruce Lee", text: "«Une personne qui réussit est une personne ordinaire avec un focus laser sur ses objectifs et de la discipline»" },
+    { author: "Maya Angelou", text: "«Vous ne pouvez pas contrôler tout ce qui se passe, mais vous pouvez contrôler votre réaction et votre attitude»" },
+    { author: "Confucius", text: "«Peu importe la lenteur de votre progression, pourvu que vous n'arrêtiez pas d'avancer»" },
+    { author: "Napoleon Hill", text: "«Tout ce que l'esprit peut concevoir et croire, il peut l'accomplir»" },
+    { author: "Mark Twain", text: "«Dans vingt ans, vous regretterez davantage les choses que vous n'avez pas faites que celles que vous avez faites»" },
+    { author: "Jim Rohn", text: "«Soit vous dirigez la journée, soit la journée vous dirige, et le choix vous appartient toujours»" },
+    { author: "Dwayne Johnson", text: "«Le succès n'est pas lié à la grandeur, mais à la constance dans l'effort quotidien et la discipline»" },
+    { author: "Serena Williams", text: "«La force ne vient pas seulement des victoires, mais aussi du combat qui vous rend plus résilient»" },
+    { author: "Bill Gates", text: "«Le succès est un mauvais professeur car il pousse les gens intelligents à croire qu'ils ne peuvent pas perdre»" },
+    { author: "Jack Ma", text: "«Si vous n'abandonnez pas, vous avez toujours une chance, même si le chemin semble long et difficile»" },
+    { author: "Arnold Schwarzenegger", text: "«La force ne vient pas des victoires, elle vient du combat et du dépassement des difficultés»" },
+    { author: "Sheryl Sandberg", text: "«Le succès est atteint par ceux qui n'ont pas peur de s'affirmer et d'assumer leurs responsabilités»" },
+    { author: "Michael Jordan", text: "«J'ai raté des milliers de tirs, mais c'est ce qui a fait de moi ce que je suis, car chaque erreur fait partie du chemin»" },
+    { author: "Jeff Bezos", text: "«Il est important d'être prêt à expérimenter, car c'est cela qui mène aux véritables percées et nouvelles opportunités»" },
+    { author: "Marie Curie", text: "«Rien dans la vie n'est à craindre, seulement à comprendre, et il faut continuer d'avancer malgré les difficultés»" },
+    { author: "Stephen King", text: "«Le talent ne coûte pas cher ; la vraie valeur vient de la discipline et de la volonté de travailler quand les autres ont abandonné»" },
+    { author: "Paulo Coelho", text: "«Quand on veut vraiment quelque chose, le monde entier commence à nous aider à trouver le chemin vers cet objectif»" },
+    { author: "Barack Obama", text: "«Le changement ne viendra pas si nous attendons d'autres personnes ou un moment plus propice»" },
+    { author: "Malala Yousafzai", text: "«Une personne, un livre et une idée peuvent changer le cours de l'histoire, s'il y a le courage d'agir»" },
+    { author: "Thomas Edison", text: "«Le génie c'est un pour cent d'inspiration et quatre-vingt-dix-neuf pour cent de travail acharné»" },
+    { author: "Leonardo da Vinci", text: "«La simplicité est le résultat d'une compréhension profonde, pas l'absence de complexité»" },
+    { author: "Richard Branson", text: "«Les erreurs sont inévitables, mais c'est à travers elles qu'on apprend, progresse et réussit vraiment»" },
+    { author: "Kobe Bryant", text: "«Soyez obsédé par le processus de développement, car les résultats sont toujours la conséquence de ce que vous faites chaque jour»" },
+    { author: "Zig Ziglar", text: "«Vous pouvez obtenir tout ce que vous voulez si vous aidez les autres à obtenir ce qui est important pour eux»" },
+    { author: "Dale Carnegie", text: "«Le vrai succès repose sur la capacité à comprendre les gens et à construire des relations efficaces»" },
+    { author: "Ralph Waldo Emerson", text: "«Être soi-même dans un monde qui essaie constamment de vous changer est un grand accomplissement»" },
+    { author: "Sun Tzu", text: "«La victoire est atteinte avant même que la bataille commence, grâce à la préparation et la pensée stratégique»" },
+    { author: "Peter Drucker", text: "«La meilleure façon de prédire l'avenir est de le créer activement avec vos actions d'aujourd'hui»" },
+    { author: "Gary Vaynerchuk", text: "«La patience et la constance importent plus que les résultats rapides, car elles forment le succès durable»" },
+    { author: "Angela Merkel", text: "«Même les problèmes les plus complexes peuvent être résolus si on maintient la persévérance et cherche des solutions par le dialogue»" },
+    { author: "Friedrich Nietzsche", text: "«Celui qui a un pourquoi peut supporter presque n'importe quel comment»" },
+    { author: "Isaac Newton", text: "«Si j'ai vu plus loin, c'est en me tenant sur les épaules de géants»" },
+    { author: "Nikola Tesla", text: "«L'avenir appartient à ceux qui peuvent penser au-delà des limites conventionnelles»" },
+    { author: "Frida Kahlo", text: "«La souffrance peut devenir source de force si la personne y trouve du sens et continue d'avancer»" },
+    { author: "George Bernard Shaw", text: "«Le progrès est impossible sans changement, et le changement exige le courage d'abandonner le familier»" },
+    { author: "Muhammad Ali", text: "«L'impossible n'est qu'une opinion qui existe jusqu'à ce que quelqu'un prouve le contraire par ses actes»" },
+    { author: "Carl Jung", text: "«Ce à quoi vous résistez persiste ; il est donc important d'accepter ce qui se passe pour pouvoir avancer»" },
+    { author: "Sigmund Freud", text: "«Se comprendre soi-même est le fondement de la liberté intérieure qui permet de prendre des décisions éclairées»" },
+    { author: "Andrew Carnegie", text: "«La richesse vient à ceux qui savent collaborer, unir leurs forces et exploiter les opportunités de l'interaction»" },
+    { author: "Benjamin Franklin", text: "«L'énergie et la persévérance triomphent de tout, si on les dirige vers un objectif précis»" },
+    { author: "Eleanor Roosevelt", text: "«L'avenir appartient à ceux qui croient en la beauté de leurs rêves et sont prêts à travailler pour les concrétiser»" },
+    { author: "Viktor Frankl", text: "«On peut tout prendre à un être humain sauf la liberté de choisir son attitude face à ce qui lui arrive»" },
+  ],
+  it: [
+    { author: "Albert Einstein", text: "«L'immaginazione è più importante della conoscenza, perché permette di andare oltre l'ovvio e creare il futuro»" },
+    { author: "Steve Jobs", text: "«L'unico modo per fare un grande lavoro è amare ciò che si fa, nonostante le difficoltà e i dubbi»" },
+    { author: "Nelson Mandela", text: "«Tutto sembra impossibile finché non è fatto, ed è la fede a determinare la forza di una persona»" },
+    { author: "Walt Disney", text: "«Se puoi sognarlo, puoi realizzarlo, se metti l'impegno necessario e dimostri perseveranza»" },
+    { author: "Oprah Winfrey", text: "«Trasformare le ferite in saggezza è il percorso di crescita che rende più forti e aiuta a raggiungere di più»" },
+    { author: "Tony Robbins", text: "«La qualità della tua vita è determinata dalla qualità delle domande che ti poni, non dalle circostanze intorno a te»" },
+    { author: "Elon Musk", text: "«Se qualcosa è davvero importante, lo fai anche quando le probabilità di successo sono basse»" },
+    { author: "Henry Ford", text: "«Che tu creda di poterlo fare o di non poterlo fare, in entrambi i casi hai ragione»" },
+    { author: "Bruce Lee", text: "«Una persona di successo è una persona comune con un focus laser sugli obiettivi e disciplina»" },
+    { author: "Maya Angelou", text: "«Non puoi controllare tutto ciò che accade, ma puoi controllare la tua reazione e il tuo atteggiamento»" },
+    { author: "Confucius", text: "«Non importa quanto lentamente tu vada, l'importante è non fermarsi e continuare ad andare avanti»" },
+    { author: "Napoleon Hill", text: "«Tutto ciò che la mente può concepire e credere, può realizzarlo»" },
+    { author: "Mark Twain", text: "«Tra vent'anni ti dispiacerà di più per le cose che non hai fatto che per quelle che hai fatto»" },
+    { author: "Jim Rohn", text: "«O tu guidi la giornata o la giornata guida te, e la scelta è sempre tua»" },
+    { author: "Dwayne Johnson", text: "«Il successo non riguarda la grandezza, ma la costanza nello sforzo quotidiano e la disciplina»" },
+    { author: "Serena Williams", text: "«La forza non viene solo dalle vittorie, ma anche dalla lotta che ti rende più resiliente»" },
+    { author: "Bill Gates", text: "«Il successo è un pessimo insegnante perché induce le persone intelligenti a credere di non poter perdere»" },
+    { author: "Jack Ma", text: "«Se non ti arrendi, hai sempre una possibilità, anche se il percorso sembra lungo e difficile»" },
+    { author: "Arnold Schwarzenegger", text: "«La forza non viene dalle vittorie, viene dalla lotta e dal superamento delle difficoltà»" },
+    { author: "Sheryl Sandberg", text: "«Il successo è raggiunto da chi non ha paura di farsi sentire e di assumersi responsabilità»" },
+    { author: "Michael Jordan", text: "«Ho mancato migliaia di tiri, ma è proprio questo che mi ha fatto diventare quello che sono»" },
+    { author: "Jeff Bezos", text: "«È importante essere disposti a sperimentare, perché è questo che porta a veri progressi e nuove opportunità»" },
+    { author: "Marie Curie", text: "«Nulla nella vita deve essere temuto, solo compreso, e si deve continuare ad andare avanti nonostante le difficoltà»" },
+    { author: "Stephen King", text: "«Il talento è a buon mercato; il vero valore lo creano disciplina, perseveranza e volontà di lavorare quando gli altri hanno già mollato»" },
+    { author: "Paulo Coelho", text: "«Quando vuoi davvero qualcosa, il mondo intero inizia ad aiutarti a trovare il percorso verso quell'obiettivo»" },
+    { author: "Barack Obama", text: "«Il cambiamento non arriverà da solo se aspettiamo altre persone o un momento più opportuno»" },
+    { author: "Malala Yousafzai", text: "«Una persona, un libro e un'idea possono cambiare il corso della storia, se c'è il coraggio di agire»" },
+    { author: "Thomas Edison", text: "«Il genio è un uno per cento di ispirazione e novantanove per cento di duro lavoro e tentativi continui»" },
+    { author: "Leonardo da Vinci", text: "«La semplicità è il risultato di una comprensione profonda, non l'assenza di complessità»" },
+    { author: "Richard Branson", text: "«Gli errori sono inevitabili, ma è attraverso di essi che si impara, si cresce e si raggiunge il vero successo»" },
+    { author: "Kobe Bryant", text: "«Sii ossessionato dal processo di sviluppo, perché i risultati sono sempre conseguenza di ciò che fai ogni giorno»" },
+    { author: "Zig Ziglar", text: "«Puoi avere tutto quello che vuoi se aiuti abbastanza altre persone ad ottenere ciò che vogliono»" },
+    { author: "Dale Carnegie", text: "«Il vero successo si costruisce sulla capacità di capire le persone e costruire relazioni efficaci»" },
+    { author: "Ralph Waldo Emerson", text: "«Essere se stessi in un mondo che cerca costantemente di cambiarti è già un grande traguardo»" },
+    { author: "Sun Tzu", text: "«La vittoria si ottiene ancora prima che la battaglia inizi, grazie alla preparazione e al pensiero strategico»" },
+    { author: "Peter Drucker", text: "«Il modo migliore per prevedere il futuro è crearlo attivamente con le tue azioni di oggi»" },
+    { author: "Gary Vaynerchuk", text: "«La pazienza e la costanza contano più dei risultati rapidi, perché sono loro a formare il successo duraturo»" },
+    { author: "Angela Merkel", text: "«Anche i problemi più complessi si possono risolvere se si mantiene la perseveranza e si cercano soluzioni attraverso il dialogo»" },
+    { author: "Friedrich Nietzsche", text: "«Chi ha un perché può sopportare quasi qualsiasi come»" },
+    { author: "Isaac Newton", text: "«Se ho visto più lontano è perché stavo sulle spalle dei giganti»" },
+    { author: "Nikola Tesla", text: "«Il futuro appartiene a chi sa pensare oltre i limiti convenzionali»" },
+    { author: "Frida Kahlo", text: "«La sofferenza può diventare fonte di forza se la persona trova in essa un senso e continua ad andare avanti»" },
+    { author: "George Bernard Shaw", text: "«Il progresso è impossibile senza cambiamento, e il cambiamento richiede il coraggio di abbandonare il familiare»" },
+    { author: "Muhammad Ali", text: "«Impossibile è solo un'opinione che esiste finché qualcuno non dimostra il contrario con le proprie azioni»" },
+    { author: "Carl Jung", text: "«Ciò a cui resisti persiste; è quindi importante riconoscere e accettare ciò che accade per poter andare avanti»" },
+    { author: "Sigmund Freud", text: "«Capire se stessi è il fondamento della libertà interiore che permette di prendere decisioni consapevoli»" },
+    { author: "Andrew Carnegie", text: "«La ricchezza arriva a chi sa collaborare, unire le forze e sfruttare le opportunità dell'interazione»" },
+    { author: "Benjamin Franklin", text: "«Energia e perseveranza conquistano tutto, se la persona le indirizza verso un obiettivo concreto»" },
+    { author: "Eleanor Roosevelt", text: "«Il futuro appartiene a chi crede nella bellezza dei propri sogni ed è disposto a lavorare per realizzarli»" },
+    { author: "Viktor Frankl", text: "«All'uomo si può togliere tutto tranne la libertà di scegliere il proprio atteggiamento di fronte alle circostanze»" },
+  ],
+  tr: [
+    { author: "Albert Einstein", text: "«Hayal gücü bilgiden daha önemlidir, çünkü insanın açık olanın ötesine geçmesini ve geleceği yaratmasını sağlar»" },
+    { author: "Steve Jobs", text: "«Büyük iş yapmanın tek yolu, yaptığınız şeyi sevmektir, tüm zorluklara ve şüphelere rağmen»" },
+    { author: "Nelson Mandela", text: "«Her şey yapılana kadar imkânsız görünür ve insanın gücünü belirleyen inanç olur»" },
+    { author: "Walt Disney", text: "«Eğer hayal edebiliyorsan, çaba gösterip ısrarcı olursan başarabilirsin»" },
+    { author: "Oprah Winfrey", text: "«Yaraları bilgeliğe dönüştürmek, insanı güçlendiren ve daha fazlasını başarmasına yardımcı olan büyüme yoludur»" },
+    { author: "Tony Robbins", text: "«Hayatının kalitesi, etrafındaki koşullar değil, kendine sorduğun soruların kalitesi tarafından belirlenir»" },
+    { author: "Elon Musk", text: "«Bir şey gerçekten önemliyse, başarı olasılığı düşük olsa bile onu yaparsın»" },
+    { author: "Henry Ford", text: "«Yapabileceğini de düşünsen, yapamayacağını da düşünsen, her iki durumda da haklısın»" },
+    { author: "Bruce Lee", text: "«Başarılı insan, hedeflere lazer odaklı ve disiplinli sıradan bir insandır»" },
+    { author: "Maya Angelou", text: "«Olan her şeyi kontrol edemezsin, ama tepkini ve tutumunu kontrol edebilirsin»" },
+    { author: "Confucius", text: "«Ne kadar yavaş gittiğin önemli değil; önemli olan durmamak ve ilerlemeye devam etmektir»" },
+    { author: "Napoleon Hill", text: "«Zihnin tasavvur edip inanabileceği her şeyi başarabilir»" },
+    { author: "Mark Twain", text: "«Yıllar sonra, yaptıklarından çok yapmadıklarına üzüleceksin»" },
+    { author: "Jim Rohn", text: "«Ya günü yönetirsin ya da gün seni yönetir, ve seçim her zaman sende kalır»" },
+    { author: "Dwayne Johnson", text: "«Başarı büyüklükle değil, günlük çabanın tutarlılığı ve disiplinle ilgilidir»" },
+    { author: "Serena Williams", text: "«Güç sadece zaferlerden değil, seni daha dayanıklı kılan mücadeleden de gelir»" },
+    { author: "Bill Gates", text: "«Başarı kötü bir öğretmendir çünkü akıllı insanları kaybedebileceklerini düşünmemeye iter»" },
+    { author: "Jack Ma", text: "«Pes etmezsen her zaman bir şansın vardır, yol uzun ve zorlu görünse bile»" },
+    { author: "Arnold Schwarzenegger", text: "«Güç kazanmaktan değil, mücadeleden ve zorlukları aşmaktan gelir»" },
+    { author: "Sheryl Sandberg", text: "«Başarıyı, kendini ifade etmekten ve sorumluluk almaktan korkmayan kişiler elde eder»" },
+    { author: "Michael Jordan", text: "«Binlerce kez kaçırdım, ama bu beni kim olduğuma dönüştürdü; çünkü her hata yolun bir parçasıdır»" },
+    { author: "Jeff Bezos", text: "«Deney yapmaya hazır olmak önemlidir, çünkü gerçek atılımlara ve yeni fırsatlara götüren şey budur»" },
+    { author: "Marie Curie", text: "«Hayatta korkulacak hiçbir şey yoktur, yalnızca anlaşılacak şeyler vardır ve zorluklara rağmen ilerlemeye devam etmek gerekir»" },
+    { author: "Stephen King", text: "«Yetenek ucuzdur; gerçek değeri yaratan şey disiplin, kararlılık ve başkaları pes ettiğinde çalışmaya devam etmedir»" },
+    { author: "Paulo Coelho", text: "«Gerçekten bir şey istediğinde, tüm dünya sana o hedefe giden yolu bulmana yardım etmeye başlar»" },
+    { author: "Barack Obama", text: "«Başka insanları veya daha uygun bir anı bekliyor olursak değişim kendi kendine gelmez»" },
+    { author: "Malala Yousafzai", text: "«Bir kişi, bir kitap ve bir fikir tarihin akışını değiştirebilir, eğer harekete geçme cesareti varsa»" },
+    { author: "Thomas Edison", text: "«Dahi, yüzde bir ilham ve yüzde doksan dokuz ağır çalışma ve sürekli denemedir»" },
+    { author: "Leonardo da Vinci", text: "«Sadelik derin anlayışın sonucudur, karmaşıklığın yokluğu değil, ve büyük ustalık gerektirir»" },
+    { author: "Richard Branson", text: "«Hatalar kaçınılmazdır, ama onlar aracılığıyla öğrenir, gelişir ve gerçek başarıya ulaşırız»" },
+    { author: "Kobe Bryant", text: "«Gelişim sürecine takıntılı ol, çünkü sonuçlar her zaman her gün yaptıklarının bir yansımasıdır»" },
+    { author: "Zig Ziglar", text: "«İstediğin her şeye sahip olabilirsin, eğer yeterince insanın istediğini elde etmesine yardım edersen»" },
+    { author: "Dale Carnegie", text: "«Gerçek başarı, insanları anlama ve onlarla etkili ilişkiler kurma üzerine inşa edilir»" },
+    { author: "Ralph Waldo Emerson", text: "«Sürekli seni değiştirmeye çalışan bir dünyada kendin olmak büyük bir başarıdır»" },
+    { author: "Sun Tzu", text: "«Zafer, savaş başlamadan önce hazırlık, disiplin ve stratejik düşünce sayesinde elde edilir»" },
+    { author: "Peter Drucker", text: "«Geleceği tahmin etmenin en iyi yolu, bugünkü eylemlerin ile onu aktif olarak yaratmaktır»" },
+    { author: "Gary Vaynerchuk", text: "«Sabır ve tutarlılık hızlı sonuçlardan daha önemlidir, çünkü kalıcı başarıyı onlar oluşturur»" },
+    { author: "Angela Merkel", text: "«En karmaşık sorunlar bile diyalog arayarak kararlılığı koruyunca çözülebilir»" },
+    { author: "Friedrich Nietzsche", text: "«Yaşamak için bir sebebi olan, neredeyse her şekilde dayanabilir»" },
+    { author: "Isaac Newton", text: "«Daha ileri görebildiysem, bu devlerin omuzlarında durduğum içindir»" },
+    { author: "Nikola Tesla", text: "«Gelecek, alışılmış sınırların ötesinde düşünebilen ve yerleşik kısıtlamalara karşı gitmekten korkmayan kişilere aittir»" },
+    { author: "Frida Kahlo", text: "«Acı çekmek, kişi içinde anlam bulursa ve ilerlemeye devam ederse güç ve öz ifadenin kaynağı olabilir»" },
+    { author: "George Bernard Shaw", text: "«Değişim olmadan ilerleme mümkün değildir ve değişim, alışılmışı terk etme cesaretini gerektirir»" },
+    { author: "Muhammad Ali", text: "«İmkânsız, biri eylemleriyle aksini ispat edene kadar var olan bir görüştür»" },
+    { author: "Carl Jung", text: "«Direndiğin şey var olmaya devam eder; bu yüzden yaşananları kabul etmek ilerlemenin anahtarıdır»" },
+    { author: "Sigmund Freud", text: "«Kendini anlamak, bilinçli kararlar almayı mümkün kılan iç özgürlüğün temelidir»" },
+    { author: "Andrew Carnegie", text: "«Zenginlik, iş birliği yapmayı, güçleri birleştirmeyi ve etkileşimin sunduğu fırsatları kullanmayı bilenlere gelir»" },
+    { author: "Benjamin Franklin", text: "«Enerji ve kararlılık, kişi onları belirli bir hedefe yönlendirirse her şeyi yener»" },
+    { author: "Eleanor Roosevelt", text: "«Gelecek, hayallerinin güzelliğine inanan ve onları hayata geçirmek için çalışmaya hazır olanlara aittir»" },
+    { author: "Viktor Frankl", text: "«İnsandan hemen her şey alınabilir, ama herhangi bir durumda kendi tutumunu seçme özgürlüğü alınamaz»" },
+  ],
+  ar: [
+    { author: "Albert Einstein", text: "«الخيال أهم من المعرفة، لأنه يتيح للإنسان تجاوز الواضح وابتكار المستقبل»" },
+    { author: "Steve Jobs", text: "«الطريقة الوحيدة لإنجاز عمل عظيم هي أن تحب ما تفعله، رغم الصعوبات والشكوك»" },
+    { author: "Nelson Mandela", text: "«كل شيء يبدو مستحيلاً حتى يُنجز، والإيمان هو ما يحدد قوة الإنسان»" },
+    { author: "Walt Disney", text: "«إذا كنت تستطيع أن تحلم به، فأنت قادر على تحقيقه إذا بذلت الجهد وأظهرت المثابرة»" },
+    { author: "Oprah Winfrey", text: "«تحويل الجروح إلى حكمة هو مسار النمو الذي يجعل الإنسان أقوى ويساعده على تحقيق المزيد»" },
+    { author: "Tony Robbins", text: "«جودة حياتك تتحدد بجودة الأسئلة التي تطرحها على نفسك، لا بالظروف المحيطة»" },
+    { author: "Elon Musk", text: "«إذا كان شيء ما مهماً حقاً، فإنك تفعله حتى عندما تكون احتمالية النجاح ضئيلة»" },
+    { author: "Henry Ford", text: "«سواء ظننت أنك تستطيع أو ظننت أنك لا تستطيع، فأنت على حق في كلتا الحالتين»" },
+    { author: "Bruce Lee", text: "«الشخص الناجح هو شخص عادي يتمتع بتركيز شديد على الأهداف والانضباط»" },
+    { author: "Maya Angelou", text: "«لا يمكنك التحكم في كل ما يحدث، لكنك تستطيع التحكم في ردة فعلك وموقفك»" },
+    { author: "Confucius", text: "«لا يهم كم تسير ببطء، المهم ألا تتوقف وتواصل التقدم للأمام»" },
+    { author: "Napoleon Hill", text: "«كل ما يستطيع العقل تصوره والإيمان به، يستطيع تحقيقه»" },
+    { author: "Mark Twain", text: "«بعد سنوات ستندم على ما لم تفعله أكثر مما ستندم على ما فعلته»" },
+    { author: "Jim Rohn", text: "«إما أن تُدير يومك أو أن يديرك اليوم، والاختيار يبقى دائماً في يدك»" },
+    { author: "Dwayne Johnson", text: "«النجاح لا يرتبط بالعظمة، بل باتساق الجهد اليومي والانضباط»" },
+    { author: "Serena Williams", text: "«القوة لا تأتي من الانتصارات فحسب، بل من النضال الذي يجعلك أكثر صموداً»" },
+    { author: "Bill Gates", text: "«النجاح معلم سيئ لأنه يجعل الأذكياء يعتقدون أنهم لا يمكن أن يخسروا»" },
+    { author: "Jack Ma", text: "«إذا لم تستسلم فستكون لديك دائماً فرصة، حتى لو بدا الطريق طويلاً وصعباً»" },
+    { author: "Arnold Schwarzenegger", text: "«القوة لا تأتي من الانتصار، بل تأتي من النضال والتغلب على الصعوبات»" },
+    { author: "Sheryl Sandberg", text: "«يحقق النجاح أولئك الذين لا يخشون إعلان أنفسهم وتحمل المسؤولية»" },
+    { author: "Michael Jordan", text: "«أخطأت الهدف آلاف المرات، لكن ذلك هو ما جعلني من أنا، لأن كل خطأ جزء من مسار النجاح»" },
+    { author: "Jeff Bezos", text: "«المهم أن تكون على استعداد للتجريب، لأن التجارب هي التي تقود إلى الاختراقات الحقيقية والفرص الجديدة»" },
+    { author: "Marie Curie", text: "«لا شيء في الحياة يستحق الخوف، فقط ينبغي فهمه، والمضي قدماً رغم الصعوبات»" },
+    { author: "Stephen King", text: "«الموهبة رخيصة؛ القيمة الحقيقية تخلقها الانضباط والمثابرة والاستعداد للعمل حين يستسلم الآخرون»" },
+    { author: "Paulo Coelho", text: "«حين تريد شيئاً حقاً، يبدأ العالم كله في مساعدتك لإيجاد الطريق نحو تحقيق ذلك الهدف»" },
+    { author: "Barack Obama", text: "«التغيير لن يأتي من تلقاء نفسه إذا انتظرنا أشخاصاً آخرين أو لحظة أكثر ملاءمة»" },
+    { author: "Malala Yousafzai", text: "«شخص واحد وكتاب واحد وفكرة واحدة يمكنها تغيير مسار التاريخ إذا توفرت الجرأة على التصرف»" },
+    { author: "Thomas Edison", text: "«العبقرية واحد بالمئة إلهام وتسعة وتسعون بالمئة عمل دؤوب ومحاولات مستمرة»" },
+    { author: "Leonardo da Vinci", text: "«البساطة هي نتيجة الفهم العميق لا غياب التعقيد، وهي تتطلب إتقاناً كبيراً»" },
+    { author: "Richard Branson", text: "«الأخطاء حتمية، لكن من خلالها يتعلم الإنسان ويتطور ويحقق النجاح الحقيقي»" },
+    { author: "Kobe Bryant", text: "«كن مهووساً بعملية التطور، لأن النتائج دائماً هي حصيلة ما تفعله كل يوم»" },
+    { author: "Zig Ziglar", text: "«يمكنك الحصول على كل ما تريد إذا ساعدت الآخرين على الحصول على ما يهمهم»" },
+    { author: "Dale Carnegie", text: "«النجاح الحقيقي يُبنى على القدرة على فهم الناس وبناء علاقات فعّالة معهم»" },
+    { author: "Ralph Waldo Emerson", text: "«أن تكون نفسك في عالم يحاول باستمرار تغييرك هو إنجاز عظيم بحد ذاته»" },
+    { author: "Sun Tzu", text: "«الانتصار يتحقق قبل بدء المعركة بفضل الإعداد والانضباط والتفكير الاستراتيجي»" },
+    { author: "Peter Drucker", text: "«أفضل طريقة للتنبؤ بالمستقبل هي صنعه بنشاط من خلال أفعالك اليوم»" },
+    { author: "Gary Vaynerchuk", text: "«الصبر والاتساق أهم من النتائج السريعة، لأنهما يُشكّلان النجاح الدائم»" },
+    { author: "Angela Merkel", text: "«حتى أعقد المشكلات يمكن حلها إذا حافظت على المثابرة وسعيت للحلول عبر الحوار»" },
+    { author: "Friedrich Nietzsche", text: "«من يملك سبباً للحياة يستطيع تحمل أي كيف»" },
+    { author: "Isaac Newton", text: "«إن رأيت أبعد فذلك لأنني وقفت على أكتاف العمالقة»" },
+    { author: "Nikola Tesla", text: "«المستقبل لمن يستطيعون التفكير خارج الحدود المألوفة ولا يخشون مواجهة القيود السائدة»" },
+    { author: "Frida Kahlo", text: "«المعاناة يمكن أن تصبح مصدراً للقوة إذا وجد الإنسان فيها معنى وواصل المضي قدماً»" },
+    { author: "George Bernard Shaw", text: "«التقدم مستحيل بدون تغيير، والتغيير يستلزم الجرأة على التخلي عن المألوف»" },
+    { author: "Muhammad Ali", text: "«المستحيل مجرد رأي لا يزال موجوداً حتى يُثبت أحدهم العكس بأفعاله»" },
+    { author: "Carl Jung", text: "«ما تقاومه يستمر في الوجود؛ لذا من المهم إدراك ما يحدث وقبوله للمضي قدماً»" },
+    { author: "Sigmund Freud", text: "«فهم الذات هو أساس الحرية الداخلية التي تتيح اتخاذ قرارات واعية والعيش بشكل كامل»" },
+    { author: "Andrew Carnegie", text: "«الثروة تأتي لمن يعرف كيف يتعاون ويوحد الجهود ويستغل الفرص التي يتيحها التفاعل»" },
+    { author: "Benjamin Franklin", text: "«الطاقة والمثابرة تتغلبان على كل شيء إذا وجّه الإنسان طاقته نحو هدف محدد دون تشتت»" },
+    { author: "Eleanor Roosevelt", text: "«المستقبل لمن يؤمنون بجمال أحلامهم وهم مستعدون للعمل من أجل تحقيقها رغم الصعوبات»" },
+    { author: "Viktor Frankl", text: "«يمكن أن يُسلب من الإنسان كل شيء إلا حرية اختيار موقفه مما يجري وإيجاد معنى في أي ظرف»" },
+  ],
+};
+ 
+function getRandomQuote(lang: Language): Quote {
+  const list = QUOTES[lang] || QUOTES.en;
+  return list[Math.floor(Math.random() * list.length)];
+}
  
 interface Props {
-  user: User;
+  isVisible: boolean;
   lang: Language;
-  onSelect: (result: AnalysisResult) => void;
 }
  
-// ── Thumbnail with lazy Open Beauty Facts fetch ──────────────────────────────
-function ScanThumbnail({ name, brand }: { name: string; brand: string }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
+export function LoadingScreen({ isVisible, lang }: Props) {
+  const [quote, setQuote] = useState<Quote>(() => getRandomQuote(lang));
  
   useEffect(() => {
-    let cancelled = false;
-    fetchProductImage(name, brand).then((url) => {
-      if (!cancelled) {
-        setSrc(url);
-        setState(url ? 'loaded' : 'error');
-      }
-    });
-    return () => { cancelled = true; };
-  }, [name, brand]);
+    if (isVisible) {
+      setQuote(getRandomQuote(lang));
+    }
+  }, [isVisible, lang]);
  
   return (
-    <div className="shrink-0 w-12 h-12 rounded-sm border border-[#D4C3A3]/50 bg-[#F5F0E8] overflow-hidden flex items-center justify-center">
-      {state === 'loading' && (
-        <div className="w-4 h-4 rounded-full border-2 border-[#B89F7A]/30 border-t-[#B89F7A] animate-spin" />
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-[#FDFBF7]/95 backdrop-blur-sm px-8"
+        >
+          <div className="w-16 h-[1px] bg-[#D4C3A3] mb-10" />
+ 
+          <motion.div
+            key={quote.text}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-sm text-center"
+          >
+            <p className="font-serif text-lg text-[#2C3E50] leading-relaxed mb-4 italic">
+              {quote.text}
+            </p>
+            <p className="text-xs tracking-[0.2em] text-[#B89F7A] uppercase">
+              — {quote.author}
+            </p>
+          </motion.div>
+ 
+          <div className="w-16 h-[1px] bg-[#D4C3A3] mt-10 mb-8" />
+ 
+          <div className="flex items-center gap-2 text-[#B89F7A]">
+            <Loader2 size={16} className="animate-spin" />
+            <span className="text-xs tracking-[0.25em] uppercase">Analyzing...</span>
+          </div>
+        </motion.div>
       )}
-      {state === 'loaded' && src && (
-        <img
-          src={src}
-          alt={name}
-          className="w-full h-full object-contain p-0.5"
-          onError={() => setState('error')}
-        />
-      )}
-      {state === 'error' && (
-        <svg viewBox="0 0 40 56" className="w-6 h-8 text-[#D4C3A3]" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15 0h10v5h3a2 2 0 0 1 2 2v4a8 8 0 0 1 4 7v28a8 8 0 0 1-8 8H14a8 8 0 0 1-8-8V18a8 8 0 0 1 4-7V7a2 2 0 0 1 2-2h3V0z" opacity=".4"/>
-        </svg>
-      )}
-    </div>
-  );
-}
- 
-export function ScanHistory({ user, lang, onSelect }: Props) {
-  const [scans, setScans] = useState<ScanRecord[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
- 
-  const fetchScans = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('scan_history')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-    setScans(data || []);
-    setLoading(false);
-  };
- 
-  useEffect(() => {
-    if (isOpen) fetchScans();
-  }, [isOpen]);
- 
-  const deleteScan = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await supabase.from('scan_history').delete().eq('id', id);
-    setScans(prev => prev.filter(s => s.id !== id));
-  };
- 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString(lang === 'ar' ? 'ar' : lang === 'uk' ? 'uk' : lang, {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
- 
-  return (
-    <>
-      <button
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-[#B89F7A]/10 text-[#B89F7A] hover:bg-[#B89F7A]/20 hover:text-[#2C3E50] transition-all"
-      >
-        <Clock size={12} />
-        <span>{t[lang].history}</span>
-      </button>
- 
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-            />
-            <motion.div
-              initial={{ opacity: 0, x: '100%' }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 h-full w-full max-w-sm bg-[#FDFBF7] z-50 shadow-2xl flex flex-col"
-            >
-              <div className="flex items-center justify-between p-6 border-b border-[#D4C3A3]">
-                <h2 className="font-serif text-xl text-[#2C3E50]">{t[lang].history}</h2>
-                <button onClick={() => setIsOpen(false)} className="text-[#B89F7A] hover:text-[#2C3E50]">
-                  <X size={20} />
-                </button>
-              </div>
- 
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                {loading && (
-                  <p className="text-center text-[#B89F7A] text-sm py-8">...</p>
-                )}
-                {!loading && scans.length === 0 && (
-                  <p className="text-center text-[#B89F7A] text-sm py-8">{t[lang].noHistory}</p>
-                )}
-                {scans.map((scan) => (
-                  <motion.div
-                    key={scan.id}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-3 bg-white border border-[#D4C3A3]/50 rounded-sm cursor-pointer hover:border-[#B89F7A] transition-colors group"
-                    onClick={() => {
-                      onSelect(scan.result as AnalysisResult);
-                      setIsOpen(false);
-                    }}
-                  >
-                    <ScanThumbnail name={scan.product_name} brand={scan.brand} />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-[#2C3E50] text-sm truncate">{scan.product_name}</p>
-                      <p className="text-xs text-[#B89F7A] italic truncate">{scan.brand}</p>
-                      <p className="text-[10px] text-[#B89F7A]/70 mt-0.5">{formatDate(scan.created_at)}</p>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={(e) => deleteScan(scan.id, e)}
-                        className="opacity-0 group-hover:opacity-100 text-[#B89F7A] hover:text-red-400 transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      <ChevronRight size={14} className="text-[#B89F7A]" />
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
+    </AnimatePresence>
   );
 }
