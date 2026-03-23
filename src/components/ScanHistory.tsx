@@ -172,6 +172,4 @@ export function ScanHistory({ user, lang, onSelect }: Props) {
     </>
   );
 }
-    </>
-  );
-}
+   
