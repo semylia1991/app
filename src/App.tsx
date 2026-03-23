@@ -200,13 +200,36 @@ export default function App() {
     }
   };
  
-  const saveScanToHistory = async (analysis: AnalysisResult) => {
+  const saveScanToHistory = async (analysis: AnalysisResult, photoBase64: string | null) => {
     if (!user) return;
+ 
+    let photo_url: string | null = null;
+ 
+    if (photoBase64) {
+      try {
+        // Convert base64 to blob
+        const res = await fetch(photoBase64);
+        const blob = await res.blob();
+        const ext = blob.type === 'image/png' ? 'png' : 'jpg';
+        const storagePath = `${user.id}/${Date.now()}.${ext}`;
+ 
+        const { error } = await supabase.storage
+          .from('scan-photos')
+          .upload(storagePath, blob, { contentType: blob.type, upsert: false });
+ 
+        // Store the storage path, not a public URL (bucket is private)
+        if (!error) photo_url = storagePath;
+      } catch (e) {
+        console.warn('Photo upload failed, saving without photo', e);
+      }
+    }
+ 
     await supabase.from('scan_history').insert({
       user_id: user.id,
       product_name: analysis.productName,
       brand: analysis.brand,
       result: analysis,
+      photo_url,
     });
   };
  
@@ -230,7 +253,7 @@ export default function App() {
       setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
-      await saveScanToHistory(analysis);
+      await saveScanToHistory(analysis, previewUrl);
  
       posthog.capture('scan_completed', {
         product_name: analysis.productName,
