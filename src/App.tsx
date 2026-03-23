@@ -2,7 +2,7 @@ import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2 } from 'lucide-react';
+import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
  
@@ -135,6 +135,7 @@ export default function App() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [sharedLoading, setSharedLoading] = useState(false);
  
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
@@ -143,6 +144,27 @@ export default function App() {
   const isFirstRender = useRef(true);
   const originalResult = useRef<AnalysisResult | null>(null);
   const translationCache = useRef<Map<Language, AnalysisResult>>(new Map());
+ 
+  // ── Load shared result from URL (?share=id) ────────────────────────────────
+  useEffect(() => {
+    const shareId = new URLSearchParams(window.location.search).get('share');
+    if (!shareId) return;
+    setSharedLoading(true);
+    supabase
+      .from('shared_results')
+      .select('result')
+      .eq('id', shareId)
+      .single()
+      .then(({ data }) => {
+        if (data?.result) {
+          const r = data.result as AnalysisResult;
+          originalResult.current = r;
+          translationCache.current = new Map([[lang, r]]);
+          setResult(r);
+        }
+        setSharedLoading(false);
+      });
+  }, []);
  
   useEffect(() => {
     if (isFirstRender.current) {
@@ -255,6 +277,41 @@ export default function App() {
     setError(null);
     originalResult.current = null;
     translationCache.current = new Map();
+  };
+ 
+  const [copied, setCopied] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+ 
+  const handleShare = async () => {
+    if (!result) return;
+    setIsSharing(true);
+ 
+    try {
+      // Save result to shared_results table
+      const { data, error } = await supabase
+        .from('shared_results')
+        .insert({ result })
+        .select('id')
+        .single();
+ 
+      if (error || !data) throw new Error('Failed to save');
+ 
+      const shareUrl = `${window.location.origin}?share=${data.id}`;
+      const shareText = `${result.productName} by ${result.brand}\n\n${result.analysis}`;
+ 
+      if (navigator.share) {
+        await navigator.share({ title: result.productName, text: shareText, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (_) {
+      // fallback — copy current url
+      await navigator.clipboard.writeText(window.location.href).catch(() => {});
+    } finally {
+      setIsSharing(false);
+    }
   };
  
   return (
@@ -469,6 +526,15 @@ export default function App() {
                   <p><strong>Transparency:</strong> {t[lang].aiTransparency}</p>
                   <p><strong>Disclaimer:</strong> {t[lang].aiDisclaimer}</p>
                 </div>
+ 
+                <button
+                  onClick={handleShare}
+                  disabled={isSharing}
+                  className="w-full py-4 regency-button tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+                  <span>{copied ? t[lang].copied : t[lang].share}</span>
+                </button>
  
                 <button
                   onClick={handleReset}
