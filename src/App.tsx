@@ -170,7 +170,7 @@ export default function App() {
         }
       } catch (err) {
         if (!cancelled) {
-          console.error('Translation error:', err);
+          console.error("Translation error:", err);
         }
       } finally {
         if (!cancelled) {
@@ -200,34 +200,13 @@ export default function App() {
     }
   };
  
-  const saveScanToHistory = async (analysis: AnalysisResult, photoBase64: string | null) => {
+  const saveScanToHistory = async (analysis: AnalysisResult) => {
     if (!user) return;
- 
-    let photo_url: string | null = null;
- 
-    if (photoBase64) {
-      try {
-        const res = await fetch(photoBase64);
-        const blob = await res.blob();
-        const ext = blob.type === 'image/png' ? 'png' : 'jpg';
-        const storagePath = `${user.id}/${Date.now()}.${ext}`;
- 
-        const { error } = await supabase.storage
-          .from('scan-photos')
-          .upload(storagePath, blob, { contentType: blob.type, upsert: false });
- 
-        if (!error) photo_url = storagePath;
-      } catch (e) {
-        console.warn('Photo upload failed, saving without photo', e);
-      }
-    }
- 
     await supabase.from('scan_history').insert({
       user_id: user.id,
       product_name: analysis.productName,
       brand: analysis.brand,
       result: analysis,
-      photo_url,
     });
   };
  
@@ -240,20 +219,18 @@ export default function App() {
  
     try {
       const match = previewUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-      if (!match) throw new Error('Invalid image format');
+      if (!match) throw new Error("Invalid image format");
  
       const mimeType = match[1];
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang);
  
-      const photoToSave = previewUrl;
- 
       originalResult.current = analysis;
       translationCache.current = new Map([[lang, analysis]]);
       setResult(analysis);
-      setScanPhotoUrl(photoToSave);
+      setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
-      await saveScanToHistory(analysis, photoToSave);
+      await saveScanToHistory(analysis);
  
       posthog.capture('scan_completed', {
         product_name: analysis.productName,
@@ -286,6 +263,7 @@ export default function App() {
       <div className="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
  
       <header className="pt-6 pb-4 px-4 text-center relative">
+        {/* Auth row */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <img src={logo} alt="logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
           <div className="flex items-center gap-2">
