@@ -130,11 +130,28 @@ Formatting Rules:
 - alternatives: Return 3–5 real products as a JSON array. Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence why it is a good alternative — similar ingredients, same concern, gentler formula, etc.).
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
-📋 [translated label for "How to Apply"]: [details]
+👤 [translated label for "Best Suited For"]:
+- [Skin type] — [why]
 
-⏰ [translated label for "Frequency"]: [details]
+📋 [translated label for "How to Apply"]:
+- [Step 1]
+- [Step 2]
+- [Step 3]
 
-👤 [translated label for "Best Suited For"]: [details]
+⏰ [translated label for "Frequency"]:
+- [How often to use — morning/evening/weekly]
+- [How long before seeing results]
+
+💧 [translated label for "Amount to Use"]:
+- [Exact amount — drops, pea-size, pump etc.]
+- [How to spread or massage in]
+
+✅ [translated label for "Layering Order"]:
+- [Step number] [product type] — [example]
+
+🌡️ [translated label for "Before and After"]:
+- [What to do before applying — cleanse, tone etc.]
+- [What to apply after — serum, moisturizer, SPF etc.]
 
 - benefits: Use this style with emojis and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
 🧱 [translated benefit category name]:
@@ -166,38 +183,6 @@ Formatting Rules:
 
 ✅ [translated label for "Best Combinations"]:
 - [Product/ingredient] — [why it works well together]
-
-📋 [translated label for "Layering Order"]:
-- [Step number] [product type] — [example]
-
-🌅 [translated label for "Morning vs Evening"]:
-- [Recommendation with reason]
-
-- usage: Write a DETAILED section using emojis and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
-
-📋 [translated label for "How to Apply"]:
-- [Step 1]
-- [Step 2]
-- [Step 3]
-
-⏰ [translated label for "Frequency"]:
-- [How often to use — morning/evening/weekly]
-- [How long before seeing results]
-
-💧 [translated label for "Amount to Use"]:
-- [Exact amount — drops, pea-size, pump etc.]
-- [How to spread or massage in]
-
-🌡️ [translated label for "Before and After"]:
-- [What to do before applying — cleanse, tone etc.]
-- [What to apply after — serum, moisturizer, SPF etc.]
-
-👤 [translated label for "Best Suited For"]:
-- [Skin type] — [why]
-
-⚡ [translated label for "Pro Tips"]:
-- [Professional advice for best results]
-- [Common mistakes to avoid]
 
 Ensure the output strictly follows the JSON schema.
 `;
