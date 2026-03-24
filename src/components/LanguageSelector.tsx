@@ -15,7 +15,6 @@ const LANGUAGES: { code: Language; flag: string; label: string }[] = [
   { code: 'fr', flag: '🇫🇷', label: 'FR' },
   { code: 'it', flag: '🇮🇹', label: 'IT' },
   { code: 'tr', flag: '🇹🇷', label: 'TR' },
-  { code: 'ar', flag: '🇸🇦', label: 'AR' },
 ];
  
 export function LanguageSelector({ currentLang, onSelect }: Props) {
@@ -40,4 +39,4 @@ export function LanguageSelector({ currentLang, onSelect }: Props) {
     </div>
   );
 }
-
+    
