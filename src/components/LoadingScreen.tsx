@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Loader2 } from 'lucide-react';
-import { Language } from '../i18n';
+import { Loader2, CheckCircle } from 'lucide-react';
+import { t, Language } from '../i18n';
  
 interface Quote { author: string; text: string; }
  
@@ -422,58 +422,6 @@ const QUOTES: Record<Language, Quote[]> = {
     { author: "Eleanor Roosevelt", text: "«Gelecek, hayallerinin güzelliğine inanan ve onları hayata geçirmek için çalışmaya hazır olanlara aittir»" },
     { author: "Viktor Frankl", text: "«İnsandan hemen her şey alınabilir, ama herhangi bir durumda kendi tutumunu seçme özgürlüğü alınamaz»" },
   ],
-  ar: [
-    { author: "Albert Einstein", text: "«الخيال أهم من المعرفة، لأنه يتيح للإنسان تجاوز الواضح وابتكار المستقبل»" },
-    { author: "Steve Jobs", text: "«الطريقة الوحيدة لإنجاز عمل عظيم هي أن تحب ما تفعله، رغم الصعوبات والشكوك»" },
-    { author: "Nelson Mandela", text: "«كل شيء يبدو مستحيلاً حتى يُنجز، والإيمان هو ما يحدد قوة الإنسان»" },
-    { author: "Walt Disney", text: "«إذا كنت تستطيع أن تحلم به، فأنت قادر على تحقيقه إذا بذلت الجهد وأظهرت المثابرة»" },
-    { author: "Oprah Winfrey", text: "«تحويل الجروح إلى حكمة هو مسار النمو الذي يجعل الإنسان أقوى ويساعده على تحقيق المزيد»" },
-    { author: "Tony Robbins", text: "«جودة حياتك تتحدد بجودة الأسئلة التي تطرحها على نفسك، لا بالظروف المحيطة»" },
-    { author: "Elon Musk", text: "«إذا كان شيء ما مهماً حقاً، فإنك تفعله حتى عندما تكون احتمالية النجاح ضئيلة»" },
-    { author: "Henry Ford", text: "«سواء ظننت أنك تستطيع أو ظننت أنك لا تستطيع، فأنت على حق في كلتا الحالتين»" },
-    { author: "Bruce Lee", text: "«الشخص الناجح هو شخص عادي يتمتع بتركيز شديد على الأهداف والانضباط»" },
-    { author: "Maya Angelou", text: "«لا يمكنك التحكم في كل ما يحدث، لكنك تستطيع التحكم في ردة فعلك وموقفك»" },
-    { author: "Confucius", text: "«لا يهم كم تسير ببطء، المهم ألا تتوقف وتواصل التقدم للأمام»" },
-    { author: "Napoleon Hill", text: "«كل ما يستطيع العقل تصوره والإيمان به، يستطيع تحقيقه»" },
-    { author: "Mark Twain", text: "«بعد سنوات ستندم على ما لم تفعله أكثر مما ستندم على ما فعلته»" },
-    { author: "Jim Rohn", text: "«إما أن تُدير يومك أو أن يديرك اليوم، والاختيار يبقى دائماً في يدك»" },
-    { author: "Dwayne Johnson", text: "«النجاح لا يرتبط بالعظمة، بل باتساق الجهد اليومي والانضباط»" },
-    { author: "Serena Williams", text: "«القوة لا تأتي من الانتصارات فحسب، بل من النضال الذي يجعلك أكثر صموداً»" },
-    { author: "Bill Gates", text: "«النجاح معلم سيئ لأنه يجعل الأذكياء يعتقدون أنهم لا يمكن أن يخسروا»" },
-    { author: "Jack Ma", text: "«إذا لم تستسلم فستكون لديك دائماً فرصة، حتى لو بدا الطريق طويلاً وصعباً»" },
-    { author: "Arnold Schwarzenegger", text: "«القوة لا تأتي من الانتصار، بل تأتي من النضال والتغلب على الصعوبات»" },
-    { author: "Sheryl Sandberg", text: "«يحقق النجاح أولئك الذين لا يخشون إعلان أنفسهم وتحمل المسؤولية»" },
-    { author: "Michael Jordan", text: "«أخطأت الهدف آلاف المرات، لكن ذلك هو ما جعلني من أنا، لأن كل خطأ جزء من مسار النجاح»" },
-    { author: "Jeff Bezos", text: "«المهم أن تكون على استعداد للتجريب، لأن التجارب هي التي تقود إلى الاختراقات الحقيقية والفرص الجديدة»" },
-    { author: "Marie Curie", text: "«لا شيء في الحياة يستحق الخوف، فقط ينبغي فهمه، والمضي قدماً رغم الصعوبات»" },
-    { author: "Stephen King", text: "«الموهبة رخيصة؛ القيمة الحقيقية تخلقها الانضباط والمثابرة والاستعداد للعمل حين يستسلم الآخرون»" },
-    { author: "Paulo Coelho", text: "«حين تريد شيئاً حقاً، يبدأ العالم كله في مساعدتك لإيجاد الطريق نحو تحقيق ذلك الهدف»" },
-    { author: "Barack Obama", text: "«التغيير لن يأتي من تلقاء نفسه إذا انتظرنا أشخاصاً آخرين أو لحظة أكثر ملاءمة»" },
-    { author: "Malala Yousafzai", text: "«شخص واحد وكتاب واحد وفكرة واحدة يمكنها تغيير مسار التاريخ إذا توفرت الجرأة على التصرف»" },
-    { author: "Thomas Edison", text: "«العبقرية واحد بالمئة إلهام وتسعة وتسعون بالمئة عمل دؤوب ومحاولات مستمرة»" },
-    { author: "Leonardo da Vinci", text: "«البساطة هي نتيجة الفهم العميق لا غياب التعقيد، وهي تتطلب إتقاناً كبيراً»" },
-    { author: "Richard Branson", text: "«الأخطاء حتمية، لكن من خلالها يتعلم الإنسان ويتطور ويحقق النجاح الحقيقي»" },
-    { author: "Kobe Bryant", text: "«كن مهووساً بعملية التطور، لأن النتائج دائماً هي حصيلة ما تفعله كل يوم»" },
-    { author: "Zig Ziglar", text: "«يمكنك الحصول على كل ما تريد إذا ساعدت الآخرين على الحصول على ما يهمهم»" },
-    { author: "Dale Carnegie", text: "«النجاح الحقيقي يُبنى على القدرة على فهم الناس وبناء علاقات فعّالة معهم»" },
-    { author: "Ralph Waldo Emerson", text: "«أن تكون نفسك في عالم يحاول باستمرار تغييرك هو إنجاز عظيم بحد ذاته»" },
-    { author: "Sun Tzu", text: "«الانتصار يتحقق قبل بدء المعركة بفضل الإعداد والانضباط والتفكير الاستراتيجي»" },
-    { author: "Peter Drucker", text: "«أفضل طريقة للتنبؤ بالمستقبل هي صنعه بنشاط من خلال أفعالك اليوم»" },
-    { author: "Gary Vaynerchuk", text: "«الصبر والاتساق أهم من النتائج السريعة، لأنهما يُشكّلان النجاح الدائم»" },
-    { author: "Angela Merkel", text: "«حتى أعقد المشكلات يمكن حلها إذا حافظت على المثابرة وسعيت للحلول عبر الحوار»" },
-    { author: "Friedrich Nietzsche", text: "«من يملك سبباً للحياة يستطيع تحمل أي كيف»" },
-    { author: "Isaac Newton", text: "«إن رأيت أبعد فذلك لأنني وقفت على أكتاف العمالقة»" },
-    { author: "Nikola Tesla", text: "«المستقبل لمن يستطيعون التفكير خارج الحدود المألوفة ولا يخشون مواجهة القيود السائدة»" },
-    { author: "Frida Kahlo", text: "«المعاناة يمكن أن تصبح مصدراً للقوة إذا وجد الإنسان فيها معنى وواصل المضي قدماً»" },
-    { author: "George Bernard Shaw", text: "«التقدم مستحيل بدون تغيير، والتغيير يستلزم الجرأة على التخلي عن المألوف»" },
-    { author: "Muhammad Ali", text: "«المستحيل مجرد رأي لا يزال موجوداً حتى يُثبت أحدهم العكس بأفعاله»" },
-    { author: "Carl Jung", text: "«ما تقاومه يستمر في الوجود؛ لذا من المهم إدراك ما يحدث وقبوله للمضي قدماً»" },
-    { author: "Sigmund Freud", text: "«فهم الذات هو أساس الحرية الداخلية التي تتيح اتخاذ قرارات واعية والعيش بشكل كامل»" },
-    { author: "Andrew Carnegie", text: "«الثروة تأتي لمن يعرف كيف يتعاون ويوحد الجهود ويستغل الفرص التي يتيحها التفاعل»" },
-    { author: "Benjamin Franklin", text: "«الطاقة والمثابرة تتغلبان على كل شيء إذا وجّه الإنسان طاقته نحو هدف محدد دون تشتت»" },
-    { author: "Eleanor Roosevelt", text: "«المستقبل لمن يؤمنون بجمال أحلامهم وهم مستعدون للعمل من أجل تحقيقها رغم الصعوبات»" },
-    { author: "Viktor Frankl", text: "«يمكن أن يُسلب من الإنسان كل شيء إلا حرية اختيار موقفه مما يجري وإيجاد معنى في أي ظرف»" },
-  ],
 };
  
 function getRandomQuote(lang: Language): Quote {
@@ -481,18 +429,44 @@ function getRandomQuote(lang: Language): Quote {
   return list[Math.floor(Math.random() * list.length)];
 }
  
+// ── Step timings (ms from start) ──────────────────────────────────────────────
+// Spread across typical Gemini response time 8-15s. Steps are visual only.
+const STEP_DELAYS = [0, 800, 1800, 3000, 4400, 5800, 7200, 8600, 10000];
+ 
 interface Props {
   isVisible: boolean;
   lang: Language;
 }
  
 export function LoadingScreen({ isVisible, lang }: Props) {
-  const [quote, setQuote] = useState<Quote>(() => getRandomQuote(lang));
+  const [quote, setQuote]           = useState<Quote>(() => getRandomQuote(lang));
+  const [activeStep, setActiveStep] = useState(0);
+ 
+  const T = t[lang];
+  const steps: string[] = [
+    T.loadingStep1,
+    T.loadingStep2,
+    T.loadingStep3,
+    T.loadingStep4,
+    T.loadingStep5,
+    T.loadingStep6,
+    T.loadingStep7,
+    T.loadingStep8,
+    T.loadingStep9,
+  ];
  
   useEffect(() => {
-    if (isVisible) {
-      setQuote(getRandomQuote(lang));
+    if (!isVisible) {
+      setActiveStep(0);
+      return;
     }
+    setQuote(getRandomQuote(lang));
+    setActiveStep(0);
+ 
+    const timers = STEP_DELAYS.map((delay, i) =>
+      setTimeout(() => setActiveStep(i), delay)
+    );
+    return () => timers.forEach(clearTimeout);
   }, [isVisible, lang]);
  
   return (
@@ -506,6 +480,7 @@ export function LoadingScreen({ isVisible, lang }: Props) {
         >
           <div className="w-16 h-[1px] bg-[#D4C3A3] mb-10" />
  
+          {/* Quote */}
           <motion.div
             key={quote.text}
             initial={{ opacity: 0, y: 10 }}
@@ -523,9 +498,36 @@ export function LoadingScreen({ isVisible, lang }: Props) {
  
           <div className="w-16 h-[1px] bg-[#D4C3A3] mt-10 mb-8" />
  
-          <div className="flex items-center gap-2 text-[#B89F7A]">
-            <Loader2 size={16} className="animate-spin" />
-            <span className="text-xs tracking-[0.25em] uppercase">Analyzing...</span>
+          {/* Steps */}
+          <div className="flex flex-col gap-2 w-full max-w-[220px]">
+            {steps.map((step, i) => {
+              const isDone   = i < activeStep;
+              const isActive = i === activeStep;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: isActive || isDone ? 1 : 0.25, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                  className="flex items-center gap-2"
+                >
+                  {isDone ? (
+                    <CheckCircle size={13} className="text-[#B89F7A] shrink-0" />
+                  ) : isActive ? (
+                    <Loader2 size={13} className="animate-spin text-[#B89F7A] shrink-0" />
+                  ) : (
+                    <span className="w-[13px] h-[13px] rounded-full border border-[#D4C3A3] shrink-0" />
+                  )}
+                  <span className={`text-[11px] tracking-wide uppercase ${
+                    isActive ? 'text-[#2C3E50] font-semibold' :
+                    isDone   ? 'text-[#B89F7A]' :
+                               'text-[#D4C3A3]'
+                  }`}>
+                    {step}
+                  </span>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
       )}
