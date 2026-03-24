@@ -19,7 +19,7 @@ import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
 import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
-import { UserProfilePanel, UserProfile } from './components/UserProfile';
+import { UserProfilePanel, UserProfile } from './components/UserProfile'; // ← НОВОЕ
  
 // ── helpers for formatted sections ──────────────────────────────────────────
  
@@ -137,10 +137,10 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [sharedLoading, setSharedLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null); // ← НОВОЕ
  
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isFirstRender = useRef(true);
@@ -289,7 +289,6 @@ export default function App() {
     setIsSharing(true);
  
     try {
-      // Save result to shared_results table
       const { data, error } = await supabase
         .from('shared_results')
         .insert({ result })
@@ -309,7 +308,6 @@ export default function App() {
         setTimeout(() => setCopied(false), 2000);
       }
     } catch (_) {
-      // fallback — copy current url
       await navigator.clipboard.writeText(window.location.href).catch(() => {});
     } finally {
       setIsSharing(false);
@@ -327,47 +325,23 @@ export default function App() {
           <img src={logo} alt="logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
           <div className="flex items-center gap-2">
             {user && (
-
               <>
-
                 <ScanHistory
-
                   user={user}
-
                   lang={lang}
-
                   onSelect={(r) => {
-
                     originalResult.current = r;
-
                     translationCache.current = new Map([[lang, r]]);
-
                     setResult(r);
-
                   }}
-
                 />
-
-                <UserProfilePanel
-
+                <UserProfilePanel          {/* ← НОВОЕ */}
                   user={user}
-
                   lang={lang}
-
                   onProfileChange={setUserProfile}
-
                 />
-
               </>
-
             )}
-
-            <AuthButton lang={lang} onUserChange={(u) => {
-              setUser(u);
-              if (u) posthog.identify(u.id, { email: u.email });
-              else posthog.reset();
-            }} />
-          </div>
             <AuthButton lang={lang} onUserChange={(u) => {
               setUser(u);
               if (u) posthog.identify(u.id, { email: u.email });
