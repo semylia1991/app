@@ -75,7 +75,6 @@ const LANGUAGE_NAMES: Record<string, string> = {
   fr: "French",
   it: "Italian",
   tr: "Turkish",
-  ar: "Arabic",
 };
  
 export async function analyzeProductImage(
