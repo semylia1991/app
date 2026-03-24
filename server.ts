@@ -1,224 +1,103 @@
+/**
+ * server.ts — Dev server
+ *
+ * Тонкая обёртка над handleGeminiRequest из src/lib/gemini-handler.ts.
+ * Вся бизнес-логика Gemini живёт там. Здесь только:
+ *  - Express setup + Rate limiting + CORS + Vite dev middleware
+ */
+ 
 import express from "express";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, Type } from "@google/genai";
 import path from "path";
 import dotenv from "dotenv";
+import { handleGeminiRequest } from "./src/lib/gemini-handler.js";
  
 dotenv.config({ path: ".env.local" });
  
-// ОБНОВЛЕНО: Используем актуальную модель 2026 года
+// ── Rate limiting (dev only, in-memory) ───────────────────────────────────────
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60_000;
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
  
-const MODEL = "gemini-2.5-flash";
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  let entry = rateLimitStore.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitStore.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  if (entry.count >= RATE_LIMIT) return true;
+  entry.count++;
+  return false;
+}
  
+// ── CORS ──────────────────────────────────────────────────────────────────────
+function getAllowedOrigin(requestOrigin: string): string | null {
+  const appUrl = (process.env.APP_URL || "").replace(/\/$/, "");
+  if (!appUrl) return "*";
+  if (requestOrigin === appUrl) return appUrl;
+  return null;
+}
+ 
+// ── Server ────────────────────────────────────────────────────────────────────
 async function startServer() {
   const app = express();
   const PORT = 3000;
  
   app.use(express.json({ limit: "20mb" }));
  
-  // ── /api/gemini — full mirror of netlify/functions/gemini.mjs ─────────────
-  app.post("/api/gemini", async (req, res) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: "GEMINI_API_KEY is not configured on the server." });
+  app.use("/api/gemini", (req, res, next) => {
+    const origin = req.headers["origin"] || "";
+    const allowedOrigin = getAllowedOrigin(origin);
+    if (allowedOrigin === null) { res.status(403).json({ error: "Origin not allowed." }); return; }
+ 
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    if (allowedOrigin !== "*") res.setHeader("Vary", "Origin");
+ 
+    if (req.method === "OPTIONS") { res.status(204).end(); return; }
+    if (req.method !== "POST")   { res.status(405).json({ error: "Method not allowed" }); return; }
+ 
+    const clientIp =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() ||
+      req.socket?.remoteAddress || "unknown";
+ 
+    if (isRateLimited(clientIp)) {
+      res.status(429).json({ error: "Too many requests. Please wait a moment and try again." });
+      return;
     }
+    next();
+  });
  
-    const ai = new GoogleGenAI({ apiKey });
-    const { action } = req.body;
- 
+  // ── Единственная точка вызова AI-логики ──────────────────────────────────
+  app.post("/api/gemini", async (req, res) => {
     try {
-      // ── SimpleChat (no action field) ───────────────────────────────────────
-      if (!action) {
-        const { message } = req.body;
-        if (!message || typeof message !== "string") {
-          return res.status(400).json({ error: "message is required and must be a string." });
-        }
-        const response = await ai.models.generateContent({
-          model: MODEL,
-          contents: message,
-        });
-        return res.json({ response: response.text });
-      }
- 
-      // ── Analyze product image ──────────────────────────────────────────────
-      if (action === "analyze") {
-        const { base64Image, mimeType, language } = req.body;
-        if (!base64Image || !mimeType || !language) {
-          return res.status(400).json({ error: "base64Image, mimeType, and language are required." });
-        }
- 
-        const prompt = `
-          You are an expert cosmetic safety analyst and INCI decoder.
-          Analyze the provided image of a cosmetic product or its ingredient list.
-          Extract the product name, brand, and INCI ingredients. Correct any OCR errors.
-          If data is missing, search your knowledge base (EWG Skin Deep, CosDNA, INCI Decoder, PubChem, CIR, EU CosIng).
-          NEVER invent ingredients, ratings, or studies. If data is not found, state "Data not found in public databases." (translated to the requested language).
-          
-          Provide the analysis in ${language}.
-          
-          Formatting Rules:
-          - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
-          - analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
-          - alternatives: Return 3–5 real products as a JSON array. Each item: "name" (product name), "brand" (manufacturer), "reason" (one sentence why it's a good alternative).
-          - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
-            📋 [translated label for "How to Apply"]: [details]
- 
-            ⏰ [translated label for "Frequency"]: [details]
- 
-            👤 [translated label for "Best Suited For"]: [details]
-          - benefits: Use this style with emojis and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
-            🧱 [translated benefit category name]:
-            • [Ingredient/Mechanism] [description]
- 
-            💧 [translated benefit category name]:
-            • [Ingredient/Mechanism] [description]
- 
-          - sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names into ${language}. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
-            ⚠️ [translated side effect category name]:
-            • [Ingredient] [description of potential reaction]
- 
-            🔴 [translated side effect category name]:
-            • [Ingredient] [description of potential reaction]
-          
-          Ensure the output strictly follows the JSON schema.
-        `;
- 
-        const imageData = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
- 
-        const response = await ai.models.generateContent({
-          model: MODEL,
-          contents: [{ parts: [{ text: prompt }, { inlineData: { data: imageData, mimeType } }] }],
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                productName:  { type: Type.STRING },
-                brand:        { type: Type.STRING },
-                productType:  { type: Type.STRING },
-                analysis:     { type: Type.STRING },
-                ingredients: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      name:        { type: Type.STRING },
-                      status:      { type: Type.STRING, enum: ["🟢", "🟡", "🔴"] },
-                      description: { type: Type.STRING },
-                    },
-                  },
-                },
-                usage:        { type: Type.STRING },
-                benefits:     { type: Type.STRING },
-                sideEffects:  { type: Type.STRING },
-                warnings:     { type: Type.STRING },
-                interactions: { type: Type.STRING },
-                shelfLife:    { type: Type.STRING },
-                alternatives: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      name:   { type: Type.STRING },
-                      brand:  { type: Type.STRING },
-                      reason: { type: Type.STRING },
-                    },
-                    required: ["name", "brand", "reason"],
-                  },
-                },
-              },
-              required: [
-                "productName", "brand", "productType", "analysis", "ingredients",
-                "usage", "benefits", "sideEffects", "warnings", "interactions",
-                "shelfLife", "alternatives",
-              ],
-            },
-          },
-        });
- 
+      const result = await handleGeminiRequest(req.body, process.env.GEMINI_API_KEY ?? "");
+      if (result.rawText !== undefined) {
         res.setHeader("Content-Type", "application/json");
-        return res.send(response.text);
+        res.status(result.status).send(result.rawText);
+      } else {
+        res.status(result.status).json(result.body);
       }
- 
-      // ── Translate analysis result ──────────────────────────────────────────
-      if (action === "translate") {
-        const { result, targetLanguage } = req.body;
-        if (!result || !targetLanguage) {
-          return res.status(400).json({ error: "result and targetLanguage are required." });
-        }
- 
-        const prompt = `
-          Translate the following JSON object representing a cosmetic product analysis into ${targetLanguage}.
-          Maintain all formatting (emojis, bold text, newlines, bullet points).
-          Do NOT translate brand names or product names if they are proper nouns.
-          Respond ONLY with valid JSON matching the same schema. No preamble, no markdown fences.
-          
-          JSON to translate:
-          ${JSON.stringify(result)}
-        `;
- 
-        const response = await ai.models.generateContent({
-          model: MODEL,
-          contents: prompt,
-          config: { responseMimeType: "application/json" },
-        });
- 
-        res.setHeader("Content-Type", "application/json");
-        return res.send(response.text);
-      }
- 
-      // ── Ask follow-up question ─────────────────────────────────────────────
-      if (action === "ask") {
-        const { question, context, language } = req.body;
-        if (!question || !context || !language) {
-          return res.status(400).json({ error: "question, context, and language are required." });
-        }
- 
-        const prompt = `
-          You are an expert cosmetic safety analyst.
-          Context about the product:
-          ${JSON.stringify(context)}
-          
-          User question: ${question}
-          
-          Answer in ${language}. Be concise and helpful.
-        `;
- 
-        const response = await ai.models.generateContent({
-          model: MODEL,
-          contents: prompt,
-        });
- 
-        return res.json({ answer: response.text ?? "" });
-      }
- 
-      return res.status(400).json({ error: `Unknown action: "${action}"` });
- 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Unknown error";
       console.error("Gemini API Error:", error);
-      return res.status(500).json({ error: "Internal server error", details: error.message });
+      res.status(500).json({ error: "Internal server error", details: msg });
     }
   });
  
   // ── Vite dev middleware ────────────────────────────────────────────────────
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
+    const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+    app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
   }
  
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  app.listen(PORT, "0.0.0.0", () => console.log(`Server running on http://localhost:${PORT}`));
 }
  
 startServer();
-      
