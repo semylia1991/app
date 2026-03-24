@@ -2,7 +2,7 @@ import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2, Share2, UserCheck } from 'lucide-react';
+import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2, Share2, NotebookPen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
  
@@ -79,7 +79,7 @@ function BenefitsSection({ text }: { text: string }) {
   );
 }
  
-// ── Product hero image (main results header) ─────────────────────────────────
+// ── Product hero image ────────────────────────────────────────────────────────
  
 function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: string; userPhoto?: string | null }) {
   const [src, setSrc] = useState<string | null>(null);
@@ -89,15 +89,9 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
     let cancelled = false;
     fetchProductImage(name, brand).then((url) => {
       if (!cancelled) {
-        if (url) {
-          setSrc(url);
-          setState('loaded');
-        } else if (userPhoto) {
-          setSrc(userPhoto);
-          setState('loaded');
-        } else {
-          setState('error');
-        }
+        if (url) { setSrc(url); setState('loaded'); }
+        else if (userPhoto) { setSrc(userPhoto); setState('loaded'); }
+        else { setState('error'); }
       }
     });
     return () => { cancelled = true; };
@@ -112,54 +106,46 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
           <div className="w-6 h-6 rounded-full border-2 border-[#B89F7A]/30 border-t-[#B89F7A] animate-spin" />
         )}
         {state === 'loaded' && src && (
-          <img
-            src={src}
-            alt={name}
-            className="w-full h-full object-contain p-2"
-            onError={() => setState('error')}
-          />
+          <img src={src} alt={name} className="w-full h-full object-contain p-2" onError={() => setState('error')} />
         )}
       </div>
     </div>
   );
 }
  
-// ── main component ───────────────────────────────────────────────────────────
+// ── main component ────────────────────────────────────────────────────────────
  
 export default function App() {
-  const [lang, setLang] = useState<Language>('en');
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [lang, setLang]               = useState<Language>('en');
+  const [file, setFile]               = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl]   = useState<string | null>(null);
   const [scanPhotoUrl, setScanPhotoUrl] = useState<string | null>(null);
-  const [consent, setConsent] = useState(false);
+  const [consent, setConsent]         = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [result, setResult]           = useState<AnalysisResult | null>(null);
+  const [error, setError]             = useState<string | null>(null);
+  const [user, setUser]               = useState<User | null>(null);
   const [sharedLoading, setSharedLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isPersonalAnalyzing, setIsPersonalAnalyzing] = useState(false);
-  const [showPersonalAnalysis, setShowPersonalAnalysis] = useState(false); // ← НОВОЕ
  
-  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen]     = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
+  const [copied, setCopied]                   = useState(false);
+  const [isSharing, setIsSharing]             = useState(false);
  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const isFirstRender = useRef(true);
-  const originalResult = useRef<AnalysisResult | null>(null);
-  const translationCache = useRef<Map<Language, AnalysisResult>>(new Map());
+  const fileInputRef      = useRef<HTMLInputElement>(null);
+  const isFirstRender     = useRef(true);
+  const originalResult    = useRef<AnalysisResult | null>(null);
+  const translationCache  = useRef<Map<Language, AnalysisResult>>(new Map());
  
-  // ── Load shared result from URL (?share=id) ────────────────────────────────
+  // ── Load shared result from URL (?share=id) ──────────────────────────────
   useEffect(() => {
     const shareId = new URLSearchParams(window.location.search).get('share');
     if (!shareId) return;
     setSharedLoading(true);
     supabase
-      .from('shared_results')
-      .select('result')
-      .eq('id', shareId)
-      .single()
+      .from('shared_results').select('result').eq('id', shareId).single()
       .then(({ data }) => {
         if (data?.result) {
           const r = data.result as AnalysisResult;
@@ -171,57 +157,38 @@ export default function App() {
       });
   }, []);
  
+  // ── Auto-translate on lang change ────────────────────────────────────────
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
- 
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (!originalResult.current || isAnalyzing) return;
  
     const cached = translationCache.current.get(lang);
-    if (cached) {
-      setResult(cached);
-      return;
-    }
+    if (cached) { setResult(cached); return; }
  
     let cancelled = false;
- 
     const translate = async () => {
       setIsTranslating(true);
       try {
         const translated = await translateAnalysisResult(originalResult.current!, lang);
-        if (!cancelled) {
-          translationCache.current.set(lang, translated);
-          setResult(translated);
-        }
+        if (!cancelled) { translationCache.current.set(lang, translated); setResult(translated); }
       } catch (err) {
-        if (!cancelled) {
-          console.error("Translation error:", err);
-        }
+        if (!cancelled) console.error('Translation error:', err);
       } finally {
-        if (!cancelled) {
-          setIsTranslating(false);
-        }
+        if (!cancelled) setIsTranslating(false);
       }
     };
- 
     translate();
- 
-    return () => {
-      cancelled = true;
-      setIsTranslating(false);
-    };
+    return () => { cancelled = true; setIsTranslating(false); };
   }, [lang]);
+ 
+  // ── Handlers ─────────────────────────────────────────────────────────────
  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
+      reader.onloadend = () => setPreviewUrl(reader.result as string);
       reader.readAsDataURL(selectedFile);
       setError(null);
     }
@@ -239,18 +206,14 @@ export default function App() {
  
   const handleAnalyze = async () => {
     if (!previewUrl || !consent) return;
- 
     setIsAnalyzing(true);
     setError(null);
     posthog.capture('scan_started', { lang });
- 
     try {
       const match = previewUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
-      if (!match) throw new Error("Invalid image format");
- 
+      if (!match) throw new Error('Invalid image format');
       const mimeType = match[1];
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang);
- 
       originalResult.current = analysis;
       translationCache.current = new Map([[lang, analysis]]);
       setResult(analysis);
@@ -258,12 +221,7 @@ export default function App() {
       setFile(null);
       setPreviewUrl(null);
       await saveScanToHistory(analysis);
- 
-      posthog.capture('scan_completed', {
-        product_name: analysis.productName,
-        brand: analysis.brand,
-        lang,
-      });
+      posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
     } catch (err) {
       console.error(err);
       setError(t[lang].error);
@@ -273,45 +231,25 @@ export default function App() {
     }
   };
  
-  // Анализ с профилем: стандартный анализ + флаг для авто-открытия PersonalAnalysis
-  const handleAnalyzeWithProfile = async () => {
-    if (!previewUrl || !consent) return;
-    setIsPersonalAnalyzing(true);
-    setShowPersonalAnalysis(true);
-    await handleAnalyze();
-    setIsPersonalAnalyzing(false);
-  };
- 
-  const handleReset = () => {    setFile(null);
+  const handleReset = () => {
+    setFile(null);
     setPreviewUrl(null);
     setScanPhotoUrl(null);
     setResult(null);
     setConsent(false);
     setError(null);
-    setShowPersonalAnalysis(false);
     originalResult.current = null;
     translationCache.current = new Map();
   };
  
-  const [copied, setCopied] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
- 
   const handleShare = async () => {
     if (!result) return;
     setIsSharing(true);
- 
     try {
-      const { data, error } = await supabase
-        .from('shared_results')
-        .insert({ result })
-        .select('id')
-        .single();
- 
+      const { data, error } = await supabase.from('shared_results').insert({ result }).select('id').single();
       if (error || !data) throw new Error('Failed to save');
- 
       const shareUrl = `${window.location.origin}?share=${data.id}`;
       const shareText = `${result.productName} by ${result.brand}\n\n${result.analysis}`;
- 
       if (navigator.share) {
         await navigator.share({ title: result.productName, text: shareText, url: shareUrl });
       } else {
@@ -326,13 +264,14 @@ export default function App() {
     }
   };
  
+  // ── Render ────────────────────────────────────────────────────────────────
+ 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <div className="fixed top-0 left-0 w-full h-32 bg-gradient-to-b from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
       <div className="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
  
       <header className="pt-6 pb-4 px-4 text-center relative">
-        {/* Auth row */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <img src={logo} alt="logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
           <div className="flex items-center gap-2">
@@ -347,11 +286,7 @@ export default function App() {
                     setResult(r);
                   }}
                 />
-                <UserProfilePanel
-                  user={user}
-                  lang={lang}
-                  onProfileChange={setUserProfile}
-                />
+                <UserProfilePanel user={user} lang={lang} onProfileChange={setUserProfile} />
               </>
             )}
             <AuthButton lang={lang} onUserChange={(u) => {
@@ -364,17 +299,9 @@ export default function App() {
  
         <LanguageSelector currentLang={lang} onSelect={setLang} />
  
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-6 mb-2"
-        >
-          <h2 className="text-xs font-serif tracking-[0.3em] text-[#B89F7A] uppercase mb-2">
-            {t[lang].subtitle}
-          </h2>
-          <h1 className="text-4xl md:text-5xl font-serif text-[#2C3E50] tracking-wide">
-            {t[lang].title}
-          </h1>
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 mb-2">
+          <h2 className="text-xs font-serif tracking-[0.3em] text-[#B89F7A] uppercase mb-2">{t[lang].subtitle}</h2>
+          <h1 className="text-4xl md:text-5xl font-serif text-[#2C3E50] tracking-wide">{t[lang].title}</h1>
         </motion.div>
         <div className="w-24 h-[1px] bg-[#D4C3A3] mx-auto mt-6" />
       </header>
@@ -382,6 +309,7 @@ export default function App() {
       <main className="flex-grow flex flex-col items-center justify-center p-4 relative">
         <AnimatePresence mode="wait">
           {!result ? (
+            // ── Upload panel ────────────────────────────────────────────────
             <motion.div
               key="upload"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -445,6 +373,7 @@ export default function App() {
                     </div>
                   )}
  
+                  {/* Single Analyze button — same as original */}
                   <button
                     onClick={handleAnalyze}
                     disabled={!consent || isAnalyzing}
@@ -459,30 +388,11 @@ export default function App() {
                       <span className="tracking-widest">{t[lang].analyzeProduct}</span>
                     )}
                   </button>
- 
-                  {userProfile && (
-                    <button
-                      onClick={() => handleAnalyzeWithProfile()}
-                      disabled={!consent || isAnalyzing || isPersonalAnalyzing}
-                      className="w-full py-4 regency-button disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-[#B89F7A]/60"
-                    >
-                      {isPersonalAnalyzing ? (
-                        <>
-                          <Loader2 className="animate-spin" size={16} />
-                          <span className="tracking-widest">{t[lang].personalAnalysisLoading}</span>
-                        </>
-                      ) : (
-                        <>
-                          <UserCheck size={16} />
-                          <span className="tracking-widest">{t[lang].personalAnalysisButton}</span>
-                        </>
-                      )}
-                    </button>
-                  )}
                 </motion.div>
               )}
             </motion.div>
           ) : (
+            // ── Results panel ───────────────────────────────────────────────
             <motion.div
               key="results"
               initial={{ opacity: 0, y: 20 }}
@@ -505,10 +415,16 @@ export default function App() {
               </div>
  
               <div className="space-y-2">
+                {/* Original sections */}
                 <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={20} />} defaultOpen>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.analysis}</ReactMarkdown>
                   </div>
+                </CollapsibleSection>
+ 
+                {/* Note — personal profile analysis, second after Analysis */}
+                <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={20} />}>
+                  <PersonalAnalysis lang={lang} result={result} userProfile={userProfile} />
                 </CollapsibleSection>
  
                 <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />}>
@@ -560,15 +476,6 @@ export default function App() {
  
               <AskAI lang={lang} context={result} />
  
-              {userProfile && (
-                <PersonalAnalysis
-                  lang={lang}
-                  result={result}
-                  userProfile={userProfile}
-                  autoOpen={showPersonalAnalysis}
-                />
-              )}
- 
               <div className="mt-8 pt-6 border-t border-[#D4C3A3] space-y-4">
                 <div className="bg-[#B89F7A]/5 p-4 rounded-sm border border-[#B89F7A]/20 text-xs text-[#4A4A4A] space-y-2">
                   <p><strong>Transparency:</strong> {t[lang].aiTransparency}</p>
@@ -584,10 +491,7 @@ export default function App() {
                   <span>{copied ? t[lang].copied : t[lang].share}</span>
                 </button>
  
-                <button
-                  onClick={handleReset}
-                  className="w-full py-4 regency-button tracking-widest"
-                >
+                <button onClick={handleReset} className="w-full py-4 regency-button tracking-widest">
                   {t[lang].anotherProduct}
                 </button>
               </div>
@@ -612,19 +516,8 @@ export default function App() {
       <LoadingScreen isVisible={isAnalyzing} lang={lang} />
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
  
-      <LegalModal
-        isOpen={isPrivacyOpen}
-        onClose={() => setIsPrivacyOpen(false)}
-        title={t[lang].privacyPolicy}
-        content={<PrivacyPolicyContent />}
-      />
- 
-      <LegalModal
-        isOpen={isImpressumOpen}
-        onClose={() => setIsImpressumOpen(false)}
-        title={t[lang].impressum}
-        content={<ImpressumContent />}
-      />
+      <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent />} />
+      <LegalModal isOpen={isImpressumOpen} onClose={() => setIsImpressumOpen(false)} title={t[lang].impressum} content={<ImpressumContent />} />
     </div>
   );
 }
