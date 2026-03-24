@@ -106,6 +106,8 @@ export const t = {
         hairNone: "None",
     // ── Personal Analysis ────────────────────────────────────────────────────
     personalAnalysisButton: "Personal Analysis",
+    noteSection: "Note",
+    noteNoProfile: "Complete your profile to receive a personalised note.",
     personalAnalysisTitle: "Personal Analysis",
     personalAnalysisLoading: "Analyzing for your profile...",
     personalAnalysisLang: "English",
@@ -211,6 +213,8 @@ export const t = {
         hairNone: "Нет",
     // ── Персональный анализ ──────────────────────────────────────────────────
     personalAnalysisButton: "Персональный анализ",
+    noteSection: "Примечание",
+    noteNoProfile: "Заполните профиль, чтобы получить персональное примечание.",
     personalAnalysisTitle: "Персональный анализ",
     personalAnalysisLoading: "Анализируем для вашего профиля...",
     personalAnalysisLang: "Russian",
@@ -316,6 +320,8 @@ export const t = {
         hairNone: "Keine",
     // ── Persönliche Analyse ──────────────────────────────────────────────────
     personalAnalysisButton: "Persönliche Analyse",
+    noteSection: "Hinweis",
+    noteNoProfile: "Füllen Sie Ihr Profil aus, um einen persönlichen Hinweis zu erhalten.",
     personalAnalysisTitle: "Persönliche Analyse",
     personalAnalysisLoading: "Analyse für Ihr Profil läuft...",
     personalAnalysisLang: "German",
@@ -421,6 +427,8 @@ export const t = {
         hairNone: "Немає",
     // ── Персональний аналіз ──────────────────────────────────────────────────
     personalAnalysisButton: "Персональний аналіз",
+    noteSection: "Примітка",
+    noteNoProfile: "Заповніть профіль, щоб отримати персональну примітку.",
     personalAnalysisTitle: "Персональний аналіз",
     personalAnalysisLoading: "Аналізуємо для вашого профілю...",
     personalAnalysisLang: "Ukrainian",
@@ -526,6 +534,8 @@ export const t = {
         hairNone: "Ninguno",
     // ── Análisis personal ────────────────────────────────────────────────────
     personalAnalysisButton: "Análisis personal",
+    noteSection: "Nota",
+    noteNoProfile: "Completa tu perfil para recibir una nota personalizada.",
     personalAnalysisTitle: "Análisis personal",
     personalAnalysisLoading: "Analizando para tu perfil...",
     personalAnalysisLang: "Spanish",
@@ -631,6 +641,8 @@ export const t = {
         hairNone: "Aucun",
     // ── Analyse personnelle ──────────────────────────────────────────────────
     personalAnalysisButton: "Analyse personnelle",
+    noteSection: "Note",
+    noteNoProfile: "Complétez votre profil pour recevoir une note personnalisée.",
     personalAnalysisTitle: "Analyse personnelle",
     personalAnalysisLoading: "Analyse en cours pour votre profil...",
     personalAnalysisLang: "French",
@@ -736,6 +748,8 @@ export const t = {
         hairNone: "Nessuno",
     // ── Analisi personale ────────────────────────────────────────────────────
     personalAnalysisButton: "Analisi personale",
+    noteSection: "Nota",
+    noteNoProfile: "Compila il tuo profilo per ricevere una nota personalizzata.",
     personalAnalysisTitle: "Analisi personale",
     personalAnalysisLoading: "Analisi in corso per il tuo profilo...",
     personalAnalysisLang: "Italian",
@@ -841,6 +855,8 @@ export const t = {
         hairNone: "Yok",
     // ── Kişisel analiz ───────────────────────────────────────────────────────
     personalAnalysisButton: "Kişisel analiz",
+    noteSection: "Not",
+    noteNoProfile: "Kişiselleştirilmiş bir not almak için profilinizi doldurun.",
     personalAnalysisTitle: "Kişisel analiz",
     personalAnalysisLoading: "Profiliniz için analiz yapılıyor...",
     personalAnalysisLang: "Turkish",
