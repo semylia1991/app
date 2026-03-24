@@ -140,6 +140,7 @@ export default function App() {
  
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isFirstRender = useRef(true);
@@ -326,16 +327,47 @@ export default function App() {
           <img src={logo} alt="logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
           <div className="flex items-center gap-2">
             {user && (
-              <ScanHistory
-                user={user}
-                lang={lang}
-                onSelect={(r) => {
-                  originalResult.current = r;
-                  translationCache.current = new Map([[lang, r]]);
-                  setResult(r);
-                }}
-              />
+
+              <>
+
+                <ScanHistory
+
+                  user={user}
+
+                  lang={lang}
+
+                  onSelect={(r) => {
+
+                    originalResult.current = r;
+
+                    translationCache.current = new Map([[lang, r]]);
+
+                    setResult(r);
+
+                  }}
+
+                />
+
+                <UserProfilePanel
+
+                  user={user}
+
+                  lang={lang}
+
+                  onProfileChange={setUserProfile}
+
+                />
+
+              </>
+
             )}
+
+            <AuthButton lang={lang} onUserChange={(u) => {
+              setUser(u);
+              if (u) posthog.identify(u.id, { email: u.email });
+              else posthog.reset();
+            }} />
+          </div>
             <AuthButton lang={lang} onUserChange={(u) => {
               setUser(u);
               if (u) posthog.identify(u.id, { email: u.email });
