@@ -2,7 +2,7 @@ import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2, Share2 } from 'lucide-react';
+import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2, Share2, UserCheck } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
  
@@ -19,7 +19,8 @@ import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
 import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
-import { UserProfilePanel, UserProfile } from './components/UserProfile'; // ← НОВОЕ
+import { UserProfilePanel, UserProfile } from './components/UserProfile';
+import { PersonalAnalysis } from './components/PersonalAnalysis';
  
 // ── helpers for formatted sections ──────────────────────────────────────────
  
@@ -137,7 +138,9 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [sharedLoading, setSharedLoading] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null); // ← НОВОЕ
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isPersonalAnalyzing, setIsPersonalAnalyzing] = useState(false);
+  const [showPersonalAnalysis, setShowPersonalAnalysis] = useState(false); // ← НОВОЕ
  
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
@@ -270,13 +273,22 @@ export default function App() {
     }
   };
  
-  const handleReset = () => {
-    setFile(null);
+  // Анализ с профилем: стандартный анализ + флаг для авто-открытия PersonalAnalysis
+  const handleAnalyzeWithProfile = async () => {
+    if (!previewUrl || !consent) return;
+    setIsPersonalAnalyzing(true);
+    setShowPersonalAnalysis(true);
+    await handleAnalyze();
+    setIsPersonalAnalyzing(false);
+  };
+ 
+  const handleReset = () => {    setFile(null);
     setPreviewUrl(null);
     setScanPhotoUrl(null);
     setResult(null);
     setConsent(false);
     setError(null);
+    setShowPersonalAnalysis(false);
     originalResult.current = null;
     translationCache.current = new Map();
   };
@@ -335,7 +347,7 @@ export default function App() {
                     setResult(r);
                   }}
                 />
-                <UserProfilePanel          
+                <UserProfilePanel
                   user={user}
                   lang={lang}
                   onProfileChange={setUserProfile}
@@ -447,6 +459,26 @@ export default function App() {
                       <span className="tracking-widest">{t[lang].analyzeProduct}</span>
                     )}
                   </button>
+ 
+                  {userProfile && (
+                    <button
+                      onClick={() => handleAnalyzeWithProfile()}
+                      disabled={!consent || isAnalyzing || isPersonalAnalyzing}
+                      className="w-full py-4 regency-button disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 border-[#B89F7A]/60"
+                    >
+                      {isPersonalAnalyzing ? (
+                        <>
+                          <Loader2 className="animate-spin" size={16} />
+                          <span className="tracking-widest">{t[lang].personalAnalysisLoading}</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck size={16} />
+                          <span className="tracking-widest">{t[lang].personalAnalysisButton}</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </motion.div>
               )}
             </motion.div>
@@ -527,6 +559,15 @@ export default function App() {
               </div>
  
               <AskAI lang={lang} context={result} />
+ 
+              {userProfile && (
+                <PersonalAnalysis
+                  lang={lang}
+                  result={result}
+                  userProfile={userProfile}
+                  autoOpen={showPersonalAnalysis}
+                />
+              )}
  
               <div className="mt-8 pt-6 border-t border-[#D4C3A3] space-y-4">
                 <div className="bg-[#B89F7A]/5 p-4 rounded-sm border border-[#B89F7A]/20 text-xs text-[#4A4A4A] space-y-2">
