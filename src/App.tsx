@@ -19,6 +19,7 @@ import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
 import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
+import { UserProfilePanel, UserProfile } from './components/UserProfile';
  
 // ── helpers for formatted sections ──────────────────────────────────────────
  
