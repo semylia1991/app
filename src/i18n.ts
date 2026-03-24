@@ -319,7 +319,7 @@ export const t = {
     personalAnalysisTitle: "Persönliche Analyse",
     personalAnalysisLoading: "Analyse für Ihr Profil läuft...",
     personalAnalysisLang: "German",
-    personalAnalysisNoProfile: "Füllen Sie "Mein Profil" aus, um eine persönliche Analyse zu erhalten.",
+    personalAnalysisNoProfile: "Füllen Sie «Mein Profil» aus, um eine persönliche Analyse zu erhalten.",
     personalAnalysisShortDisclaimer: "Automatisierte Analyse. Keine medizinische Beratung.",
     personalAnalysisDisclaimer: "Dies ist eine KI-generierte Einschätzung basierend auf Ihren Profildaten und öffentlich verfügbaren Inhaltsstoffinformationen. Keine medizinische Beratung.",
   },
@@ -847,8 +847,5 @@ export const t = {
     personalAnalysisNoProfile: "Kişiselleştirilmiş analiz için «Profilim»i doldurun.",
     personalAnalysisShortDisclaimer: "Otomatik analiz. Tıbbi tavsiye değildir.",
     personalAnalysisDisclaimer: "Bu, profil verilerinize ve halka açık içerik bilgilerine dayalı yapay zeka tarafından oluşturulmuş bir değerlendirmedir. Tıbbi tavsiye değildir.",
-  },
-};
-    noHistory: "لا توجد عمليات مسح بعد.",
   },
 };
