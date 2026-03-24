@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2, Share2, NotebookPen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
- 
+
 import { t, Language } from './i18n';
-import { analyzeProductImage, AnalysisResult, translateAnalysisResult } from './services/ai';
+import { analyzeProductImage, AnalysisResult, translateAnalysisResult, SerializedProfile } from './services/ai';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -19,15 +19,15 @@ import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
 import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
-import { UserProfilePanel, UserProfile } from './components/UserProfile';
+import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
 import { PersonalAnalysis } from './components/PersonalAnalysis';
- 
+
 // ── helpers for formatted sections ──────────────────────────────────────────
- 
+
 function splitParagraphs(text: string): string[] {
   return text.split('\n\n').map(s => s.trim()).filter(Boolean);
 }
- 
+
 function UsageSection({ text }: { text: string }) {
   const blocks = splitParagraphs(text);
   return (
@@ -52,7 +52,7 @@ function UsageSection({ text }: { text: string }) {
     </div>
   );
 }
- 
+
 function BenefitsSection({ text }: { text: string }) {
   const blocks = splitParagraphs(text);
   return (
@@ -78,13 +78,13 @@ function BenefitsSection({ text }: { text: string }) {
     </div>
   );
 }
- 
+
 // ── Product hero image ────────────────────────────────────────────────────────
- 
+
 function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: string; userPhoto?: string | null }) {
   const [src, setSrc] = useState<string | null>(null);
   const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
- 
+
   useEffect(() => {
     let cancelled = false;
     fetchProductImage(name, brand).then((url) => {
@@ -96,9 +96,9 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
     });
     return () => { cancelled = true; };
   }, [name, brand, userPhoto]);
- 
+
   if (state === 'error') return null;
- 
+
   return (
     <div className="flex justify-center mb-4">
       <div className="w-28 h-28 rounded-sm border border-[#D4C3A3] bg-[#F5F0E8] overflow-hidden flex items-center justify-center shadow-sm">
@@ -112,9 +112,9 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
     </div>
   );
 }
- 
+
 // ── main component ────────────────────────────────────────────────────────────
- 
+
 export default function App() {
   const [lang, setLang]               = useState<Language>('en');
   const [file, setFile]               = useState<File | null>(null);
@@ -128,17 +128,17 @@ export default function App() {
   const [user, setUser]               = useState<User | null>(null);
   const [sharedLoading, setSharedLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
- 
+
   const [isPrivacyOpen, setIsPrivacyOpen]     = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
   const [copied, setCopied]                   = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
- 
+
   const fileInputRef      = useRef<HTMLInputElement>(null);
   const isFirstRender     = useRef(true);
   const originalResult    = useRef<AnalysisResult | null>(null);
   const translationCache  = useRef<Map<Language, AnalysisResult>>(new Map());
- 
+
   // ── Load shared result from URL (?share=id) ──────────────────────────────
   useEffect(() => {
     const shareId = new URLSearchParams(window.location.search).get('share');
@@ -156,15 +156,15 @@ export default function App() {
         setSharedLoading(false);
       });
   }, []);
- 
+
   // ── Auto-translate on lang change ────────────────────────────────────────
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (!originalResult.current || isAnalyzing) return;
- 
+
     const cached = translationCache.current.get(lang);
     if (cached) { setResult(cached); return; }
- 
+
     let cancelled = false;
     const translate = async () => {
       setIsTranslating(true);
@@ -180,9 +180,9 @@ export default function App() {
     translate();
     return () => { cancelled = true; setIsTranslating(false); };
   }, [lang]);
- 
+
   // ── Handlers ─────────────────────────────────────────────────────────────
- 
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -193,7 +193,7 @@ export default function App() {
       setError(null);
     }
   };
- 
+
   const saveScanToHistory = async (analysis: AnalysisResult) => {
     if (!user) return;
     await supabase.from('scan_history').insert({
@@ -203,7 +203,7 @@ export default function App() {
       result: analysis,
     });
   };
- 
+
   const handleAnalyze = async () => {
     if (!previewUrl || !consent) return;
     setIsAnalyzing(true);
@@ -213,7 +213,24 @@ export default function App() {
       const match = previewUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
       if (!match) throw new Error('Invalid image format');
       const mimeType = match[1];
-      const analysis = await analyzeProductImage(previewUrl, mimeType, lang);
+
+      // Serialize profile with translated labels for the AI prompt
+      const serializedProfile: SerializedProfile | undefined = userProfile
+        ? (() => {
+            const p = translateProfile(userProfile, lang);
+            return {
+              skinType:        p.skinType.join(', ')        || undefined,
+              skinSensitivity: p.skinSensitivity.join(', ') || undefined,
+              skinConditions:  p.skinConditions.join(', ')  || undefined,
+              ageRange:        p.ageRange                    || undefined,
+              hairType:        p.hairType.join(', ')         || undefined,
+              scalpCondition:  p.scalpCondition.join(', ')  || undefined,
+              hairProblems:    p.hairProblems.join(', ')     || undefined,
+            };
+          })()
+        : undefined;
+
+      const analysis = await analyzeProductImage(previewUrl, mimeType, lang, serializedProfile);
       originalResult.current = analysis;
       translationCache.current = new Map([[lang, analysis]]);
       setResult(analysis);
@@ -230,7 +247,7 @@ export default function App() {
       setIsAnalyzing(false);
     }
   };
- 
+
   const handleReset = () => {
     setFile(null);
     setPreviewUrl(null);
@@ -241,7 +258,7 @@ export default function App() {
     originalResult.current = null;
     translationCache.current = new Map();
   };
- 
+
   const handleShare = async () => {
     if (!result) return;
     setIsSharing(true);
@@ -263,14 +280,14 @@ export default function App() {
       setIsSharing(false);
     }
   };
- 
+
   // ── Render ────────────────────────────────────────────────────────────────
- 
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <div className="fixed top-0 left-0 w-full h-32 bg-gradient-to-b from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
       <div className="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
- 
+
       <header className="pt-6 pb-4 px-4 text-center relative">
         <div className="flex items-center justify-between gap-2 mb-3">
           <img src={logo} alt="logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
@@ -296,16 +313,16 @@ export default function App() {
             }} />
           </div>
         </div>
- 
+
         <LanguageSelector currentLang={lang} onSelect={setLang} />
- 
+
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 mb-2">
           <h2 className="text-xs font-serif tracking-[0.3em] text-[#B89F7A] uppercase mb-2">{t[lang].subtitle}</h2>
           <h1 className="text-4xl md:text-5xl font-serif text-[#2C3E50] tracking-wide">{t[lang].title}</h1>
         </motion.div>
         <div className="w-24 h-[1px] bg-[#D4C3A3] mx-auto mt-6" />
       </header>
- 
+
       <main className="flex-grow flex flex-col items-center justify-center p-4 relative">
         <AnimatePresence mode="wait">
           {!result ? (
@@ -322,7 +339,7 @@ export default function App() {
                   {t[lang].description}
                 </p>
               </div>
- 
+
               <div
                 className="relative aspect-[3/2] border-2 border-dashed border-[#D4C3A3] rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-[#B89F7A]/5 transition-colors overflow-hidden group"
                 onClick={() => fileInputRef.current?.click()}
@@ -344,7 +361,7 @@ export default function App() {
                   className="hidden"
                 />
               </div>
- 
+
               {previewUrl && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -365,14 +382,14 @@ export default function App() {
                       {t[lang].consent}
                     </span>
                   </label>
- 
+
                   {error && (
                     <div className="text-red-800 text-xs bg-red-50 p-3 border border-red-200 rounded-sm flex items-start gap-2">
                       <AlertCircle size={14} className="shrink-0 mt-0.5" />
                       <span>{error}</span>
                     </div>
                   )}
- 
+
                   {/* Single Analyze button — same as original */}
                   <button
                     onClick={handleAnalyze}
@@ -413,7 +430,7 @@ export default function App() {
                   </div>
                 )}
               </div>
- 
+
               <div className="space-y-2">
                 {/* Original sections */}
                 <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={20} />} defaultOpen>
@@ -421,12 +438,12 @@ export default function App() {
                     <ReactMarkdown>{result.analysis}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
- 
+
                 {/* Note — personal profile analysis, second after Analysis */}
                 <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={20} />}>
                   <PersonalAnalysis lang={lang} result={result} userProfile={userProfile} />
                 </CollapsibleSection>
- 
+
                 <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />}>
                   <ul className="space-y-2">
                     {result.ingredients.map((ing, idx) => (
@@ -440,48 +457,48 @@ export default function App() {
                     ))}
                   </ul>
                 </CollapsibleSection>
- 
+
                 <CollapsibleSection title={t[lang].usage} icon={<Info size={20} />}>
                   <UsageSection text={result.usage} />
                 </CollapsibleSection>
- 
+
                 <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={20} />}>
                   <BenefitsSection text={result.benefits} />
                 </CollapsibleSection>
- 
+
                 <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={20} />}>
                   <BenefitsSection text={result.sideEffects} />
                 </CollapsibleSection>
- 
+
                 <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={20} />}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.warnings}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
- 
+
                 <CollapsibleSection title={t[lang].interactions} icon={<Zap size={20} />}>
                   <BenefitsSection text={result.interactions} />
                 </CollapsibleSection>
- 
+
                 <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={20} />}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.shelfLife}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
- 
+
                 <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
                   <AlternativesSection alternatives={result.alternatives} />
                 </CollapsibleSection>
               </div>
- 
+
               <AskAI lang={lang} context={result} />
- 
+
               <div className="mt-8 pt-6 border-t border-[#D4C3A3] space-y-4">
                 <div className="bg-[#B89F7A]/5 p-4 rounded-sm border border-[#B89F7A]/20 text-xs text-[#4A4A4A] space-y-2">
                   <p><strong>Transparency:</strong> {t[lang].aiTransparency}</p>
                   <p><strong>Disclaimer:</strong> {t[lang].aiDisclaimer}</p>
                 </div>
- 
+
                 <button
                   onClick={handleShare}
                   disabled={isSharing}
@@ -490,7 +507,7 @@ export default function App() {
                   {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
                   <span>{copied ? t[lang].copied : t[lang].share}</span>
                 </button>
- 
+
                 <button onClick={handleReset} className="w-full py-4 regency-button tracking-widest">
                   {t[lang].anotherProduct}
                 </button>
@@ -499,7 +516,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
- 
+
       <footer className="py-6 text-center text-xs text-[#B89F7A] relative">
         <p className="mb-2">{t[lang].footerText}</p>
         <div className="flex justify-center gap-4">
@@ -512,10 +529,10 @@ export default function App() {
           </button>
         </div>
       </footer>
- 
+
       <LoadingScreen isVisible={isAnalyzing} lang={lang} />
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
- 
+
       <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent />} />
       <LegalModal isOpen={isImpressumOpen} onClose={() => setIsImpressumOpen(false)} title={t[lang].impressum} content={<ImpressumContent />} />
     </div>
