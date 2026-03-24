@@ -1,20 +1,20 @@
 // All Gemini calls go through the Netlify Function /api/gemini.
 // The API key is NEVER sent to the browser.
- 
+
 const FUNCTION_URL = "/api/gemini";
- 
+
 export interface Ingredient {
   name: string;
   status: "🟢" | "🟡" | "🔴";
   description: string;
 }
- 
+
 export interface Alternative {
   name: string;
   brand: string;
   reason: string;
 }
- 
+
 export interface AnalysisResult {
   productName: string;
   brand: string;
@@ -28,23 +28,36 @@ export interface AnalysisResult {
   interactions: string;
   shelfLife: string;
   alternatives: Alternative[];
+  // Optional: populated when userProfile is passed to analyzeProductImage
+  personalNote?: string;
 }
- 
+
+// Serialised profile sent to the server (translated strings, not canonical keys)
+export interface SerializedProfile {
+  skinType?: string;
+  skinSensitivity?: string;
+  skinConditions?: string;
+  ageRange?: string;
+  hairType?: string;
+  scalpCondition?: string;
+  hairProblems?: string;
+}
+
 async function callFunction<T>(body: object): Promise<T> {
   const res = await fetch(FUNCTION_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
- 
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Unknown error" }));
     throw new Error(err.error || `HTTP ${res.status}`);
   }
- 
+
   return res.json() as Promise<T>;
 }
- 
+
 async function compressImage(base64: string): Promise<{ data: string; mimeType: string }> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -65,7 +78,7 @@ async function compressImage(base64: string): Promise<{ data: string; mimeType: 
     img.src = base64;
   });
 }
- 
+
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
   ru: "Russian",
@@ -76,11 +89,12 @@ const LANGUAGE_NAMES: Record<string, string> = {
   it: "Italian",
   tr: "Turkish",
 };
- 
+
 export async function analyzeProductImage(
   base64Image: string,
   mimeType: string,
-  language: string
+  language: string,
+  userProfile?: SerializedProfile,
 ): Promise<AnalysisResult> {
   const compressed = await compressImage(base64Image);
   return callFunction<AnalysisResult>({
@@ -88,12 +102,14 @@ export async function analyzeProductImage(
     base64Image: compressed.data,
     mimeType: compressed.mimeType,
     language: LANGUAGE_NAMES[language] || "English",
+    // Only send userProfile if it has at least one non-empty field
+    ...(userProfile && Object.values(userProfile).some(Boolean) ? { userProfile } : {}),
   });
 }
- 
+
 export async function translateAnalysisResult(
   result: AnalysisResult,
-  targetLanguage: string
+  targetLanguage: string,
 ): Promise<AnalysisResult> {
   return callFunction<AnalysisResult>({
     action: "translate",
@@ -101,11 +117,11 @@ export async function translateAnalysisResult(
     targetLanguage,
   });
 }
- 
+
 export async function askFollowUpQuestion(
   question: string,
   context: AnalysisResult,
-  language: string
+  language: string,
 ): Promise<string> {
   const data = await callFunction<{ answer: string }>({
     action: "ask",
