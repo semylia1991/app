@@ -335,7 +335,7 @@ export default function App() {
                     setResult(r);
                   }}
                 />
-                <UserProfilePanel          {/* ← НОВОЕ */}
+                <UserProfilePanel          
                   user={user}
                   lang={lang}
                   onProfileChange={setUserProfile}
