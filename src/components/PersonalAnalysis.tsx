@@ -3,37 +3,36 @@ import { Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { t, Language } from '../i18n';
 import { AnalysisResult } from '../services/ai';
-import { UserProfile } from './UserProfile';
- 
+import { UserProfile, translateProfile } from './UserProfile';
+
 interface Props {
   lang: Language;
   result: AnalysisResult;
   userProfile: UserProfile | null;
 }
- 
-// ── Build profile summary using TRANSLATED option labels ──────────────────────
-// Profile values are stored as translated strings (whatever language was active
-// when the user saved), so we pass them as-is and let the AI respond in the
-// current language. The prompt tells the AI the target language explicitly.
- 
-function buildProfileSummary(profile: UserProfile): string {
+
+// buildProfileSummary translates canonical keys ("skinOily") into the current
+// language strings so the AI prompt always reads in the target language.
+
+function buildProfileSummary(profile: UserProfile, lang: Language): string {
+  const p = translateProfile(profile, lang);
   return [
-    profile.skinType.length        ? 'Skin type: '        + profile.skinType.join(', ')        : null,
-    profile.skinSensitivity.length ? 'Sensitivities: '    + profile.skinSensitivity.join(', ') : null,
-    profile.skinConditions.length  ? 'Skin conditions: '  + profile.skinConditions.join(', ')  : null,
-    profile.ageRange               ? 'Age group: '        + profile.ageRange                    : null,
-    profile.hairType.length        ? 'Hair type: '        + profile.hairType.join(', ')         : null,
-    profile.scalpCondition.length  ? 'Scalp condition: '  + profile.scalpCondition.join(', ')  : null,
-    profile.hairProblems.length    ? 'Hair problems: '    + profile.hairProblems.join(', ')     : null,
+    p.skinType.length        ? 'Skin type: '        + p.skinType.join(', ')        : null,
+    p.skinSensitivity.length ? 'Sensitivities: '    + p.skinSensitivity.join(', ') : null,
+    p.skinConditions.length  ? 'Skin conditions: '  + p.skinConditions.join(', ')  : null,
+    p.ageRange               ? 'Age group: '        + p.ageRange                    : null,
+    p.hairType.length        ? 'Hair type: '        + p.hairType.join(', ')         : null,
+    p.scalpCondition.length  ? 'Scalp condition: '  + p.scalpCondition.join(', ')  : null,
+    p.hairProblems.length    ? 'Hair problems: '    + p.hairProblems.join(', ')     : null,
   ].filter(Boolean).join('\n');
 }
- 
+
 // ── Build prompt ──────────────────────────────────────────────────────────────
- 
-function buildPrompt(result: AnalysisResult, profile: UserProfile, language: string): string {
-  const profileSummary = buildProfileSummary(profile);
+
+function buildPrompt(result: AnalysisResult, profile: UserProfile, language: string, lang: Language): string {
+  const profileSummary = buildProfileSummary(profile, lang);
   const inci = result.ingredients.map(i => i.name).join(', ');
- 
+
   return [
     'You are a cosmetics ingredient analysis system.',
     `Respond ONLY in ${language}. Translate ALL section headings into ${language}.`,
@@ -77,20 +76,21 @@ function buildPrompt(result: AnalysisResult, profile: UserProfile, language: str
     '*[translate: Automated AI analysis. Not medical advice.]*',
   ].join('\n');
 }
- 
+
 // ── API call ──────────────────────────────────────────────────────────────────
- 
+
 async function fetchNote(
   result: AnalysisResult,
   profile: UserProfile,
-  language: string
+  language: string,
+  lang: Language
 ): Promise<string> {
   const res = await fetch('/api/gemini', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       action: 'ask',
-      question: buildPrompt(result, profile, language),
+      question: buildPrompt(result, profile, language, lang),
       context: {},
       language,
     }),
@@ -99,35 +99,35 @@ async function fetchNote(
   const data = await res.json();
   return data.answer ?? '';
 }
- 
+
 // ── Component ─────────────────────────────────────────────────────────────────
- 
+
 export function PersonalAnalysis({ lang, result, userProfile }: Props) {
   const [text, setText]       = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
- 
+
   const T = t[lang];
- 
+
   const hasProfile = !!userProfile && (
     userProfile.skinType.length > 0 ||
     userProfile.skinConditions.length > 0 ||
     userProfile.skinSensitivity.length > 0 ||
     userProfile.hairType.length > 0
   );
- 
+
   // Re-fetch when language changes (reset text first)
   useEffect(() => {
     if (!hasProfile) return;
     setText(null);
     setError(null);
     setLoading(true);
-    fetchNote(result, userProfile!, T.personalAnalysisLang)
+    fetchNote(result, userProfile!, T.personalAnalysisLang, lang)
       .then(response => setText(response))
       .catch(() => setError(T.error))
       .finally(() => setLoading(false));
   }, [lang]); // lang change triggers re-fetch in new language
- 
+
   // ── No profile ──────────────────────────────────────────────────────────────
   if (!hasProfile) {
     return (
@@ -136,7 +136,7 @@ export function PersonalAnalysis({ lang, result, userProfile }: Props) {
       </p>
     );
   }
- 
+
   // ── Loading ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -146,15 +146,15 @@ export function PersonalAnalysis({ lang, result, userProfile }: Props) {
       </div>
     );
   }
- 
+
   // ── Error ───────────────────────────────────────────────────────────────────
   if (error) {
     return <p className="text-xs text-red-600 py-2">{error}</p>;
   }
- 
+
   // ── Result ──────────────────────────────────────────────────────────────────
   if (!text) return null;
- 
+
   return (
     <div className="prose prose-sm prose-stone max-w-none
       [&_h2]:text-sm [&_h2]:font-serif [&_h2]:font-semibold [&_h2]:text-[#2C3E50] [&_h2]:mt-4 [&_h2]:mb-1
