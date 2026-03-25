@@ -429,8 +429,8 @@ function getRandomQuote(lang: Language): Quote {
   return list[Math.floor(Math.random() * list.length)];
 }
  
-// ── Step timings (ms from start) ──────────────────────────────────────────────
-const STEP_DELAYS = [0, 1300, 2600, 3900, 5200, 6500, 7800, 9100];
+// 9 steps × 1.3 s = 11.7 s — covers typical Gemini response time
+const STEP_DELAYS = [0, 1300, 2600, 3900, 5200, 6500, 7800, 9100, 10400];
  
 interface Props {
   isVisible: boolean;
@@ -451,6 +451,7 @@ export function LoadingScreen({ isVisible, lang }: Props) {
     T.loadingStep6,
     T.loadingStep7,
     T.loadingStep8,
+    T.loadingStep9,
   ];
  
   useEffect(() => {
@@ -497,29 +498,37 @@ export function LoadingScreen({ isVisible, lang }: Props) {
           <div className="w-16 h-[1px] bg-[#D4C3A3] mt-10 mb-8" />
  
           {/* Steps */}
-          <div className="flex flex-col gap-2 w-full max-w-[220px]">
+          <div className="flex flex-col gap-2.5 w-full max-w-[260px]">
             {steps.map((step, i) => {
               const isDone   = i < activeStep;
               const isActive = i === activeStep;
+ 
               return (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: isActive || isDone ? 1 : 0.25, x: 0 }}
-                  transition={{ duration: 0.3, delay: i * 0.05 }}
-                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.04 }}
+                  className="flex items-center gap-2.5"
                 >
-                  {isDone ? (
-                    <CheckCircle size={13} className="text-[#B89F7A] shrink-0" />
-                  ) : isActive ? (
-                    <Loader2 size={13} className="animate-spin text-[#B89F7A] shrink-0" />
-                  ) : (
-                    <span className="w-[13px] h-[13px] rounded-full border border-[#D4C3A3] shrink-0" />
-                  )}
-                  <span className={`text-[11px] tracking-wide uppercase ${
-                    isActive ? 'text-[#2C3E50] font-semibold' :
-                    isDone   ? 'text-[#B89F7A]' :
-                               'text-[#D4C3A3]'
+                  {/* Indicator */}
+                  <div className="shrink-0 w-[16px] flex justify-center">
+                    {isDone ? (
+                      <CheckCircle size={14} className="text-[#B89F7A]" />
+                    ) : isActive ? (
+                      <Loader2 size={14} className="animate-spin text-[#2C3E50]" />
+                    ) : (
+                      <span className="w-[8px] h-[8px] rounded-full border border-[#D4C3A3] block" />
+                    )}
+                  </div>
+ 
+                  {/* Label */}
+                  <span className={`text-[11px] tracking-wide transition-all duration-300 ${
+                    isActive
+                      ? 'text-[#2C3E50] font-semibold uppercase tracking-widest'
+                      : isDone
+                      ? 'text-[#B89F7A] uppercase tracking-wide'
+                      : 'text-[#D4C3A3] uppercase tracking-wide'
                   }`}>
                     {step}
                   </span>
