@@ -430,8 +430,7 @@ function getRandomQuote(lang: Language): Quote {
 }
  
 // ── Step timings (ms from start) ──────────────────────────────────────────────
-// Spread across typical Gemini response time 8-15s. Steps are visual only.
-const STEP_DELAYS = [0, 800, 1800, 3000, 4400, 5800, 7200, 8600, 10000];
+const STEP_DELAYS = [0, 1300, 2600, 3900, 5200, 6500, 7800, 9100];
  
 interface Props {
   isVisible: boolean;
@@ -452,7 +451,6 @@ export function LoadingScreen({ isVisible, lang }: Props) {
     T.loadingStep6,
     T.loadingStep7,
     T.loadingStep8,
-    T.loadingStep9,
   ];
  
   useEffect(() => {
