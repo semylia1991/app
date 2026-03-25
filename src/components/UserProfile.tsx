@@ -4,9 +4,9 @@ import { X, User, Sparkles, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { t, Language } from '../i18n';
-
+ 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
+ 
 // Profile stores CANONICAL KEYS (e.g. "skinOily", "condAcne"), NOT translated strings.
 // This makes the profile language-independent — display translates on render.
 export interface UserProfile {
@@ -19,15 +19,15 @@ export interface UserProfile {
   hairProblems: string[];    // keys: hairDandruff | hairItching | hairLoss | hairNone
   consentGiven: boolean;
 }
-
+ 
 const EMPTY_PROFILE: UserProfile = {
   skinType: [], skinSensitivity: [], skinConditions: [],
   ageRange: '', hairType: [], scalpCondition: [], hairProblems: [],
   consentGiven: false,
 };
-
+ 
 // ── Option definitions — canonical key → i18n key (same value here) ───────────
-
+ 
 const SKIN_TYPE_KEYS      = ['skinOily',       'skinDry',        'skinCombination',      'skinUnknown'] as const;
 const SENSITIVITY_KEYS    = ['sensFragrances', 'sensAlcohol',    'sensEssentialOils',    'sensNone'] as const;
 const SKIN_CONDITION_KEYS = ['condAcne',       'condRosacea',    'condAtopicDermatitis', 'condPigmentation', 'condCouperose', 'condNone'] as const;
@@ -35,14 +35,14 @@ const AGE_RANGE_KEYS      = ['ageUnder25',     'age2535',        'age3545',     
 const HAIR_TYPE_KEYS      = ['hairStraight',   'hairWavy',       'hairCurly',            'hairCoily',        'hairBrittle',  'hairUnknown'] as const;
 const SCALP_COND_KEYS     = ['scalpDry',       'scalpOily',      'scalpNormal',          'scalpUnknown'] as const;
 const HAIR_PROBLEM_KEYS   = ['hairDandruff',   'hairItching',    'hairLoss',             'hairNone'] as const;
-
+ 
 // Translate a canonical key to the current language
 type TranslationKey = keyof ReturnType<typeof t['en']>;
 const tr = (lang: Language, key: string): string =>
   (t[lang] as Record<string, string>)[key] ?? key;
-
+ 
 // ── Sub-components ─────────────────────────────────────────────────────────────
-
+ 
 function SectionTitle({ emoji, label }: { emoji: string; label: string }) {
   return (
     <div className="flex items-center gap-2 mb-3 mt-6 first:mt-0">
@@ -54,7 +54,7 @@ function SectionTitle({ emoji, label }: { emoji: string; label: string }) {
     </div>
   );
 }
-
+ 
 function MultiChip({
   keys, selected, onChange, lang,
 }: {
@@ -87,7 +87,7 @@ function MultiChip({
     </div>
   );
 }
-
+ 
 function SingleChip({
   keys, selected, onChange, lang,
 }: {
@@ -118,7 +118,7 @@ function SingleChip({
     </div>
   );
 }
-
+ 
 // ── Helper: translate stored profile keys for display / AI prompt ─────────────
 export function translateProfile(profile: UserProfile, lang: Language) {
   return {
@@ -131,24 +131,25 @@ export function translateProfile(profile: UserProfile, lang: Language) {
     hairProblems:   profile.hairProblems.map(k => tr(lang, k)),
   };
 }
-
+ 
 // ── Main component ─────────────────────────────────────────────────────────────
-
+ 
 interface Props {
   user: SupabaseUser;
   lang: Language;
   onProfileChange?: (profile: UserProfile | null) => void;
+  initialHasProfile?: boolean;
 }
-
-export function UserProfilePanel({ user, lang, onProfileChange }: Props) {
+ 
+export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfile = false }: Props) {
   const [isOpen, setIsOpen]         = useState(false);
   const [profile, setProfile]       = useState<UserProfile>(EMPTY_PROFILE);
   const [loading, setLoading]       = useState(false);
   const [saved, setSaved]           = useState(false);
-  const [hasProfile, setHasProfile] = useState(false);
-
+  const [hasProfile, setHasProfile] = useState(initialHasProfile);
+ 
   const T = t[lang];
-
+ 
   // Load from Supabase on open
   useEffect(() => {
     if (!isOpen) return;
@@ -167,10 +168,10 @@ export function UserProfilePanel({ user, lang, onProfileChange }: Props) {
         setLoading(false);
       });
   }, [isOpen]);
-
+ 
   const update = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) =>
     setProfile(prev => ({ ...prev, [key]: value }));
-
+ 
   const handleSave = async () => {
     if (!profile.consentGiven) return;
     setLoading(true);
@@ -183,7 +184,7 @@ export function UserProfilePanel({ user, lang, onProfileChange }: Props) {
     onProfileChange?.(profile);
     setTimeout(() => setSaved(false), 2500);
   };
-
+ 
   return (
     <>
       {/* Trigger button — label from i18n */}
@@ -197,7 +198,7 @@ export function UserProfilePanel({ user, lang, onProfileChange }: Props) {
           <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#B89F7A]" />
         )}
       </button>
-
+ 
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -209,7 +210,7 @@ export function UserProfilePanel({ user, lang, onProfileChange }: Props) {
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
           />
         )}
-
+ 
         {isOpen && (
           <motion.div
             key="profile-panel"
@@ -231,7 +232,7 @@ export function UserProfilePanel({ user, lang, onProfileChange }: Props) {
                 <X size={20} />
               </button>
             </div>
-
+ 
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {loading ? (
@@ -241,28 +242,28 @@ export function UserProfilePanel({ user, lang, onProfileChange }: Props) {
                   {/* Skin */}
                   <SectionTitle emoji="🌟" label={T.profileSkinType} />
                   <MultiChip keys={SKIN_TYPE_KEYS} selected={profile.skinType} onChange={v => update('skinType', v)} lang={lang} />
-
+ 
                   <SectionTitle emoji="🌺" label={T.profileSkinSensitivity} />
                   <MultiChip keys={SENSITIVITY_KEYS} selected={profile.skinSensitivity} onChange={v => update('skinSensitivity', v)} lang={lang} />
-
+ 
                   <SectionTitle emoji="🌧" label={T.profileSkinConditions} />
                   <MultiChip keys={SKIN_CONDITION_KEYS} selected={profile.skinConditions} onChange={v => update('skinConditions', v)} lang={lang} />
-
+ 
                   <SectionTitle emoji="☀️" label={T.profileAge} />
                   <SingleChip keys={AGE_RANGE_KEYS} selected={profile.ageRange} onChange={v => update('ageRange', v)} lang={lang} />
-
+ 
                   <div className="mt-6 mb-3 w-full h-px bg-gradient-to-r from-transparent via-[#D4C3A3] to-transparent" />
-
+ 
                   {/* Hair */}
                   <SectionTitle emoji="☘️" label={T.profileHairType} />
                   <MultiChip keys={HAIR_TYPE_KEYS} selected={profile.hairType} onChange={v => update('hairType', v)} lang={lang} />
-
+ 
                   <SectionTitle emoji="💧" label={T.profileScalpCondition} />
                   <MultiChip keys={SCALP_COND_KEYS} selected={profile.scalpCondition} onChange={v => update('scalpCondition', v)} lang={lang} />
-
+ 
                   <SectionTitle emoji="🌵" label={T.profileHairProblems} />
                   <MultiChip keys={HAIR_PROBLEM_KEYS} selected={profile.hairProblems} onChange={v => update('hairProblems', v)} lang={lang} />
-
+ 
                   {/* Consent */}
                   <div className="mt-6 mb-2 p-4 bg-[#F5F0E8] border border-[#D4C3A3] rounded-sm">
                     <label className="flex items-start gap-3 cursor-pointer group">
@@ -282,7 +283,7 @@ export function UserProfilePanel({ user, lang, onProfileChange }: Props) {
                       </span>
                     </label>
                   </div>
-
+ 
                   {!profile.consentGiven && (
                     <p className="text-[10px] text-[#B89F7A] text-center mt-1 mb-2">
                       {T.profileConsentRequired}
@@ -291,7 +292,7 @@ export function UserProfilePanel({ user, lang, onProfileChange }: Props) {
                 </>
               )}
             </div>
-
+ 
             {/* Footer */}
             <div className="px-6 py-4 border-t border-[#D4C3A3] shrink-0 bg-[#FDFBF7]">
               <button
