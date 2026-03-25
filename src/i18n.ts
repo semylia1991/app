@@ -30,6 +30,14 @@ export const t = {
     askAiPlaceholder: "Ask a question about this product...",
     send: "Send",
     loading: "Analyzing potion...",
+    loadingStep1: "Identifying ingredients"
+    loadingStep2: "INCI breakdown: component analysis"
+    loadingStep3: "How to use: key notes"
+    loadingStep4: "Component functions"
+    loadingStep5: "Potential reactions"
+    loadingStep6: "Ingredient compatibility"
+    loadingStep7: "Storage & stability"
+    loadingStep8: "Alternative options"
     noData: "Data not found in public databases.",
     beneficial: "BENEFICIAL",
     caution: "CAUTION",
@@ -145,6 +153,14 @@ export const t = {
     askAiPlaceholder: "Задайте вопрос об этом продукте...",
     send: "Отправить",
     loading: "Анализируем эликсир...",
+    loadingStep1: "Идентификация ингредиентов"
+    loadingStep2: "Состав (INCI): разбор компонентов"
+    loadingStep3: "Использование: на что обратить внимание"
+    loadingStep4: "Функции компонентов"
+    loadingStep5: "Потенциальные реакции"
+    loadingStep6: "Совместимость ингредиентов"
+    loadingStep7: "Хранение и стабильность"
+    loadingStep8: "Альтернативные варианты"
     noData: "Данные не найдены в открытых базах.",
     beneficial: "ПОЛЕЗНО",
     caution: "ОСТОРОЖНО",
@@ -253,6 +269,14 @@ export const t = {
     askAiPlaceholder: "Stellen Sie eine Frage zu diesem Produkt...",
     send: "Senden",
     loading: "Elixier wird analysiert...",
+    loadingStep1: "Inhaltsstoffe identifizieren"
+    loadingStep2: "INCI-Zusammensetzung: Komponentenanalyse"
+    loadingStep3: "Anwendung: worauf zu achten ist"
+    loadingStep4: "Funktionen der Inhaltsstoffe"
+    loadingStep5: "Mögliche Reaktionen"
+    loadingStep6: "Verträglichkeit der Inhaltsstoffe"
+    loadingStep7: "Lagerung & Stabilität"
+    loadingStep8: "Alternative Optionen"
     noData: "Keine Daten in öffentlichen Datenbanken gefunden.",
     beneficial: "VORTEILHAFT",
     caution: "VORSICHT",
@@ -361,6 +385,14 @@ export const t = {
     askAiPlaceholder: "Задайте питання про цей продукт...",
     send: "Надіслати",
     loading: "Аналізуємо еліксир...",
+    loadingStep1: "Ідентифікація інгредієнтів"
+    loadingStep2: "Склад (INCI): розбір компонентів"
+    loadingStep3: "Використання: на що звернути увагу"
+    loadingStep4: "Функції компонентів"
+    loadingStep5: "Потенційні реакції"
+    loadingStep6: "Сумісність інгредієнтів"
+    loadingStep7: "Зберігання та стабільність"
+    loadingStep8: "Альтернативні варіанти"
     noData: "Дані не знайдені у відкритих базах.",
     beneficial: "КОРИСНО",
     caution: "ОБЕРЕЖНО",
@@ -469,6 +501,14 @@ export const t = {
     askAiPlaceholder: "Haz una pregunta sobre este producto...",
     send: "Enviar",
     loading: "Analizando poción...",
+    loadingStep1: "Identificando ingredientes"
+    loadingStep2: "Composición INCI: análisis de componentes"
+    loadingStep3: "Uso: puntos clave a tener en cuenta"
+    loadingStep4: "Funciones de los ingredientes"
+    loadingStep5: "Reacciones potenciales"
+    loadingStep6: "Compatibilidad de ingredientes"
+    loadingStep7: "Almacenamiento y estabilidad"
+    loadingStep8: "Opciones alternativas"
     noData: "Datos no encontrados en bases de datos públicas.",
     beneficial: "BENEFICIOSO",
     caution: "PRECAUCIÓN",
@@ -577,6 +617,14 @@ export const t = {
     askAiPlaceholder: "Posez une question sur ce produit...",
     send: "Envoyer",
     loading: "Analyse de la potion...",
+    loadingStep1: "Identification des ingrédients"
+    loadingStep2: "Composition INCI : analyse des composants"
+    loadingStep3: "Utilisation : points clés à noter"
+    loadingStep4: "Fonctions des ingrédients"
+    loadingStep5: "Réactions potentielles"
+    loadingStep6: "Compatibilité des ingrédients"
+    loadingStep7: "Conservation et stabilité"
+    loadingStep8: "Options alternatives"
     noData: "Données introuvables dans les bases de données publiques.",
     beneficial: "BÉNÉFIQUE",
     caution: "PRÉCAUTION",
@@ -685,6 +733,14 @@ export const t = {
     askAiPlaceholder: "Fai una domanda su questo prodotto...",
     send: "Invia",
     loading: "Analisi della pozione...",
+    loadingStep1: "Identificazione ingredienti"
+    loadingStep2: "Composizione INCI: analisi dei componenti"
+    loadingStep3: "Utilizzo: aspetti chiave da considerare"
+    loadingStep4: "Funzioni degli ingredienti"
+    loadingStep5: "Reazioni potenziali"
+    loadingStep6: "Compatibilità degli ingredienti"
+    loadingStep7: "Conservazione e stabilità"
+    loadingStep8: "Opzioni alternative"
     noData: "Dati non trovati nei database pubblici.",
     beneficial: "BENEFICO",
     caution: "ATTENZIONE",
@@ -793,6 +849,14 @@ export const t = {
     askAiPlaceholder: "Bu ürün hakkında soru sorun...",
     send: "Gönder",
     loading: "İksir analiz ediliyor...",
+    loadingStep1: "İçerikler tanımlanıyor"
+    loadingStep2: "INCI bileşimi: bileşen analizi"
+    loadingStep3: "Kullanım: dikkat edilmesi gerekenler"
+    loadingStep4: "Bileşen işlevleri"
+    loadingStep5: "Olası reaksiyonlar"
+    loadingStep6: "İçerik uyumluluğu"
+    loadingStep7: "Saklama ve stabilite"
+    loadingStep8: "Alternatif seçenekler"
     noData: "Genel veri tabanlarında veri bulunamadı.",
     beneficial: "FAYDALI",
     caution: "DİKKAT",
