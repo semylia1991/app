@@ -303,13 +303,26 @@ export default function App() {
                     setResult(r);
                   }}
                 />
-                <UserProfilePanel user={user} lang={lang} onProfileChange={setUserProfile} />
+                <UserProfilePanel user={user} lang={lang} onProfileChange={setUserProfile} initialHasProfile={!!userProfile} />
               </>
             )}
             <AuthButton lang={lang} onUserChange={(u) => {
               setUser(u);
-              if (u) posthog.identify(u.id, { email: u.email });
-              else posthog.reset();
+              if (u) {
+                posthog.identify(u.id, { email: u.email });
+                // Auto-load profile so it's available for analysis without opening the panel
+                supabase
+                  .from('user_profiles')
+                  .select('profile')
+                  .eq('user_id', u.id)
+                  .single()
+                  .then(({ data }) => {
+                    if (data?.profile) setUserProfile(data.profile as UserProfile);
+                  });
+              } else {
+                posthog.reset();
+                setUserProfile(null);
+              }
             }} />
           </div>
         </div>
