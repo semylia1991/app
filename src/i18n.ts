@@ -38,6 +38,7 @@ export const t = {
     loadingStep6: "Ingredient compatibility"
     loadingStep7: "Storage & stability"
     loadingStep8: "Alternative options"
+    loadingStep9: "Completing analysis..."
     noData: "Data not found in public databases.",
     beneficial: "BENEFICIAL",
     caution: "CAUTION",
@@ -161,6 +162,7 @@ export const t = {
     loadingStep6: "Совместимость ингредиентов"
     loadingStep7: "Хранение и стабильность"
     loadingStep8: "Альтернативные варианты"
+    loadingStep9: "Завершение анализа..."
     noData: "Данные не найдены в открытых базах.",
     beneficial: "ПОЛЕЗНО",
     caution: "ОСТОРОЖНО",
@@ -277,6 +279,7 @@ export const t = {
     loadingStep6: "Verträglichkeit der Inhaltsstoffe"
     loadingStep7: "Lagerung & Stabilität"
     loadingStep8: "Alternative Optionen"
+    loadingStep9: "Analyse wird abgeschlossen..."
     noData: "Keine Daten in öffentlichen Datenbanken gefunden.",
     beneficial: "VORTEILHAFT",
     caution: "VORSICHT",
@@ -393,6 +396,7 @@ export const t = {
     loadingStep6: "Сумісність інгредієнтів"
     loadingStep7: "Зберігання та стабільність"
     loadingStep8: "Альтернативні варіанти"
+    loadingStep9: "Завершення аналізу..."
     noData: "Дані не знайдені у відкритих базах.",
     beneficial: "КОРИСНО",
     caution: "ОБЕРЕЖНО",
@@ -509,6 +513,7 @@ export const t = {
     loadingStep6: "Compatibilidad de ingredientes"
     loadingStep7: "Almacenamiento y estabilidad"
     loadingStep8: "Opciones alternativas"
+    loadingStep9: "Completando análisis..."
     noData: "Datos no encontrados en bases de datos públicas.",
     beneficial: "BENEFICIOSO",
     caution: "PRECAUCIÓN",
@@ -625,6 +630,7 @@ export const t = {
     loadingStep6: "Compatibilité des ingrédients"
     loadingStep7: "Conservation et stabilité"
     loadingStep8: "Options alternatives"
+    loadingStep9: "Finalisation de l'analyse..."
     noData: "Données introuvables dans les bases de données publiques.",
     beneficial: "BÉNÉFIQUE",
     caution: "PRÉCAUTION",
@@ -741,6 +747,7 @@ export const t = {
     loadingStep6: "Compatibilità degli ingredienti"
     loadingStep7: "Conservazione e stabilità"
     loadingStep8: "Opzioni alternative"
+    loadingStep9: "Analisi in fase di completamento..."
     noData: "Dati non trovati nei database pubblici.",
     beneficial: "BENEFICO",
     caution: "ATTENZIONE",
@@ -857,6 +864,7 @@ export const t = {
     loadingStep6: "İçerik uyumluluğu"
     loadingStep7: "Saklama ve stabilite"
     loadingStep8: "Alternatif seçenekler"
+    loadingStep9: "Analiz tamamlanıyor..."
     noData: "Genel veri tabanlarında veri bulunamadı.",
     beneficial: "FAYDALI",
     caution: "DİKKAT",
