@@ -1,27 +1,66 @@
 /**
- * api/gemini.mjs — Netlify Serverless Function
+ * api/gemini.mjs — Vercel/Netlify Serverless Function
  *
- * Тонкая обёртка над handleGeminiRequest из src/lib/gemini-handler.ts.
- * Вся бизнес-логика Gemini живёт там. Здесь только CORS, rate limiting, роутинг.
+ * Rate limiting via Supabase RPC (persistent across cold starts).
+ * Falls back to in-memory if Supabase env vars are not set.
  */
 
 import { handleGeminiRequest } from "../src/lib/gemini-handler.js";
 
-// ── Rate limiting (in-memory, best-effort) ────────────────────────────────────
-const RATE_LIMIT = 20;
-const RATE_WINDOW_MS = 60_000;
-const rateLimitStore = new Map();
+// ── Supabase rate limiting ─────────────────────────────────────────────────────
+// Uses service_role key — never exposed to browser.
+// Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables.
 
-function isRateLimited(ip) {
+const RATE_LIMIT    = 20;   // requests per window
+const RATE_WINDOW   = 60;   // seconds
+
+async function isRateLimitedSupabase(ip) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null; // signal: fall back to in-memory
+
+  try {
+    const res = await fetch(`${url}/rest/v1/rpc/check_rate_limit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        p_ip:     ip,
+        p_limit:  RATE_LIMIT,
+        p_window: `${RATE_WINDOW} seconds`,
+      }),
+    });
+
+    if (!res.ok) return null; // Supabase error → fall back
+    const allowed = await res.json(); // true = allowed, false = blocked
+    return !allowed; // isRateLimited = NOT allowed
+  } catch {
+    return null; // network error → fall back
+  }
+}
+
+// ── In-memory fallback (best-effort, resets on cold start) ────────────────────
+const memStore = new Map();
+
+function isRateLimitedMemory(ip) {
   const now = Date.now();
-  let entry = rateLimitStore.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateLimitStore.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+  let e = memStore.get(ip);
+  if (!e || now > e.resetAt) {
+    memStore.set(ip, { count: 1, resetAt: now + RATE_WINDOW * 1000 });
     return false;
   }
-  if (entry.count >= RATE_LIMIT) return true;
-  entry.count++;
+  if (e.count >= RATE_LIMIT) return true;
+  e.count++;
   return false;
+}
+
+async function checkRateLimit(ip) {
+  const supabaseResult = await isRateLimitedSupabase(ip);
+  if (supabaseResult !== null) return supabaseResult; // Supabase answered
+  return isRateLimitedMemory(ip);                     // fallback
 }
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
@@ -32,7 +71,7 @@ function getAllowedOrigin(requestOrigin) {
   return null;
 }
 
-// ── Netlify Function handler ───────────────────────────────────────────────────
+// ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   const origin = req.headers["origin"] || "";
   const allowedOrigin = getAllowedOrigin(origin);
@@ -50,21 +89,21 @@ export default async function handler(req, res) {
 
   const clientIp =
     req.headers["x-forwarded-for"]?.split(",")[0].trim() ||
-    req.socket?.remoteAddress || "unknown";
+    req.socket?.remoteAddress ||
+    "unknown";
 
-  if (isRateLimited(clientIp)) {
+  const limited = await checkRateLimit(clientIp);
+  if (limited) {
     return res.status(429).json({ error: "Too many requests. Please wait a moment and try again." });
   }
 
   try {
     const result = await handleGeminiRequest(req.body, process.env.GEMINI_API_KEY ?? "");
-
     if (result.rawText !== undefined) {
       res.setHeader("Content-Type", "application/json");
       return res.status(result.status).send(result.rawText);
     }
     return res.status(result.status).json(result.body);
-
   } catch (err) {
     console.error("Gemini error:", err);
     return res.status(500).json({ error: "Internal server error", details: err.message });
