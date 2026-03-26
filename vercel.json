@@ -12,7 +12,7 @@
       "destination": "/api/gemini"
     },
     {
-      "source": "/((?!assets|.*\\.js|.*\\.css|.*\\.png|.*\\.ico|.*\\.svg|.*\\.woff2?).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
