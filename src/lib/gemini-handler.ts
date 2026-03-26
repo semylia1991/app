@@ -258,7 +258,7 @@ export async function handleGeminiRequest(
       },
     });
 
-    return { status: 200, body: undefined, rawText: response.text ?? "" };
+    return { status: 200, rawText: response.text ?? "" };
   }
 
   // ── Translate ───────────────────────────────────────────────────────────────
@@ -272,7 +272,7 @@ export async function handleGeminiRequest(
       contents: buildTranslatePrompt(result, targetLanguage),
       config: { responseMimeType: "application/json" },
     });
-    return { status: 200, body: undefined, rawText: response.text ?? "" };
+    return { status: 200, rawText: response.text ?? "" };
   }
 
   // ── Ask ─────────────────────────────────────────────────────────────────────
