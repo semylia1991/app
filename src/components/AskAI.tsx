@@ -156,3 +156,7 @@ export function AskAI({ lang, context }: Props) {
     </div>
   );
 }
+      </form>
+    </div>
+  );
+}
