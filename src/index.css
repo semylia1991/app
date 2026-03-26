@@ -1,65 +1,294 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap');
-@import "tailwindcss";
+/**
+ * gemini-handler.ts — single source of truth for all Gemini AI logic.
+ * Imported by server.ts (dev) and api/gemini.mjs (prod Netlify).
+ */
 
-@theme {
-  --font-serif: "Cormorant Garamond", serif;
-  --font-sans: "Montserrat", sans-serif;
-  
-  --color-cream: #FDFBF7;
-  --color-gold: #B89F7A;
-  --color-gold-light: #D4C3A3;
-  --color-slate: #2C3E50;
-  --color-blue-light: #D4E0E8;
-  --color-rose-light: #E8D3D8;
-}
+import { GoogleGenAI, Type } from "@google/genai";
 
-body {
-  background-color: var(--color-cream);
-  color: var(--color-slate);
-  font-family: var(--font-sans);
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23b89f7a' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+const MODEL = "gemini-2.5-flash";
+
+export interface HandlerResult {
+  status: number;
+  body: unknown;
+  rawText?: string;
 }
 
-h1, h2, h3, h4, h5, h6, .font-serif {
-  font-family: var(--font-serif);
+// ── JSON schema ───────────────────────────────────────────────────────────────
+
+function buildAnalysisSchema(withPersonalNote: boolean) {
+  const properties: Record<string, unknown> = {
+    productName:  { type: Type.STRING },
+    brand:        { type: Type.STRING },
+    productType:  { type: Type.STRING },
+    analysis:     { type: Type.STRING },
+    ingredients: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name:        { type: Type.STRING },
+          status:      { type: Type.STRING, enum: ["🟢", "🟡", "🔴"] },
+          description: { type: Type.STRING },
+        },
+      },
+    },
+    usage:        { type: Type.STRING },
+    benefits:     { type: Type.STRING },
+    sideEffects:  { type: Type.STRING },
+    warnings:     { type: Type.STRING },
+    interactions: { type: Type.STRING },
+    shelfLife:    { type: Type.STRING },
+    alternatives: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name:   { type: Type.STRING },
+          brand:  { type: Type.STRING },
+          reason: { type: Type.STRING },
+        },
+        required: ["name", "brand", "reason"],
+      },
+    },
+  };
+
+  const required = [
+    "productName", "brand", "productType", "analysis", "ingredients",
+    "usage", "benefits", "sideEffects", "warnings", "interactions",
+    "shelfLife", "alternatives",
+  ];
+
+  if (withPersonalNote) {
+    properties["personalNote"] = { type: Type.STRING };
+    required.push("personalNote");
+  }
+
+  return { type: Type.OBJECT, properties, required };
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-gold-light);
-  border-radius: 10px;
+// ── Prompts ───────────────────────────────────────────────────────────────────
+
+function buildAnalyzePrompt(language: string, userProfile?: Record<string, unknown>): string {
+  const basePrompt = `
+You are an expert cosmetic safety analyst and INCI decoder.
+Analyze the provided image of a cosmetic product or its ingredient list.
+Extract the product name, brand, and INCI ingredients. Correct any OCR errors.
+If data is missing, search your knowledge base (EWG Skin Deep, CosDNA, INCI Decoder, PubChem, CIR, EU CosIng).
+NEVER invent ingredients, ratings, or studies. If data is not found, state "Data not found in public databases.".
+
+Provide the analysis in ${language}.
+
+Formatting Rules:
+- productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
+- analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
+- alternatives: Return 3–5 real products as a JSON array. Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence why it is a good alternative — similar ingredients, same concern, gentler formula, etc.).
+
+- usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
+👤 [translated label for "Best Suited For"]:
+- [Skin type] — [why]
+
+📋 [translated label for "How to Apply"]:
+- [Step 1]
+- [Step 2]
+- [Step 3]
+
+⏰ [translated label for "Frequency"]:
+- [How often to use — morning/evening/weekly]
+- [How long before seeing results]
+
+💧 [translated label for "Amount to Use"]:
+- [Exact amount — drops, pea-size, pump etc.]
+- [How to spread or massage in]
+
+✅ [translated label for "Layering Order"]:
+- [Step number] [product type] — [example]
+
+🌡️ [translated label for "Before and After"]:
+- [What to do before applying — cleanse, tone etc.]
+- [What to apply after — serum, moisturizer, SPF etc.]
+
+- benefits: Use this style with emojis and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
+🧱 [translated benefit category name]:
+• [Ingredient/Mechanism] [description]
+
+💧 [translated benefit category name]:
+• [Ingredient/Mechanism] [description]
+
+- sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names into ${language}. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
+⚠️ [translated side effect category name]:
+• [Ingredient] [description of potential reaction]
+
+🔴 [translated side effect category name]:
+• [Ingredient] [description of potential reaction]
+
+- interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
+
+⚗️ [translated label for "Actives Compatibility"]:
+- [Active ingredient] — [can/cannot combine, why]
+
+🧴 [translated label for "Skin Type Compatibility"]:
+- [Skin type] — [how product behaves on this skin type]
+
+🔗 [translated label for "Ingredient Synergy"]:
+- [Ingredient pair] — [how they enhance or conflict with each other]
+
+🚫 [translated label for "Avoid Combining With"]:
+- [Ingredient/product type] — [reason to avoid]
+
+✅ [translated label for "Best Combinations"]:
+- [Product/ingredient] — [why it works well together]
+
+Ensure the output strictly follows the JSON schema.`.trim();
+
+  if (!userProfile) return basePrompt;
+
+  const profileLines = [
+    userProfile.skinType        ? "Skin type: "         + userProfile.skinType        : null,
+    userProfile.skinSensitivity ? "Sensitivities: "     + userProfile.skinSensitivity : null,
+    userProfile.skinConditions  ? "Skin conditions: "   + userProfile.skinConditions  : null,
+    userProfile.ageRange        ? "Age group: "         + userProfile.ageRange         : null,
+    userProfile.hairType        ? "Hair type: "         + userProfile.hairType         : null,
+    userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
+    userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
+  ].filter(Boolean).join("\n");
+
+  const personalNoteSection = `
+
+- personalNote: Based on the user profile below and the product ingredients, generate a personalised note IN ${language}.
+  Follow this EXACT structure (translate all headings to ${language}):
+
+  **[translate: Brief summary]**
+  (1-2 sentences)
+
+  **[translate: What to look out for:]**
+  - [ingredient or group] — [why this matters for this specific user]
+
+  **[translate: Beneficial components:]**
+  - [ingredient] — [what function it performs]
+
+  **[translate: General comment:]**
+  (neutral conclusion, no recommendations)
+
+  ---
+  *[translate: Automated AI analysis. Not medical advice.]*
+
+  RULES for personalNote:
+  - Do not give medical advice.
+  - Do not use words like treats, prescribe, contraindicated.
+  - Do not state directly that a product is suitable or unsuitable.
+  - Use mild phrasing: worth noting, may cause, is sometimes associated with.
+  - Be specific to THIS user's profile, not generic.
+  - Consider factor combinations (e.g. sensitive skin + alcohol).
+
+USER PROFILE:
+${profileLines}`;
+
+  return basePrompt + personalNoteSection;
 }
 
-.regency-border {
-  border: 1px solid var(--color-gold-light);
-  position: relative;
-}
-.regency-border::before {
-  content: '';
-  position: absolute;
-  top: 4px; left: 4px; right: 4px; bottom: 4px;
-  border: 1px solid rgba(184, 159, 122, 0.3);
-  pointer-events: none;
+function buildTranslatePrompt(result: unknown, targetLanguage: string): string {
+  return `
+Translate this JSON to ${targetLanguage}.
+Return ONLY valid JSON.
+
+${JSON.stringify(result)}
+`.trim();
 }
 
-.regency-button {
-  background: linear-gradient(to bottom, #ffffff, #f5f0e6);
-  border: 1px solid var(--color-gold);
-  color: var(--color-slate);
-  font-family: var(--font-serif);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
+function buildAskPrompt(question: string, context: unknown, language: string): string {
+  return `
+Context:
+${JSON.stringify(context)}
+
+Question: ${question}
+Answer in ${language}.
+`.trim();
 }
-.regency-button:hover {
-  background: linear-gradient(to bottom, #f5f0e6, #eaddc5);
-  box-shadow: 0 4px 12px rgba(184, 159, 122, 0.2);
+
+// ── Main handler ──────────────────────────────────────────────────────────────
+
+export async function handleGeminiRequest(
+  body: Record<string, unknown>,
+  apiKey: string,
+): Promise<HandlerResult> {
+  if (!apiKey) {
+    return { status: 500, body: { error: "GEMINI_API_KEY is not configured on the server." } };
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+  const { action } = body;
+
+  // ── SimpleChat ──────────────────────────────────────────────────────────────
+  if (!action) {
+    const { message } = body;
+    if (!message || typeof message !== "string") {
+      return { status: 400, body: { error: "message is required and must be a string." } };
+    }
+    const response = await ai.models.generateContent({ model: MODEL, contents: message });
+    return { status: 200, body: { response: response.text } };
+  }
+
+  // ── Analyze product image ───────────────────────────────────────────────────
+  if (action === "analyze") {
+    const { base64Image, mimeType, language, userProfile } = body as {
+      base64Image?: string;
+      mimeType?: string;
+      language?: string;
+      userProfile?: Record<string, unknown>;
+    };
+
+    if (!base64Image || !mimeType || !language) {
+      return { status: 400, body: { error: "base64Image, mimeType, and language are required." } };
+    }
+
+    const imageData = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
+    const withNote  = !!userProfile;
+
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: [{
+        parts: [
+          { text: buildAnalyzePrompt(language, userProfile) },
+          { inlineData: { data: imageData, mimeType } },
+        ],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: buildAnalysisSchema(withNote),
+      },
+    });
+
+    return { status: 200, rawText: response.text ?? "" };
+  }
+
+  // ── Translate ───────────────────────────────────────────────────────────────
+  if (action === "translate") {
+    const { result, targetLanguage } = body as { result?: unknown; targetLanguage?: string };
+    if (!result || !targetLanguage) {
+      return { status: 400, body: { error: "result and targetLanguage are required." } };
+    }
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: buildTranslatePrompt(result, targetLanguage),
+      config: { responseMimeType: "application/json" },
+    });
+    return { status: 200, rawText: response.text ?? "" };
+  }
+
+  // ── Ask ─────────────────────────────────────────────────────────────────────
+  if (action === "ask") {
+    const { question, context, language } = body as {
+      question?: string; context?: unknown; language?: string;
+    };
+    if (!question || !context || !language) {
+      return { status: 400, body: { error: "question, context, and language are required." } };
+    }
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: buildAskPrompt(question, context, language),
+    });
+    return { status: 200, body: { answer: response.text ?? "" } };
+  }
+
+  return { status: 400, body: { error: `Unknown action: "${action}"` } };
 }
