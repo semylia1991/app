@@ -1,66 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap');
-@import "tailwindcss";
-
-@theme {
-  --font-serif: "Cormorant Garamond", serif;
-  --font-sans: "Montserrat", sans-serif;
-  
-  --color-cream: #FDFBF7;
-  --color-gold: #B89F7A;
-  --color-gold-light: #D4C3A3;
-  --color-slate: #2C3E50;
-  --color-blue-light: #D4E0E8;
-  --color-rose-light: #E8D3D8;
-}
-
-body {
-  background-color: var(--color-cream);
-  color: var(--color-slate);
-  font-family: var(--font-sans);
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23b89f7a' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-}
-
-h1, h2, h3, h4, h5, h6, .font-serif {
-  font-family: var(--font-serif);
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-gold-light);
-  border-radius: 10px;
-}
-
-.regency-border {
-  border: 1px solid var(--color-gold-light);
-  position: relative;
-}
-.regency-border::before {
-  content: '';
-  position: absolute;
-  top: 4px; left: 4px; right: 4px; bottom: 4px;
-  border: 1px solid rgba(184, 159, 122, 0.3);
-  pointer-events: none;
-}
-
-.regency-button {
-  background: linear-gradient(to bottom, #ffffff, #f5f0e6);
-  border: 1px solid var(--color-gold);
-  color: var(--color-slate);
-  font-family: var(--font-serif);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-.regency-button:hover {
-  background: linear-gradient(to bottom, #f5f0e6, #eaddc5);
-  box-shadow: 0 4px 12px rgba(184, 159, 122, 0.2);
-}
-
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GlowKey AI</title>
+ 
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#B89F7A" />
+    <meta name="mobile-web-app-capable" content="yes" />
+ 
+    <!-- iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="GlowKey" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js');
+      }
+    </script>
+  </body>
+</html>
+ 
