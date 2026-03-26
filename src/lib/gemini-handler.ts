@@ -9,7 +9,7 @@ const MODEL = "gemini-2.5-flash";
 
 export interface HandlerResult {
   status: number;
-  body: unknown;
+  body?: unknown;
   rawText?: string;
 }
 
@@ -258,7 +258,7 @@ export async function handleGeminiRequest(
       },
     });
 
-    return { status: 200, rawText: response.text ?? "" };
+    return { status: 200, body: undefined, rawText: response.text ?? "" };
   }
 
   // ── Translate ───────────────────────────────────────────────────────────────
@@ -272,7 +272,7 @@ export async function handleGeminiRequest(
       contents: buildTranslatePrompt(result, targetLanguage),
       config: { responseMimeType: "application/json" },
     });
-    return { status: 200, rawText: response.text ?? "" };
+    return { status: 200, body: undefined, rawText: response.text ?? "" };
   }
 
   // ── Ask ─────────────────────────────────────────────────────────────────────
