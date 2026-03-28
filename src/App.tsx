@@ -334,12 +334,14 @@ export default function App() {
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 mb-2">
           <h2 className="text-xs font-serif tracking-[0.3em] text-[#B89F7A] uppercase mb-2">{t[lang].subtitle}</h2>
           <h1 className="text-4xl md:text-5xl font-serif text-[#2C3E50] tracking-wide">{t[lang].title}</h1>
-          <div className="mt-3">
+          <div className="mt-4">
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="text-[10px] tracking-[0.25em] uppercase text-[#B89F7A] hover:text-[#2C3E50] transition-colors underline underline-offset-4 decoration-[#D4C3A3]"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-[#B89F7A] text-[10px] tracking-[0.25em] uppercase text-[#B89F7A] hover:bg-[#B89F7A] hover:text-white transition-all duration-200"
             >
+              <span>✦</span>
               {t[lang].userGuide}
+              <span>✦</span>
             </button>
           </div>
         </motion.div>
