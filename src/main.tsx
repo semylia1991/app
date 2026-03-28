@@ -5,18 +5,19 @@ import App from './App.tsx';
 import './index.css';
 
 // ── PostHog analytics ─────────────────────────────────────────────────────────
-// Initialise only if the key is provided (skips silently in dev without key)
+// Initialise ONLY if user has accepted cookies (§ 25 TDDDG / DSGVO Art. 6 Abs. 1 lit. a)
 const posthogKey  = import.meta.env.VITE_POSTHOG_KEY  as string | undefined;
 const posthogHost = import.meta.env.VITE_POSTHOG_HOST as string | undefined;
 
-if (posthogKey) {
+const cookieConsent = localStorage.getItem('cookieConsent');
+if (posthogKey && cookieConsent === 'accepted') {
   posthog.init(posthogKey, {
     api_host:           posthogHost || 'https://eu.i.posthog.com',
-    capture_pageview:   true,   // track page loads automatically
-    capture_pageleave:  true,   // track when users leave
+    capture_pageview:   true,
+    capture_pageleave:  true,
     persistence:        'localStorage',
-    autocapture:        false,  // manual event capture only (GDPR-friendly)
-    respect_dnt:        true,   // honour browser Do Not Track header
+    autocapture:        false,
+    respect_dnt:        true,
   });
 }
 
