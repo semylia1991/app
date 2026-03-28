@@ -124,6 +124,7 @@ export const t = {
     personalAnalysisNoProfile: "Fill in My Profile to get a personalized analysis.",
     personalAnalysisShortDisclaimer: "Automated analysis. Not medical advice.",
     personalAnalysisDisclaimer: "This is an AI-generated assessment based on your profile data and publicly available ingredient information. It is not medical advice. Consult a dermatologist for personal recommendations.",
+    userGuide: "User Guide",
   },
   ru: {
     title: "GlowKey AI",
@@ -241,6 +242,7 @@ export const t = {
     personalAnalysisNoProfile: "Заполните «Мой профиль», чтобы получить персональный анализ.",
     personalAnalysisShortDisclaimer: "Автоматизированный анализ. Не является медицинской рекомендацией.",
     personalAnalysisDisclaimer: "Это оценка, созданная ИИ на основе данных вашего профиля и публичной информации об ингредиентах. Не является медицинской рекомендацией.",
+    userGuide: "Руководство",
   },
   de: {
     title: "GlowKey AI",
@@ -358,6 +360,7 @@ export const t = {
     personalAnalysisNoProfile: "Füllen Sie «Mein Profil» aus, um eine persönliche Analyse zu erhalten.",
     personalAnalysisShortDisclaimer: "Automatisierte Analyse. Keine medizinische Beratung.",
     personalAnalysisDisclaimer: "Dies ist eine KI-generierte Einschätzung basierend auf Ihren Profildaten und öffentlich verfügbaren Inhaltsstoffinformationen. Keine medizinische Beratung.",
+    userGuide: "Benutzerhandbuch",
   },
   uk: {
     title: "GlowKey AI",
@@ -475,6 +478,7 @@ export const t = {
     personalAnalysisNoProfile: "Заповніть «Мій профіль», щоб отримати персональний аналіз.",
     personalAnalysisShortDisclaimer: "Автоматизований аналіз. Не є медичною рекомендацією.",
     personalAnalysisDisclaimer: "Це оцінка, створена ШІ на основі даних вашого профілю та публічної інформації про інгредієнти. Не є медичною рекомендацією.",
+    userGuide: "Керівництво",
   },
   es: {
     title: "GlowKey AI",
@@ -592,6 +596,7 @@ export const t = {
     personalAnalysisNoProfile: "Completa «Mi perfil» para obtener un análisis personalizado.",
     personalAnalysisShortDisclaimer: "Análisis automatizado. No es consejo médico.",
     personalAnalysisDisclaimer: "Esta es una evaluación generada por IA basada en los datos de tu perfil e información pública sobre ingredientes. No es consejo médico.",
+    userGuide: "Guía de usuario",
   },
   fr: {
     title: "GlowKey AI",
@@ -709,6 +714,7 @@ export const t = {
     personalAnalysisNoProfile: "Remplissez «Mon profil» pour obtenir une analyse personnalisée.",
     personalAnalysisShortDisclaimer: "Analyse automatisée. Pas de conseil médical.",
     personalAnalysisDisclaimer: "Ceci est une évaluation générée par IA basée sur vos données de profil et des informations publiques sur les ingrédients. Ce n'est pas un conseil médical.",
+    userGuide: "Guide d'utilisation",
   },
   it: {
     title: "GlowKey AI",
@@ -826,6 +832,7 @@ export const t = {
     personalAnalysisNoProfile: "Compila «Il mio profilo» per ottenere un'analisi personalizzata.",
     personalAnalysisShortDisclaimer: "Analisi automatizzata. Non è un consiglio medico.",
     personalAnalysisDisclaimer: "Questa è una valutazione generata dall'AI basata sui dati del tuo profilo e sulle informazioni pubbliche sugli ingredienti. Non è un consiglio medico.",
+    userGuide: "Guida utente",
   },
   tr: {
     title: "GlowKey AI",
@@ -943,5 +950,6 @@ export const t = {
     personalAnalysisNoProfile: "Kişiselleştirilmiş analiz için «Profilim»i doldurun.",
     personalAnalysisShortDisclaimer: "Otomatik analiz. Tıbbi tavsiye değildir.",
     personalAnalysisDisclaimer: "Bu, profil verilerinize ve halka açık içerik bilgilerine dayalı yapay zeka tarafından oluşturulmuş bir değerlendirmedir. Tıbbi tavsiye değildir.",
+    userGuide: "Kullanım kılavuzu",
   },
 };
