@@ -407,6 +407,9 @@ export default function App() {
                       {t[lang].consent}
                     </span>
                   </label>
+                  <p className="text-[10px] text-[#B89F7A]/80 leading-relaxed -mt-2 pl-7">
+                    {t[lang].consentWithdrawal}
+                  </p>
 
                   {error && (
                     <div className="text-red-800 text-xs bg-red-50 p-3 border border-red-200 rounded-sm flex items-start gap-2">
