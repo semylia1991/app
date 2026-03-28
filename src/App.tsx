@@ -12,6 +12,7 @@ import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
 import { LegalModal, PrivacyPolicyContent, ImpressumContent } from './components/LegalModals';
+import { UserGuideModal } from './components/UserGuideModal';
 import { fetchProductImage } from './lib/productImage';
 import { AlternativesSection } from './components/AlternativesSection';
 import { CollapsibleSection } from './components/CollapsibleSection';
@@ -131,6 +132,7 @@ export default function App() {
 
   const [isPrivacyOpen, setIsPrivacyOpen]     = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen]         = useState(false);
   const [copied, setCopied]                   = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
 
@@ -332,6 +334,14 @@ export default function App() {
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 mb-2">
           <h2 className="text-xs font-serif tracking-[0.3em] text-[#B89F7A] uppercase mb-2">{t[lang].subtitle}</h2>
           <h1 className="text-4xl md:text-5xl font-serif text-[#2C3E50] tracking-wide">{t[lang].title}</h1>
+          <div className="mt-3">
+            <button
+              onClick={() => setIsGuideOpen(true)}
+              className="text-[10px] tracking-[0.25em] uppercase text-[#B89F7A] hover:text-[#2C3E50] transition-colors underline underline-offset-4 decoration-[#D4C3A3]"
+            >
+              {t[lang].userGuide}
+            </button>
+          </div>
         </motion.div>
         <div className="w-24 h-[1px] bg-[#D4C3A3] mx-auto mt-6" />
       </header>
@@ -548,6 +558,7 @@ export default function App() {
 
       <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent />} />
       <LegalModal isOpen={isImpressumOpen} onClose={() => setIsImpressumOpen(false)} title={t[lang].impressum} content={<ImpressumContent />} />
+      <UserGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} lang={lang} />
     </div>
   );
 }
