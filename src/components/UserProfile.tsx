@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Sparkles, CheckCircle } from 'lucide-react';
+import { X, User, Sparkles, CheckCircle, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { t, Language } from '../i18n';
@@ -147,6 +147,7 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
   const [loading, setLoading]       = useState(false);
   const [saved, setSaved]           = useState(false);
   const [hasProfile, setHasProfile] = useState(initialHasProfile);
+  const [deleting, setDeleting]     = useState(false);
  
   const T = t[lang];
  
@@ -183,6 +184,28 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
     setHasProfile(true);
     onProfileChange?.(profile);
     setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handleDeleteProfile = async () => {
+    if (!window.confirm(T.deleteProfileConfirm)) return;
+    setDeleting(true);
+    await supabase.from('user_profiles').delete().eq('user_id', user.id);
+    setProfile(EMPTY_PROFILE);
+    setHasProfile(false);
+    onProfileChange?.(null);
+    setDeleting(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm(T.deleteAccountConfirm)) return;
+    setDeleting(true);
+    // Delete all user data from tables
+    await supabase.from('user_profiles').delete().eq('user_id', user.id);
+    await supabase.from('scan_history').delete().eq('user_id', user.id);
+    // Sign out — account deletion from auth requires server-side call
+    await supabase.auth.signOut();
+    setDeleting(false);
+    setIsOpen(false);
   };
  
   return (
@@ -294,10 +317,10 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
             </div>
  
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-[#D4C3A3] shrink-0 bg-[#FDFBF7]">
+            <div className="px-6 py-4 border-t border-[#D4C3A3] shrink-0 bg-[#FDFBF7] space-y-2">
               <button
                 onClick={handleSave}
-                disabled={!profile.consentGiven || loading}
+                disabled={!profile.consentGiven || loading || deleting}
                 className="w-full py-3.5 regency-button tracking-widest flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {saved ? (
@@ -307,6 +330,26 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
                 ) : (
                   <><Sparkles size={14} className="text-[#B89F7A]" /><span>{T.profileSave}</span></>
                 )}
+              </button>
+
+              {hasProfile && (
+                <button
+                  onClick={handleDeleteProfile}
+                  disabled={deleting}
+                  className="w-full py-2.5 flex items-center justify-center gap-2 text-[11px] tracking-widest uppercase text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 transition-colors disabled:opacity-40"
+                >
+                  <Trash2 size={12} />
+                  <span>{deleting ? T.deleting : T.deleteProfile}</span>
+                </button>
+              )}
+
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="w-full py-2 flex items-center justify-center gap-2 text-[10px] tracking-widest uppercase text-red-300 hover:text-red-500 transition-colors disabled:opacity-40"
+              >
+                <Trash2 size={11} />
+                <span>{deleting ? T.deleting : T.deleteAccount}</span>
               </button>
             </div>
           </motion.div>
