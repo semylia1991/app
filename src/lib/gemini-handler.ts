@@ -154,33 +154,35 @@ Ensure the output strictly follows the JSON schema.`.trim();
 
   const personalNoteSection = `
 
-- personalNote: Based on the user profile below and the product ingredients, generate a personalised note IN ${language}.
+- personalNote: Based on the user preferences below and the product ingredients, generate an analysis note IN ${language}.
+  The text MUST explicitly include phrasing such as: "based on the selected preferences", "considering these preferences" or equivalent in ${language}.
   Follow this EXACT structure (translate all headings to ${language}):
 
-  **[translate: Brief summary]**
-  (1-2 sentences)
+  🧴**[translate: Brief summary]**
+  (1-2 sentences, explicitly referencing the selected preferences)
 
-  **[translate: What to look out for:]**
-  - [ingredient or group] — [why this matters for this specific user]
+  🔗**[translate: What to look out for:]**
+  - [ingredient or group] — [why this may matter based on selected preferences]
 
-  **[translate: Beneficial components:]**
-  - [ingredient] — [what function it performs]
+  📋**[translate: Beneficial components:]**
+  - [ingredient] — [what function it performs in the context of these preferences]
 
-  **[translate: General comment:]**
-  (neutral conclusion, no recommendations)
+  👤**[translate: General comment:]**
+  (neutral conclusion, referencing the preferences, no recommendations)
 
   ---
-  *[translate: Automated AI analysis. Not medical advice.]*
+  ⚠️*[translate: Automated analysis based on selected preferences. Not medical advice.]*
 
   RULES for personalNote:
   - Do not give medical advice.
   - Do not use words like treats, prescribe, contraindicated.
   - Do not state directly that a product is suitable or unsuitable.
   - Use mild phrasing: worth noting, may cause, is sometimes associated with.
-  - Be specific to THIS user's profile, not generic.
+  - Explicitly tie observations to the selected preferences.
+  - Do not refer to personal data or identity.
   - Consider factor combinations (e.g. sensitive skin + alcohol).
 
-USER PROFILE:
+USER PREFERENCES:
 ${profileLines}`;
 
   return basePrompt + personalNoteSection;
