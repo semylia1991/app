@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import posthog from 'posthog-js';
 import { motion, AnimatePresence } from 'motion/react';
 import { t, Language } from '../i18n';
 
@@ -20,11 +21,26 @@ export function CookieBanner({ lang, onOpenPrivacy }: Props) {
   const handleAccept = () => {
     localStorage.setItem('cookieConsent', 'accepted');
     setIsVisible(false);
+    // Init PostHog only after explicit consent (§ 25 TDDDG)
+    const posthogKey  = import.meta.env.VITE_POSTHOG_KEY  as string | undefined;
+    const posthogHost = import.meta.env.VITE_POSTHOG_HOST as string | undefined;
+    if (posthogKey && !posthog.__loaded) {
+      posthog.init(posthogKey, {
+        api_host:          posthogHost || 'https://eu.i.posthog.com',
+        capture_pageview:  true,
+        capture_pageleave: true,
+        persistence:       'localStorage',
+        autocapture:       false,
+        respect_dnt:       true,
+      });
+    }
   };
 
   const handleReject = () => {
     localStorage.setItem('cookieConsent', 'rejected');
     setIsVisible(false);
+    // Opt-out PostHog if somehow loaded
+    posthog.opt_out_capturing();
   };
 
   return (
