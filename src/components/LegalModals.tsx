@@ -30,25 +30,29 @@ export function LegalModal({ isOpen, onClose, title, content }: Props) {
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
           />
           <motion.div
-            ref={scrollRef}
             initial={{ opacity: 0, scale: 0.95, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
-            className="fixed top-0 left-1/2 -translate-x-1/2 w-[95%] max-w-2xl max-h-[100vh] bg-[#FDFBF7] regency-border p-8 z-50 overflow-y-auto shadow-2xl rounded-sm"
+            className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-2xl max-h-[92vh] bg-[#FDFBF7] regency-border z-50 shadow-2xl rounded-sm flex flex-col"
           >
-            <button
-              onClick={onClose}
-              className="absolute top-6 right-6 text-[#B89F7A] hover:text-[#2C3E50] transition-colors"
+            <div className="shrink-0 p-8 pb-4 border-b border-[#D4C3A3] relative">
+              <button
+                onClick={onClose}
+                className="absolute top-6 right-6 text-[#B89F7A] hover:text-[#2C3E50] transition-colors"
+              >
+                <X size={24} />
+              </button>
+              <h2 className="text-3xl font-serif text-center text-[#2C3E50]">
+                {title}
+              </h2>
+            </div>
+            <div
+              ref={scrollRef}
+              className="overflow-y-auto p-8 pt-6"
             >
-              <X size={24} />
-            </button>
- 
-            <h2 className="text-3xl font-serif text-center mb-8 text-[#2C3E50] border-b border-[#D4C3A3] pb-4">
-              {title}
-            </h2>
- 
-            <div className="prose prose-stone max-w-none prose-headings:font-serif prose-headings:text-[#2C3E50] text-[#4A4A4A] text-sm leading-relaxed">
-              {content}
+              <div className="prose prose-stone max-w-none prose-headings:font-serif prose-headings:text-[#2C3E50] text-[#4A4A4A] text-sm leading-relaxed">
+                {content}
+              </div>
             </div>
           </motion.div>
         </>
