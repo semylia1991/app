@@ -117,48 +117,63 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
   );
 }
 
-// ── main component ────────────────────────────────────────────────────────────
+// ── Shop config — one entry per platform, easy to add/edit ───────────────────
 
+interface ShopConfig {
+  platform: string;
+  favicon: string;
+  encoding: 'plus' | 'pct';
+  buildUrl: (q: string) => string;
+}
 
-// ── Shop links builder (no API call — runs client-side) ──────────────────────
+const SHOP_CONFIGS: ShopConfig[] = [
+  {
+    platform: 'Amazon',
+    favicon: 'https://www.amazon.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.amazon.de/s?k=${q}`,
+  },
+  {
+    platform: 'Douglas',
+    favicon: 'https://www.douglas.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.douglas.de/de/de/search?q=${q}`,
+  },
+  {
+    platform: 'Notino',
+    favicon: 'https://www.notino.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.notino.de/search?q=${q}`,
+  },
+  {
+    platform: 'DM',
+    favicon: 'https://www.dm.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.dm.de/search?query=${q}`,
+  },
+  {
+    platform: 'Rossmann',
+    favicon: 'https://www.rossmann.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.rossmann.de/de/search?q=${q}`,
+  },
+];
 
 function buildShopLinks(productName: string, brand: string): ShopLink[] {
-  // Use brand + productName, fall back to just one if the other is empty
   const combined = [brand, productName].filter(Boolean).join(' ').trim();
   if (!combined) return [];
 
-  // Encode for URLs — each platform has its own preference
-  const qPlus  = combined.split(/\s+/).join('+');
-  const qPct   = encodeURIComponent(combined);
+  const qPlus = combined.split(/\s+/).join('+');
+  const qPct  = encodeURIComponent(combined);
 
-  return [
-    {
-      platform: 'Amazon',
-      favicon: 'https://www.amazon.de/favicon.ico',
-      url: `https://www.amazon.de/s?k=${qPlus}`,
-    },
-    {
-      platform: 'Douglas',
-      favicon: 'https://www.douglas.de/favicon.ico',
-      url: `https://www.douglas.de/de/de/search?q=${qPlus}`,
-    },
-    {
-      platform: 'Notino',
-      favicon: 'https://www.notino.de/favicon.ico',
-      url: `https://www.notino.de/search?q=${qPlus}`,
-    },
-    {
-      platform: 'DM',
-      favicon: 'https://www.dm.de/favicon.ico',
-      url: `https://www.dm.de/search?query=${qPlus}`,
-    },
-    {
-      platform: 'Rossmann',
-      favicon: 'https://www.rossmann.de/favicon.ico',
-      url: `https://www.rossmann.de/de/search?q=${qPlus}`,
-    },
-  ];
+  return SHOP_CONFIGS.map(({ platform, favicon, encoding, buildUrl }) => ({
+    platform,
+    favicon,
+    url: buildUrl(encoding === 'plus' ? qPlus : qPct),
+  }));
 }
+
+// ── main component ────────────────────────────────────────────────────────────
 
 export default function App() {
   const [lang, setLang]               = useState<Language>('en');
@@ -271,7 +286,6 @@ export default function App() {
       if (!match) throw new Error('Invalid image format');
       const mimeType = match[1];
 
-      // Serialize profile with translated labels for the AI prompt
       const serializedProfile: SerializedProfile | undefined = userProfile
         ? (() => {
             const p = translateProfile(userProfile, lang);
@@ -372,7 +386,6 @@ export default function App() {
               setUser(u);
               if (u) {
                 posthog.identify(u.id, { email: u.email });
-                // Auto-load profile so it's available for analysis without opening the panel
                 supabase
                   .from('user_profiles')
                   .select('profile')
@@ -411,7 +424,6 @@ export default function App() {
       <main className="flex-grow flex flex-col items-center justify-center p-4 relative">
         <AnimatePresence mode="wait">
           {!result ? (
-            // ── Upload panel ────────────────────────────────────────────────
             <motion.div
               key="upload"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -478,7 +490,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Single Analyze button — same as original */}
                   <button
                     onClick={handleAnalyze}
                     disabled={!consent || isAnalyzing}
@@ -497,7 +508,6 @@ export default function App() {
               )}
             </motion.div>
           ) : (
-            // ── Results panel ───────────────────────────────────────────────
             <motion.div
               key="results"
               initial={{ opacity: 0, y: 20 }}
@@ -520,14 +530,12 @@ export default function App() {
               </div>
 
               <div className="space-y-2">
-                {/* Original sections */}
                 <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={20} />} defaultOpen>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.analysis}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
 
-                {/* Note — personal profile analysis, second after Analysis */}
                 <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={20} />}>
                   <PersonalAnalysis
                     lang={lang}
