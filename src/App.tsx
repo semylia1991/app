@@ -506,13 +506,15 @@ export default function App() {
               </div>
 
               <div className="space-y-2">
-                <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={20} />} defaultOpen>
+                <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={20} /
+                  collapseLabel={t[lang].collapse}>} defaultOpen>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.analysis}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={20} />}>
+                <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <PersonalAnalysis
                     lang={lang}
                     result={result}
@@ -523,7 +525,8 @@ export default function App() {
                   />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />}>
+                <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <ul className="space-y-2">
                     {result.ingredients.map((ing, idx) => (
                       <li key={idx} className="flex items-start gap-2 py-1 border-b border-[#D4C3A3]/20 last:border-0">
@@ -537,39 +540,47 @@ export default function App() {
                   </ul>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].usage} icon={<Info size={20} />}>
+                <CollapsibleSection title={t[lang].usage} icon={<Info size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <UsageSection text={result.usage} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={20} />}>
+                <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <BenefitsSection text={result.benefits} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={20} />}>
+                <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <BenefitsSection text={result.sideEffects} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={20} />}>
+                <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.warnings}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].interactions} icon={<Zap size={20} />}>
+                <CollapsibleSection title={t[lang].interactions} icon={<Zap size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <BenefitsSection text={result.interactions} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={20} />}>
+                <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.shelfLife}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
+                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <AlternativesSection alternatives={result.alternatives} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={20} />}>
+                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={20} /
+                  collapseLabel={t[lang].collapse}>}>
                   <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} />
                 </CollapsibleSection>
               </div>
