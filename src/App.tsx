@@ -562,10 +562,6 @@ export default function App() {
                 lang={lang}
                 context={result}
                 isPremium={subscription.isPremium}
-                askAiUsed={subscription.usage.askAi}
-                askAiLimit={subscription.limits.askAiPerDay}
-                canAskAi={subscription.canAskAi}
-                onAskAi={subscription.incrementAskAi}
                 onLimitReached={() => setPaywallReason('askAi')}
               />
 
