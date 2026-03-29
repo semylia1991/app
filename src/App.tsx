@@ -26,8 +26,6 @@ import { PersonalAnalysis } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
 import { useSubscription } from './hooks/useSubscription';
 
-// ── helpers for formatted sections ──────────────────────────────────────────
-
 function splitParagraphs(text: string): string[] {
   return text.split('\n\n').map(s => s.trim()).filter(Boolean);
 }
@@ -83,8 +81,6 @@ function BenefitsSection({ text }: { text: string }) {
   );
 }
 
-// ── Product hero image ────────────────────────────────────────────────────────
-
 function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: string; userPhoto?: string | null }) {
   const [src, setSrc] = useState<string | null>(null);
   const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
@@ -117,7 +113,7 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
   );
 }
 
-// ── Shop config — one entry per platform, easy to add/edit ───────────────────
+// ── Shop config ───────────────────────────────────────────────────────────────
 
 interface ShopConfig {
   platform: string;
@@ -138,10 +134,8 @@ const SHOP_CONFIGS: ShopConfig[] = [
 function buildShopLinks(productName: string, brand: string): ShopLink[] {
   const combined = [brand, productName].filter(Boolean).join(' ').trim();
   if (!combined) return [];
-
   const qPlus = combined.split(/\s+/).join('+');
   const qPct  = encodeURIComponent(combined);
-
   return SHOP_CONFIGS.map(({ platform, favicon, encoding, buildUrl }) => ({
     platform,
     favicon,
@@ -171,7 +165,6 @@ export default function App() {
   const [copied, setCopied]                   = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
 
-  // ── Subscription / freemium ───────────────────────────────────────────────
   const subscription = useSubscription(user);
   const [paywallReason, setPaywallReason] = useState<'scans' | 'note' | 'askAi' | null>(null);
 
@@ -180,7 +173,6 @@ export default function App() {
   const originalResult    = useRef<AnalysisResult | null>(null);
   const translationCache  = useRef<Map<Language, AnalysisResult>>(new Map());
 
-  // ── Load shared result from URL (?share=id) ──────────────────────────────
   useEffect(() => {
     const shareId = new URLSearchParams(window.location.search).get('share');
     if (!shareId) return;
@@ -198,14 +190,11 @@ export default function App() {
       });
   }, []);
 
-  // ── Auto-translate on lang change ────────────────────────────────────────
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (!originalResult.current || isAnalyzing) return;
-
     const cached = translationCache.current.get(lang);
     if (cached) { setResult(cached); return; }
-
     let cancelled = false;
     const translate = async () => {
       setIsTranslating(true);
@@ -221,8 +210,6 @@ export default function App() {
     translate();
     return () => { cancelled = true; setIsTranslating(false); };
   }, [lang]);
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -247,13 +234,10 @@ export default function App() {
 
   const handleAnalyze = async () => {
     if (!previewUrl || !consent) return;
-
-    // ── Freemium check ─────────────────────────────────────────────────────
     if (!subscription.canScan) {
       setPaywallReason('scans');
       return;
     }
-
     setIsAnalyzing(true);
     setError(null);
     posthog.capture('scan_started', { lang });
@@ -261,7 +245,6 @@ export default function App() {
       const match = previewUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
       if (!match) throw new Error('Invalid image format');
       const mimeType = match[1];
-
       const serializedProfile: SerializedProfile | undefined = userProfile
         ? (() => {
             const p = translateProfile(userProfile, lang);
@@ -276,7 +259,6 @@ export default function App() {
             };
           })()
         : undefined;
-
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang, serializedProfile);
       const analysisWithShops: AnalysisResult = {
         ...analysis,
@@ -333,7 +315,7 @@ export default function App() {
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const cl = t[lang].collapse;
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
@@ -506,15 +488,14 @@ export default function App() {
               </div>
 
               <div className="space-y-2">
-                <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={20} /
-                  collapseLabel={t[lang].collapse}>} defaultOpen>
+
+                <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={20} />} defaultOpen collapseLabel={cl}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.analysis}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={20} />} collapseLabel={cl}>
                   <PersonalAnalysis
                     lang={lang}
                     result={result}
@@ -525,8 +506,7 @@ export default function App() {
                   />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />} collapseLabel={cl}>
                   <ul className="space-y-2">
                     {result.ingredients.map((ing, idx) => (
                       <li key={idx} className="flex items-start gap-2 py-1 border-b border-[#D4C3A3]/20 last:border-0">
@@ -540,49 +520,42 @@ export default function App() {
                   </ul>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].usage} icon={<Info size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].usage} icon={<Info size={20} />} collapseLabel={cl}>
                   <UsageSection text={result.usage} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={20} />} collapseLabel={cl}>
                   <BenefitsSection text={result.benefits} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={20} />} collapseLabel={cl}>
                   <BenefitsSection text={result.sideEffects} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={20} />} collapseLabel={cl}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.warnings}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].interactions} icon={<Zap size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].interactions} icon={<Zap size={20} />} collapseLabel={cl}>
                   <BenefitsSection text={result.interactions} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={20} />} collapseLabel={cl}>
                   <div className="prose prose-sm prose-stone max-w-none">
                     <ReactMarkdown>{result.shelfLife}</ReactMarkdown>
                   </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />} collapseLabel={cl}>
                   <AlternativesSection alternatives={result.alternatives} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={20} /
-                  collapseLabel={t[lang].collapse}>}>
+                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={20} />} collapseLabel={cl}>
                   <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} />
                 </CollapsibleSection>
+
               </div>
 
               <AskAI
