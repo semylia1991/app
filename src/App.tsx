@@ -128,6 +128,12 @@ interface ShopConfig {
 
 const SHOP_CONFIGS: ShopConfig[] = [
   {
+    platform: 'Google Shopping',
+    favicon: 'https://www.google.com/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.google.com/search?q=${q}&tbm=shop`,
+  },
+  {
     platform: 'Amazon',
     favicon: 'https://www.amazon.de/favicon.ico',
     encoding: 'plus',
@@ -150,12 +156,6 @@ const SHOP_CONFIGS: ShopConfig[] = [
     favicon: 'https://www.dm.de/favicon.ico',
     encoding: 'plus',
     buildUrl: (q) => `https://www.dm.de/search?query=${q}`,
-  },
-  {
-    platform: 'Rossmann',
-    favicon: 'https://www.rossmann.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.rossmann.de/de/search?q=${q}`,
   },
 ];
 
