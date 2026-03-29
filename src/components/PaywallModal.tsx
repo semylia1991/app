@@ -80,18 +80,32 @@ const MAYBE_LATER: Record<Language, string> = {
 export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
   const [isLoading, setIsLoading] = useState(false);
 
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+
   const handleUpgrade = async () => {
+    if (!userId) {
+      // Not logged in — prompt to sign in first
+      setUpgradeError('Please sign in first to upgrade.');
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
+    setUpgradeError(null);
     try {
-      // Call your backend to create a Stripe Checkout session
       const res = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, lang }),
+        body: JSON.stringify({ userId }),
       });
-      const { url } = await res.json();
-      if (url) window.location.href = url;
-    } catch {
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setUpgradeError(data.error ?? 'Something went wrong. Please try again.');
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setUpgradeError('Network error. Please try again.');
       setIsLoading(false);
     }
   };
@@ -165,6 +179,10 @@ export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
                 )}
                 {UPGRADE_LABEL[lang]}
               </button>
+              {upgradeError && (
+                <p className="text-xs text-red-600 text-center -mt-1">{upgradeError}</p>
+              )}
+
               <button
                 onClick={onClose}
                 className="w-full py-2 text-xs text-[#B89F7A] hover:text-[#2C3E50] transition-colors tracking-widest uppercase"
