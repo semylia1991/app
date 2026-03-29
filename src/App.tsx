@@ -128,10 +128,34 @@ interface ShopConfig {
 
 const SHOP_CONFIGS: ShopConfig[] = [
   {
-    platform: 'Google Shopping',
-    favicon: 'https://www.google.com/favicon.ico',
+    platform: 'Amazon',
+    favicon: 'https://www.amazon.de/favicon.ico',
     encoding: 'plus',
-    buildUrl: (q) => `https://www.google.com/search?q=${q}&tbm=shop`,
+    buildUrl: (q) => `https://www.amazon.de/s?k=${q}`,
+  },
+  {
+    platform: 'DM',
+    favicon: 'https://www.dm.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.dm.de/search?query=${q}`,
+  },
+  {
+    platform: 'Douglas',
+    favicon: 'https://www.douglas.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.douglas.de/de/de/search?q=${q}`,
+  },
+  {
+    platform: 'Notino',
+    favicon: 'https://www.notino.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.notino.de/search?q=${q}`,
+  },
+  {
+    platform: 'Rossmann',
+    favicon: 'https://www.rossmann.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.rossmann.de/de/search?q=${q}`,
   },
   {
     platform: 'Müller',
@@ -144,6 +168,12 @@ const SHOP_CONFIGS: ShopConfig[] = [
     favicon: 'https://www.sephora.de/favicon.ico',
     encoding: 'plus',
     buildUrl: (q) => `https://www.sephora.de/search?q=${q}`,
+  },
+  {
+    platform: 'Google Shopping',
+    favicon: 'https://www.google.com/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.google.com/search?q=${q}&tbm=shop`,
   },
 ];
 
