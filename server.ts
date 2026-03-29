@@ -11,6 +11,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import dotenv from "dotenv";
 import { handleGeminiRequest } from "./src/lib/gemini-handler.js";
+import { createCheckout, handleWebhook } from "./api/stripe.mjs";
  
 dotenv.config({ path: ".env.local" });
  
@@ -45,6 +46,15 @@ async function startServer() {
   const PORT = 3000;
  
   app.use(express.json({ limit: "20mb" }));
+
+  // ── Stripe ────────────────────────────────────────────────────────────────
+  // Webhook needs raw body — mount BEFORE express.json()
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    handleWebhook
+  );
+  app.post("/api/stripe/create-checkout", createCheckout);
  
   app.use("/api/gemini", (req, res, next) => {
     const origin = req.headers["origin"] || "";
@@ -100,4 +110,5 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", () => console.log(`Server running on http://localhost:${PORT}`));
 }
  
+startServer();
 startServer();
