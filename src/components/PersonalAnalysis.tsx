@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Crown } from 'lucide-react';
 import { t, Language } from '../i18n';
 import { AnalysisResult } from '../services/ai';
 import { UserProfile } from './UserProfile';
@@ -8,10 +9,13 @@ interface Props {
   lang: Language;
   result: AnalysisResult;
   userProfile: UserProfile | null;
+  canUseNote: boolean;
+  onLimitReached: () => void;
+  onUsed: () => Promise<void>;
 }
 
 // No API call — personalNote is populated by the main analyzeProductImage call.
-export function PersonalAnalysis({ lang, result, userProfile }: Props) {
+export function PersonalAnalysis({ lang, result, userProfile, canUseNote, onLimitReached }: Props) {
   const T = t[lang];
 
   const hasProfile = !!userProfile && (
@@ -27,6 +31,21 @@ export function PersonalAnalysis({ lang, result, userProfile }: Props) {
       <p className="text-xs text-[#B89F7A] py-2 italic">
         {T.noteNoProfile}
       </p>
+    );
+  }
+
+  // Over note limit → show paywall prompt
+  if (!canUseNote) {
+    return (
+      <div
+        className="flex items-center gap-2 p-3 bg-[#B89F7A]/5 border border-dashed border-[#B89F7A]/30 rounded-sm cursor-pointer hover:bg-[#B89F7A]/10 transition-colors"
+        onClick={onLimitReached}
+      >
+        <Crown size={14} className="text-[#B89F7A] shrink-0" />
+        <p className="text-xs text-[#B89F7A]">
+          Daily limit reached. <span className="underline">Upgrade to Premium</span> for unlimited analyses.
+        </p>
+      </div>
     );
   }
 
