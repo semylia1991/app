@@ -15,6 +15,12 @@ export interface Alternative {
   reason: string;
 }
 
+export interface ShopLink {
+  platform: string;
+  favicon: string;
+  url: string;
+}
+
 export interface AnalysisResult {
   productName: string;
   brand: string;
@@ -28,6 +34,8 @@ export interface AnalysisResult {
   interactions: string;
   shelfLife: string;
   alternatives: Alternative[];
+  // Populated client-side immediately after analysis — no extra API call
+  shopLinks?: ShopLink[];
   // Optional: populated when userProfile is passed to analyzeProductImage
   personalNote?: string;
 }
