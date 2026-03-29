@@ -123,44 +123,39 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
 // ── Shop links builder (no API call — runs client-side) ──────────────────────
 
 function buildShopLinks(productName: string, brand: string): ShopLink[] {
-  // Clean query: keep only brand + product name, strip special chars
-  const raw = `${brand} ${productName}`
-    .trim()
-    .replace(/[^\w\s\-]/g, ' ')   // remove special chars except hyphen
-    .replace(/\s+/g, ' ')          // collapse whitespace
-    .trim();
+  // Use brand + productName, fall back to just one if the other is empty
+  const combined = [brand, productName].filter(Boolean).join(' ').trim();
+  if (!combined) return [];
 
-  // Each platform needs its own encoding style
-  const qPlus  = raw.split(' ').join('+');          // word+word  (Amazon, DM)
-  const qSpace = encodeURIComponent(raw);           // word%20word (Notino, Rossmann)
-  const qDash  = raw.split(' ').join('-');          // word-word  (Douglas slug)
+  // Encode for URLs — each platform has its own preference
+  const qPlus  = combined.split(/\s+/).join('+');
+  const qPct   = encodeURIComponent(combined);
 
   return [
     {
       platform: 'Amazon',
       favicon: 'https://www.amazon.de/favicon.ico',
-      url: `https://www.amazon.de/s?k=${qPlus}&language=de_DE`,
+      url: `https://www.amazon.de/s?k=${qPlus}`,
     },
     {
       platform: 'Douglas',
       favicon: 'https://www.douglas.de/favicon.ico',
-      // Douglas search works with plain text in the URL path
-      url: `https://www.douglas.de/search?searchTerm=${qPlus}`,
+      url: `https://www.douglas.de/search?searchTerm=${qPct}`,
     },
     {
       platform: 'Notino',
       favicon: 'https://www.notino.de/favicon.ico',
-      url: `https://www.notino.de/search/?phrase=${qSpace}`,
+      url: `https://www.notino.de/search/?phrase=${qPct}`,
     },
     {
       platform: 'DM',
       favicon: 'https://www.dm.de/favicon.ico',
-      url: `https://www.dm.de/search?query=${qPlus}&searchType=product`,
+      url: `https://www.dm.de/search?query=${qPlus}`,
     },
     {
       platform: 'Rossmann',
       favicon: 'https://www.rossmann.de/favicon.ico',
-      url: `https://www.rossmann.de/de/suche/?term=${qSpace}`,
+      url: `https://www.rossmann.de/de/suche/?term=${qPct}`,
     },
   ];
 }
