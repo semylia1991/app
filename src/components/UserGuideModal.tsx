@@ -90,7 +90,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Compatibility', desc: 'Which actives and products work well together, and what should definitely not be used at the same time.' },
       { icon: '🕐', title: 'Shelf Life', desc: 'How and where to store the product to maintain its efficacy. Period after opening (PAO).' },
       { icon: '🔄', title: 'Alternatives', desc: '3–5 real products with a similar formula — in case something in the composition didn\'t suit you or the product is unavailable.' },
-      { icon: '📝', title: 'Personal Note', desc: 'Analysis tailored specifically to you — if you have filled in your skin and hair profile. The AI takes your characteristics into account.' },
+      { icon: '📝', title: 'Personal Note', desc: 'An analysis tailored specifically to your preferences — if you have filled in your skin and hair profile. The AI takes your preferences into account.' },
     ],
 
     badgesLabel: 'Colour markers',
@@ -109,9 +109,9 @@ const guideContent: Record<Language, {
     profileIntro: 'If you register and fill in your profile, every analysis will take your personal characteristics into account.',
     tips: [
       { icon: '🌟', title: 'Skin Type', desc: 'Oily, dry, combination — the AI considers this when evaluating ingredients and gives relevant recommendations.' },
-      { icon: '🌺', title: 'Sensitivity & Reactions', desc: 'Indicate if you have intolerances to fragrances, alcohol, or essential oils — and the AI will highlight those ingredients in the analysis.' },
-      { icon: '🌧', title: 'Skin Conditions', desc: 'Acne, rosacea, couperose, pigmentation, atopic dermatitis — share your specifics for a precise personal comment.' },
-      { icon: '☘️', title: 'Hair & Scalp Type', desc: 'For shampoos, masks and hair-care products — specify your hair type, scalp condition, and any hair problems.' },
+      { icon: '🌺', title: 'Sensitivity & Reactions', desc: 'If sensitivity to flavourings, alcohol or essential oils is indicated, the AI will highlight these ingredients in the analysis results.' },
+      { icon: '🌧', title: 'Skin Conditions', desc: 'Acne, rosacea, telangiectasia, hyperpigmentation, atopic dermatitis — please describe this issue so that we can take it into account in our analysis.' },
+      { icon: '☘️', title: 'Hair & Scalp Type', desc: 'When selecting shampoos, hair masks and hair care products, the AI takes into account your hair type, the condition of your scalp and any issues specified in your preferences.' },
     ],
 
     tipsLabel: 'Tips',
@@ -131,7 +131,7 @@ const guideContent: Record<Language, {
       { q: 'Are my photos stored?', a: 'No. Images are used exclusively for analysis and are not stored on servers. Only the analysis result is saved in the database — and only if you are signed in.' },
       { q: 'How accurate is the analysis?', a: 'The AI references data from EWG Skin Deep, CosDNA, PubChem, INCI Decoder and EU CosIng. If data on a specific ingredient is unavailable, this is clearly stated — the app never invents information.' },
       { q: 'Is this medical advice?', a: 'No. GlowKey AI provides information for educational purposes. Always consult a dermatologist before changing your skincare routine, especially if you have a skin condition.' },
-      { q: 'Do I need to register?', a: 'No — you can analyse products without an account. Google sign-in unlocks scan history, a personal profile, and the ability to share results.' },
+      { q: 'Do I need to register?', a: 'No — you can analyse products without an account. Google sign-in unlocks scan history, my preferences, and the ability to share results.' },
       { q: 'What if the AI didn\'t recognise the product?', a: 'Try taking a sharper photo specifically of the INCI list, making sure the text is clearly visible and not obscured by shadows. If the problem persists, photograph only the ingredient text section up close.' },
       { q: 'Can I install the app on my phone?', a: 'Yes. GlowKey AI is a Progressive Web App (PWA). In your phone\'s browser, tap "Add to Home Screen" and the app installs like a regular app — no app store needed.' },
     ],
