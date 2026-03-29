@@ -22,6 +22,8 @@ import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
 import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
 import { PersonalAnalysis } from './components/PersonalAnalysis';
+import { PaywallModal } from './components/PaywallModal';
+import { useSubscription } from './hooks/useSubscription';
 
 // ── helpers for formatted sections ──────────────────────────────────────────
 
@@ -136,6 +138,10 @@ export default function App() {
   const [copied, setCopied]                   = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
 
+  // ── Subscription / freemium ───────────────────────────────────────────────
+  const subscription = useSubscription(user);
+  const [paywallReason, setPaywallReason] = useState<'scans' | 'note' | 'askAi' | null>(null);
+
   const fileInputRef      = useRef<HTMLInputElement>(null);
   const isFirstRender     = useRef(true);
   const originalResult    = useRef<AnalysisResult | null>(null);
@@ -208,6 +214,13 @@ export default function App() {
 
   const handleAnalyze = async () => {
     if (!previewUrl || !consent) return;
+
+    // ── Freemium check ─────────────────────────────────────────────────────
+    if (!subscription.canScan) {
+      setPaywallReason('scans');
+      return;
+    }
+
     setIsAnalyzing(true);
     setError(null);
     posthog.capture('scan_started', { lang });
@@ -240,6 +253,7 @@ export default function App() {
       setFile(null);
       setPreviewUrl(null);
       await saveScanToHistory(analysis);
+      await subscription.incrementScans();
       posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
     } catch (err) {
       console.error(err);
@@ -469,7 +483,14 @@ export default function App() {
 
                 {/* Note — personal profile analysis, second after Analysis */}
                 <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={20} />}>
-                  <PersonalAnalysis lang={lang} result={result} userProfile={userProfile} />
+                  <PersonalAnalysis
+                    lang={lang}
+                    result={result}
+                    userProfile={userProfile}
+                    canUseNote={subscription.canUseNote}
+                    onLimitReached={() => setPaywallReason('note')}
+                    onUsed={subscription.incrementNoteAnalysis}
+                  />
                 </CollapsibleSection>
 
                 <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />}>
@@ -519,7 +540,16 @@ export default function App() {
                 </CollapsibleSection>
               </div>
 
-              <AskAI lang={lang} context={result} />
+              <AskAI
+                lang={lang}
+                context={result}
+                isPremium={subscription.isPremium}
+                askAiUsed={subscription.usage.askAi}
+                askAiLimit={subscription.limits.askAiPerDay}
+                canAskAi={subscription.canAskAi}
+                onAskAi={subscription.incrementAskAi}
+                onLimitReached={() => setPaywallReason('askAi')}
+              />
 
               <div className="mt-8 pt-6 border-t border-[#D4C3A3] space-y-4">
                 <div className="bg-[#B89F7A]/5 p-4 rounded-sm border border-[#B89F7A]/20 text-xs text-[#4A4A4A] space-y-2">
@@ -564,6 +594,14 @@ export default function App() {
       <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent />} />
       <LegalModal isOpen={isImpressumOpen} onClose={() => setIsImpressumOpen(false)} title={t[lang].impressum} content={<ImpressumContent />} />
       <UserGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} lang={lang} />
+
+      <PaywallModal
+        isOpen={paywallReason !== null}
+        onClose={() => setPaywallReason(null)}
+        lang={lang}
+        reason={paywallReason ?? 'scans'}
+        userId={user?.id}
+      />
     </div>
   );
 }
