@@ -127,7 +127,6 @@ interface ShopConfig {
 }
 
 const SHOP_CONFIGS: ShopConfig[] = [
-
   {
     platform: 'Google Shopping',
     favicon: 'https://www.google.com/favicon.ico',
