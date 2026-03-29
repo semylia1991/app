@@ -133,30 +133,6 @@ const SHOP_CONFIGS: ShopConfig[] = [
     encoding: 'plus',
     buildUrl: (q) => `https://www.google.com/search?q=${q}&tbm=shop`,
   },
-  {
-    platform: 'Amazon',
-    favicon: 'https://www.amazon.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.amazon.de/s?k=${q}`,
-  },
-  {
-    platform: 'Douglas',
-    favicon: 'https://www.douglas.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.douglas.de/de/de/search?q=${q}`,
-  },
-  {
-    platform: 'Notino',
-    favicon: 'https://www.notino.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.notino.de/search?q=${q}`,
-  },
-  {
-    platform: 'DM',
-    favicon: 'https://www.dm.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.dm.de/search?query=${q}`,
-  },
 ];
 
 function buildShopLinks(productName: string, brand: string): ShopLink[] {
