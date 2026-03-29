@@ -7,9 +7,10 @@ interface Props {
   icon: React.ReactNode;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  collapseLabel?: string;
 }
 
-export function CollapsibleSection({ title, icon, children, defaultOpen = false }: Props) {
+export function CollapsibleSection({ title, icon, children, defaultOpen = false, collapseLabel }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -30,7 +31,7 @@ export function CollapsibleSection({ title, icon, children, defaultOpen = false 
           {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </span>
       </button>
-      
+
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
@@ -43,6 +44,14 @@ export function CollapsibleSection({ title, icon, children, defaultOpen = false 
             <div className="p-4 pt-0 text-[#4A4A4A] text-sm leading-relaxed">
               {children}
             </div>
+
+            <button
+              onClick={() => setIsOpen(false)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 text-[10px] uppercase tracking-widest text-[#B89F7A]/50 hover:text-[#B89F7A] transition-colors"
+            >
+              <ChevronUp size={12} />
+              <span>{collapseLabel ?? '↑'}</span>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
