@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Crown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { t, Language } from '../i18n';
 import { AnalysisResult } from '../services/ai';
- 
+
 interface Props {
   lang: Language;
   context: AnalysisResult;
+  isPremium: boolean;
+  askAiUsed: number;
+  askAiLimit: number;
+  canAskAi: boolean;
+  onAskAi: () => Promise<void>;
+  onLimitReached: () => void;
 }
- 
+
 function buildAskPrompt(question: string, context: AnalysisResult, language: string): string {
   const inci = context.ingredients.map(i => i.name).join(', ');
   const lines = [
@@ -45,24 +51,30 @@ function buildAskPrompt(question: string, context: AnalysisResult, language: str
   ];
   return lines.join('\n');
 }
- 
-export function AskAI({ lang, context }: Props) {
+
+export function AskAI({ lang, context, isPremium, askAiUsed, askAiLimit, canAskAi, onAskAi, onLimitReached }: Props) {
   const [question, setQuestion] = useState('');
   const [chat, setChat] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [questionsCount, setCount] = useState(0);
-  const MAX_QUESTIONS = 5;
- 
+
+  const limitDisplay = askAiLimit === Infinity ? '∞' : askAiLimit;
+  const limitReached = !canAskAi;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim() || isLoading || questionsCount >= MAX_QUESTIONS) return;
- 
+    if (!question.trim() || isLoading) return;
+
+    if (limitReached) {
+      onLimitReached();
+      return;
+    }
+
     const q = question;
     setQuestion('');
     setChat(prev => [...prev, { role: 'user', text: q }]);
     setIsLoading(true);
-    setCount(prev => prev + 1);
- 
+    await onAskAi();
+
     try {
       const res = await fetch('/api/gemini', {
         method: 'POST',
@@ -82,18 +94,25 @@ export function AskAI({ lang, context }: Props) {
       setIsLoading(false);
     }
   };
- 
+
   return (
     <div className="mt-8 border border-[#D4C3A3] rounded-sm bg-white/50 p-4 shadow-sm">
       <div className="flex justify-between items-center mb-4 border-b border-[#D4C3A3]/30 pb-2">
         <h3 className="font-serif text-xl text-[#2C3E50] flex items-center gap-2">
           <span className="text-[#B89F7A]">📜</span> {t[lang].askAi}
         </h3>
-        <span className="text-[10px] uppercase tracking-widest text-[#B89F7A]">
-          {questionsCount} / {MAX_QUESTIONS} {t[lang].questions}
-        </span>
+        <div className="flex items-center gap-2">
+          {isPremium && (
+            <span className="flex items-center gap-1 text-[10px] text-[#B89F7A] uppercase tracking-widest">
+              <Crown size={10} /> Premium
+            </span>
+          )}
+          <span className="text-[10px] uppercase tracking-widest text-[#B89F7A]">
+            {askAiUsed} / {limitDisplay} {t[lang].questions}
+          </span>
+        </div>
       </div>
- 
+
       <div className="space-y-4 mb-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
         {chat.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -118,7 +137,7 @@ export function AskAI({ lang, context }: Props) {
             </div>
           </div>
         ))}
- 
+
         {isLoading && (
           <div className="flex justify-start">
             <div className="p-3 rounded-sm bg-[#FDFBF7] border border-[#D4C3A3]/50 text-[#B89F7A] flex items-center gap-2">
@@ -127,28 +146,33 @@ export function AskAI({ lang, context }: Props) {
             </div>
           </div>
         )}
- 
-        {questionsCount >= MAX_QUESTIONS && !isLoading && (
-          <div className="text-center p-2 bg-[#B89F7A]/5 border border-dashed border-[#B89F7A]/30 rounded-sm">
-            <p className="text-[10px] uppercase tracking-tighter text-[#B89F7A]">
-              {t[lang].limitReached}
+
+        {limitReached && !isLoading && (
+          <div
+            className="text-center p-3 bg-[#B89F7A]/5 border border-dashed border-[#B89F7A]/30 rounded-sm cursor-pointer hover:bg-[#B89F7A]/10 transition-colors"
+            onClick={onLimitReached}
+          >
+            <Crown size={12} className="inline-block text-[#B89F7A] mr-1" />
+            <p className="text-[10px] uppercase tracking-tighter text-[#B89F7A] inline">
+              {t[lang].limitReached} — Upgrade to Premium
             </p>
           </div>
         )}
       </div>
- 
+
       <form onSubmit={handleSubmit} className="relative">
         <input
           type="text"
           value={question}
           onChange={e => setQuestion(e.target.value)}
-          placeholder={questionsCount >= MAX_QUESTIONS ? t[lang].limitReached : t[lang].askAiPlaceholder}
+          placeholder={limitReached ? t[lang].limitReached : t[lang].askAiPlaceholder}
           className="w-full pl-4 pr-12 py-3 bg-white border border-[#D4C3A3] rounded-sm focus:outline-none focus:ring-1 focus:ring-[#B89F7A] text-sm text-[#2C3E50] placeholder-[#B89F7A]/50 transition-shadow disabled:bg-gray-50"
-          disabled={isLoading || questionsCount >= MAX_QUESTIONS}
+          disabled={isLoading || limitReached}
+          onClick={limitReached ? onLimitReached : undefined}
         />
         <button
           type="submit"
-          disabled={!question.trim() || isLoading || questionsCount >= MAX_QUESTIONS}
+          disabled={!question.trim() || isLoading || limitReached}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#B89F7A] hover:text-[#2C3E50] disabled:opacity-50 transition-colors"
         >
           <Send size={18} />
