@@ -133,6 +133,18 @@ const SHOP_CONFIGS: ShopConfig[] = [
     encoding: 'plus',
     buildUrl: (q) => `https://www.google.com/search?q=${q}&tbm=shop`,
   },
+  {
+    platform: 'Müller',
+    favicon: 'https://www.mueller.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.mueller.de/search/?q=${q}`,
+  },
+  {
+    platform: 'Sephora',
+    favicon: 'https://www.sephora.de/favicon.ico',
+    encoding: 'plus',
+    buildUrl: (q) => `https://www.sephora.de/search?q=${q}`,
+  },
 ];
 
 function buildShopLinks(productName: string, brand: string): ShopLink[] {
