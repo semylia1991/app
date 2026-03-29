@@ -139,18 +139,7 @@ const SHOP_CONFIGS: ShopConfig[] = [
     encoding: 'plus',
     buildUrl: (q) => `https://www.dm.de/search?query=${q}`,
   },
-  {
-    platform: 'Douglas',
-    favicon: 'https://www.douglas.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.douglas.de/de/de/search?q=${q}`,
-  },
-  {
-    platform: 'Notino',
-    favicon: 'https://www.notino.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.notino.de/search?q=${q}`,
-  },
+ 
   {
     platform: 'Rossmann',
     favicon: 'https://www.rossmann.de/favicon.ico',
