@@ -8,10 +8,6 @@ interface Props {
   lang: Language;
   context: AnalysisResult;
   isPremium: boolean;
-  askAiUsed: number;
-  askAiLimit: number;
-  canAskAi: boolean;
-  onAskAi: () => Promise<void>;
   onLimitReached: () => void;
 }
 
@@ -52,13 +48,14 @@ function buildAskPrompt(question: string, context: AnalysisResult, language: str
   return lines.join('\n');
 }
 
-export function AskAI({ lang, context, isPremium, askAiUsed, askAiLimit, canAskAi, onAskAi, onLimitReached }: Props) {
+export function AskAI({ lang, context, isPremium, onLimitReached }: Props) {
   const [question, setQuestion] = useState('');
   const [chat, setChat] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  const limitDisplay = askAiLimit === Infinity ? '∞' : askAiLimit;
-  const limitReached = !canAskAi;
+  // Per-scan limit: 1 for free, 3 for premium — resets on every new scan
+  const MAX_QUESTIONS = isPremium ? 3 : 1;
+  const [count, setCount] = useState(0);
+  const limitReached = count >= MAX_QUESTIONS;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +70,7 @@ export function AskAI({ lang, context, isPremium, askAiUsed, askAiLimit, canAskA
     setQuestion('');
     setChat(prev => [...prev, { role: 'user', text: q }]);
     setIsLoading(true);
-    await onAskAi();
+    setCount(prev => prev + 1);
 
     try {
       const res = await fetch('/api/gemini', {
@@ -108,7 +105,7 @@ export function AskAI({ lang, context, isPremium, askAiUsed, askAiLimit, canAskA
             </span>
           )}
           <span className="text-[10px] uppercase tracking-widest text-[#B89F7A]">
-            {askAiUsed} / {limitDisplay} {t[lang].questions}
+            {count} / {MAX_QUESTIONS} {t[lang].questions}
           </span>
         </div>
       </div>
