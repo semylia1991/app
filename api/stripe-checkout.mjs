@@ -19,7 +19,6 @@ export default async function handler(req, res) {
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
   const { userId } = req.body ?? {};
-  if (!userId) return res.status(400).json({ error: 'userId required' });
 
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const priceId   = process.env.STRIPE_PRICE_ID;
