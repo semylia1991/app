@@ -83,19 +83,13 @@ export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
   const handleUpgrade = async () => {
-    if (!userId) {
-      // Not logged in — prompt to sign in first
-      setUpgradeError('Please sign in first to upgrade.');
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
     setUpgradeError(null);
     try {
-      const res = await fetch('/api/stripe/create-checkout', {
+      const res = await fetch('/api/stripe-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId: userId ?? 'anonymous' }),
       });
       const data = await res.json();
       if (data.url) {
