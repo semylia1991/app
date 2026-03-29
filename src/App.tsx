@@ -123,13 +123,45 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
 // ── Shop links builder (no API call — runs client-side) ──────────────────────
 
 function buildShopLinks(productName: string, brand: string): ShopLink[] {
-  const q = encodeURIComponent(`${brand} ${productName}`.trim());
+  // Clean query: keep only brand + product name, strip special chars
+  const raw = `${brand} ${productName}`
+    .trim()
+    .replace(/[^\w\s\-]/g, ' ')   // remove special chars except hyphen
+    .replace(/\s+/g, ' ')          // collapse whitespace
+    .trim();
+
+  // Each platform needs its own encoding style
+  const qPlus  = raw.split(' ').join('+');          // word+word  (Amazon, DM)
+  const qSpace = encodeURIComponent(raw);           // word%20word (Notino, Rossmann)
+  const qDash  = raw.split(' ').join('-');          // word-word  (Douglas slug)
+
   return [
-    { platform: 'Amazon',   favicon: 'https://www.amazon.de/favicon.ico',   url: `https://www.amazon.de/s?k=${q}` },
-    { platform: 'Douglas',  favicon: 'https://www.douglas.de/favicon.ico',  url: `https://www.douglas.de/search?searchTerm=${q}` },
-    { platform: 'Notino',   favicon: 'https://www.notino.de/favicon.ico',   url: `https://www.notino.de/search/?phrase=${q}` },
-    { platform: 'DM',       favicon: 'https://www.dm.de/favicon.ico',       url: `https://www.dm.de/search?query=${q}` },
-    { platform: 'Rossmann', favicon: 'https://www.rossmann.de/favicon.ico', url: `https://www.rossmann.de/de/suche/?term=${q}` },
+    {
+      platform: 'Amazon',
+      favicon: 'https://www.amazon.de/favicon.ico',
+      url: `https://www.amazon.de/s?k=${qPlus}&language=de_DE`,
+    },
+    {
+      platform: 'Douglas',
+      favicon: 'https://www.douglas.de/favicon.ico',
+      // Douglas search works with plain text in the URL path
+      url: `https://www.douglas.de/search?searchTerm=${qPlus}`,
+    },
+    {
+      platform: 'Notino',
+      favicon: 'https://www.notino.de/favicon.ico',
+      url: `https://www.notino.de/search/?phrase=${qSpace}`,
+    },
+    {
+      platform: 'DM',
+      favicon: 'https://www.dm.de/favicon.ico',
+      url: `https://www.dm.de/search?query=${qPlus}&searchType=product`,
+    },
+    {
+      platform: 'Rossmann',
+      favicon: 'https://www.rossmann.de/favicon.ico',
+      url: `https://www.rossmann.de/de/suche/?term=${qSpace}`,
+    },
   ];
 }
 
