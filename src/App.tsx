@@ -140,12 +140,12 @@ function buildShopLinks(productName: string, brand: string): ShopLink[] {
     {
       platform: 'Douglas',
       favicon: 'https://www.douglas.de/favicon.ico',
-      url: `https://www.douglas.de/search?searchTerm=${qPct}`,
+      url: `https://www.douglas.de/de/de/search?q=${qPlus}`,
     },
     {
       platform: 'Notino',
       favicon: 'https://www.notino.de/favicon.ico',
-      url: `https://www.notino.de/search/?phrase=${qPct}`,
+      url: `https://www.notino.de/search?q=${qPlus}`,
     },
     {
       platform: 'DM',
@@ -155,7 +155,7 @@ function buildShopLinks(productName: string, brand: string): ShopLink[] {
     {
       platform: 'Rossmann',
       favicon: 'https://www.rossmann.de/favicon.ico',
-      url: `https://www.rossmann.de/de/suche/?term=${qPct}`,
+      url: `https://www.rossmann.de/de/search?q=${qPlus}`,
     },
   ];
 }
