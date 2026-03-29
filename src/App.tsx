@@ -2,12 +2,12 @@ import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2, Share2, NotebookPen } from 'lucide-react';
+import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
 import { t, Language } from './i18n';
-import { analyzeProductImage, AnalysisResult, translateAnalysisResult, SerializedProfile } from './services/ai';
+import { analyzeProductImage, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile } from './services/ai';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -15,6 +15,7 @@ import { LegalModal, PrivacyPolicyContent, ImpressumContent } from './components
 import { UserGuideModal } from './components/UserGuideModal';
 import { fetchProductImage } from './lib/productImage';
 import { AlternativesSection } from './components/AlternativesSection';
+import { WhereToBuy } from './components/WhereToBuy';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -117,6 +118,20 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
 }
 
 // ── main component ────────────────────────────────────────────────────────────
+
+
+// ── Shop links builder (no API call — runs client-side) ──────────────────────
+
+function buildShopLinks(productName: string, brand: string): ShopLink[] {
+  const q = encodeURIComponent(`${brand} ${productName}`.trim());
+  return [
+    { platform: 'Amazon',   favicon: 'https://www.amazon.de/favicon.ico',   url: `https://www.amazon.de/s?k=${q}` },
+    { platform: 'Douglas',  favicon: 'https://www.douglas.de/favicon.ico',  url: `https://www.douglas.de/search?searchTerm=${q}` },
+    { platform: 'Notino',   favicon: 'https://www.notino.de/favicon.ico',   url: `https://www.notino.de/search/?phrase=${q}` },
+    { platform: 'DM',       favicon: 'https://www.dm.de/favicon.ico',       url: `https://www.dm.de/search?query=${q}` },
+    { platform: 'Rossmann', favicon: 'https://www.rossmann.de/favicon.ico', url: `https://www.rossmann.de/de/suche/?term=${q}` },
+  ];
+}
 
 export default function App() {
   const [lang, setLang]               = useState<Language>('en');
@@ -246,9 +261,13 @@ export default function App() {
         : undefined;
 
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang, serializedProfile);
-      originalResult.current = analysis;
-      translationCache.current = new Map([[lang, analysis]]);
-      setResult(analysis);
+      const analysisWithShops: AnalysisResult = {
+        ...analysis,
+        shopLinks: buildShopLinks(analysis.productName, analysis.brand),
+      };
+      originalResult.current = analysisWithShops;
+      translationCache.current = new Map([[lang, analysisWithShops]]);
+      setResult(analysisWithShops);
       setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
@@ -537,6 +556,10 @@ export default function App() {
 
                 <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />}>
                   <AlternativesSection alternatives={result.alternatives} />
+                </CollapsibleSection>
+
+                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={20} />}>
+                  <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} />
                 </CollapsibleSection>
               </div>
 
