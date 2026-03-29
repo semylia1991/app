@@ -127,37 +127,7 @@ interface ShopConfig {
 }
 
 const SHOP_CONFIGS: ShopConfig[] = [
-  {
-    platform: 'Amazon',
-    favicon: 'https://www.amazon.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.amazon.de/s?k=${q}`,
-  },
-  {
-    platform: 'DM',
-    favicon: 'https://www.dm.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.dm.de/search?query=${q}`,
-  },
- 
-  {
-    platform: 'Rossmann',
-    favicon: 'https://www.rossmann.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.rossmann.de/de/search?q=${q}`,
-  },
-  {
-    platform: 'Müller',
-    favicon: 'https://www.mueller.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.mueller.de/search/?q=${q}`,
-  },
-  {
-    platform: 'Sephora',
-    favicon: 'https://www.sephora.de/favicon.ico',
-    encoding: 'plus',
-    buildUrl: (q) => `https://www.sephora.de/search?q=${q}`,
-  },
+
   {
     platform: 'Google Shopping',
     favicon: 'https://www.google.com/favicon.ico',
