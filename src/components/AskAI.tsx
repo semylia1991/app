@@ -16,7 +16,7 @@ function buildAskPrompt(question: string, context: AnalysisResult, language: str
   const lines = [
     `You are a cosmetics guidance and ingredient analysis system. Respond ONLY in ${language}.`,
     '',
-    'Your task: provide clear, informative answers to any cosmetics-related question, including product composition (INCI).',
+    'Your task: provide clear, informative answers to any cosmetics-related question.',
     '',
     `Question: ${question}`,
     `Product composition (INCI): ${inci}`,
@@ -32,18 +32,6 @@ function buildAskPrompt(question: string, context: AnalysisResult, language: str
     '',
     `ANSWER FORMAT (translate all headings to ${language}):`,
     '',
-    '**Brief summary** (1-2 sentences describing the formulation in general terms)',
-    '',
-    '**What to look out for:**',
-    '- [ingredient] — [why it may be relevant in general context]',
-    '',
-    '**Potentially beneficial components:**',
-    '- [ingredient] — [function or typical effect]',
-    '',
-    '**General comment:** (neutral overview of the formulation, no recommendations, no personalization)',
-    '',
-    '---',
-    '*Automated analysis based on general cosmetic principles. Not medical advice.*',
   ];
   return lines.join('\n');
 }
