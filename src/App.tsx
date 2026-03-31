@@ -169,6 +169,7 @@ export default function App() {
   const [paywallReason, setPaywallReason] = useState<'scans' | 'note' | 'askAi' | null>(null);
 
   const fileInputRef      = useRef<HTMLInputElement>(null);
+  const galleryInputRef   = useRef<HTMLInputElement>(null);
   const isFirstRender     = useRef(true);
   const originalResult    = useRef<AnalysisResult | null>(null);
   const translationCache  = useRef<Map<Language, AnalysisResult>>(new Map());
@@ -395,27 +396,54 @@ export default function App() {
                 </p>
               </div>
 
-              <div
-                className="relative aspect-[3/2] border-2 border-dashed border-[#D4C3A3] rounded-sm flex flex-col items-center justify-center cursor-pointer hover:bg-[#B89F7A]/5 transition-colors overflow-hidden group"
-                onClick={() => fileInputRef.current?.click()}
-              >
+              {/* Preview area */}
+              <div className="relative aspect-[3/2] border-2 border-dashed border-[#D4C3A3] rounded-sm overflow-hidden bg-[#FDFBF7]">
                 {previewUrl ? (
-                  <img src={previewUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" referrerPolicy="no-referrer" />
+                  <img src={previewUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-90" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="text-center p-6 flex flex-col items-center text-[#B89F7A]">
-                    <Camera size={48} strokeWidth={1} className="mb-4" />
-                    <span className="font-serif text-sm tracking-widest uppercase">{t[lang].uploadPhoto}</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-[#B89F7A]">
+                    <Camera size={40} strokeWidth={1} className="mb-3 opacity-50" />
+                    <span className="font-serif text-xs tracking-widest uppercase opacity-60">{t[lang].uploadPhoto}</span>
                   </div>
                 )}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  onClick={(e) => e.stopPropagation()}
-                  accept="image/*"
-                  className="hidden"
-                />
               </div>
+
+              {/* Two buttons: Camera + Gallery */}
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center justify-center gap-2 py-3 border border-[#D4C3A3] text-xs tracking-widest uppercase text-[#B89F7A] hover:bg-[#B89F7A]/5 hover:border-[#B89F7A] transition-all rounded-sm"
+                >
+                  <Camera size={14} />
+                  {t[lang].takePhoto}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="flex items-center justify-center gap-2 py-3 border border-[#D4C3A3] text-xs tracking-widest uppercase text-[#B89F7A] hover:bg-[#B89F7A]/5 hover:border-[#B89F7A] transition-all rounded-sm"
+                >
+                  <span className="text-sm">🖼</span>
+                  {t[lang].chooseFromGallery}
+                </button>
+              </div>
+
+              {/* Hidden inputs */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+              />
+              <input
+                type="file"
+                ref={galleryInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
 
               {previewUrl && (
                 <motion.div
