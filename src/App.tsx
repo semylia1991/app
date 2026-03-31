@@ -397,7 +397,7 @@ export default function App() {
               </div>
 
               {/* Preview area */}
-              <div className="relative aspect-[5/2] border-2 border-dashed border-[#D4C3A3] rounded-sm overflow-hidden bg-[#FDFBF7]">
+              <div className="relative aspect-[3/2] border-2 border-dashed border-[#D4C3A3] rounded-sm overflow-hidden bg-[#FDFBF7]">
                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-90" referrerPolicy="no-referrer" />
                 ) : (
@@ -433,7 +433,7 @@ export default function App() {
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept="image/*"
+                accept="image/*;capture=camera"
                 capture="environment"
                 className="hidden"
               />
