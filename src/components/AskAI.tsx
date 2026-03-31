@@ -16,8 +16,8 @@ function buildAskPrompt(question: string, context: AnalysisResult, language: str
   const lines = [
     `You are a cosmetics guidance and ingredient analysis system. Respond ONLY in ${language}.`,
     '',
-    'Your task:`, 
-    '- If the question is about ingredients, composition, or effects → analyze INCI.`,
+    'Your task:', 
+    '- If the question is about ingredients, composition, or effects → analyze INCI.',
     '- If the question is about products, brand, or search → do NOT analyze INCI. Answer based only on available data.',
     '',
     `Question: ${question}`,
