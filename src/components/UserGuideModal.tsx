@@ -90,7 +90,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Compatibility', desc: 'Which actives and products work well together, and what should definitely not be used at the same time.' },
       { icon: '🕐', title: 'Shelf Life', desc: 'How and where to store the product to maintain its efficacy. Period after opening (PAO).' },
       { icon: '🔄', title: 'Alternatives', desc: '3–5 real products with a similar formula — in case something in the composition didn\'t suit you or the product is unavailable.' },
-      { icon: '📝', title: 'Personal Note', desc: 'An analysis tailored specifically to your preferences — if you have filled in your skin and hair profile. The AI takes your preferences into account.' },
+      { icon: '📝', title: 'Pay Attention', desc: 'An analysis tailored specifically to your preferences — if you have filled in your skin and hair profile. The AI takes your preferences into account.' },
     ],
 
     badgesLabel: 'Colour markers',
@@ -103,15 +103,15 @@ const guideContent: Record<Language, {
       { dot: '🔴', label: 'Higher Risk', desc: 'The ingredient has documented risks: hormonal activity, high allergenic potential, bans in certain countries, or negative research findings.' },
     ],
 
-    profileLabel: 'Personalisation',
+    profileLabel: 'Your preferences',
     profileTitle: 'Analysis tailored to',
-    profileTitleEm: 'your skin',
-    profileIntro: 'If you register and fill in your profile, every analysis will take your personal characteristics into account.',
+    profileTitleEm: 'your preferences',
+    profileIntro: 'If you register and fill in your profile, every analysis will take your personal preferences into account.',
     tips: [
       { icon: '🌟', title: 'Skin Type', desc: 'Oily, dry, combination — the AI considers this when evaluating ingredients and gives relevant recommendations.' },
-      { icon: '🌺', title: 'Sensitivity & Reactions', desc: 'If sensitivity to flavourings, alcohol or essential oils is indicated, the AI will highlight these ingredients in the analysis results.' },
-      { icon: '🌧', title: 'Skin Conditions', desc: 'Acne, rosacea, telangiectasia, hyperpigmentation, atopic dermatitis — please describe this issue so that we can take it into account in our analysis.' },
-      { icon: '☘️', title: 'Hair & Scalp Type', desc: 'When selecting shampoos, hair masks and hair care products, the AI takes into account your hair type, the condition of your scalp and any issues specified in your preferences.' },
+      { icon: '🌺', title: 'Sensitivity & Reactions', desc: 'If you have indicated a sensitivity to flavourings, alcohol or essential oils in your preferences, the AI system will highlight these ingredients in the analysis results.' },
+      { icon: '🌧', title: 'Skin Conditions', desc: 'Acne, rosacea, telangiectasia, hyperpigmentation, atopic dermatitis — please describe these conditions in the preferences section so that we can take them into account in our analysis.' },
+      { icon: '☘️', title: 'Hair & Scalp Type', desc: 'When selecting shampoos, hair masks and hair care products, artificial intelligence takes into account data from your preferences: hair type, scalp condition and any issues specified in your settings.' },
     ],
 
     tipsLabel: 'Tips',
