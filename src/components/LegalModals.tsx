@@ -272,11 +272,11 @@ export function AGBContent() {
         Der Dienst wird in einer kostenlosen Basisversion sowie einer kostenpflichtigen Premium-Version angeboten.
       </p>
       <p>
-        <strong>Kostenlose Version:</strong> bis zu 15 Scans pro Tag, bis zu 10 „Beachte"-Analysen pro Tag,
+        <strong>Kostenlose Version:</strong> bis zu 15 Scans pro Tag, bis zu 15 „Beachte"-Analysen pro Tag,
         bis zu 3 KI-Fragen pro Tag.
       </p>
       <p>
-        <strong>Premium-Version:</strong> unbegrenzte Scans, unbegrenzte „Beachte"-Analysen,
+        <strong>Premium-Version:</strong> bis zu 100 Scans pro Tag, bis zu 100 „Beachte"-Analysen,
         bis zu 10 KI-Fragen pro Tag, vollständige Scan-Historie.
       </p>
       <p>
