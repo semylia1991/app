@@ -150,6 +150,8 @@ Ensure the output strictly follows the JSON schema.`.trim();
     userProfile.hairType        ? "Hair type: "         + userProfile.hairType         : null,
     userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
     userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
+    userProfile.climate         ? "Climate / environment: " + userProfile.climate        : null,
+    userProfile.allergies       ? "⚠️ ALLERGIES / INTOLERANCES (flag any matching ingredients as 🔴 and warn explicitly): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
 
   const personalNoteSection = `
