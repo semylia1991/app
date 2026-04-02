@@ -246,6 +246,134 @@ export function PrivacyPolicyContent() {
   );
 }
  
+export function AGBContent() {
+  return (
+    <div>
+      <h3>Allgemeine Geschäftsbedingungen (AGB)</h3>
+      <p className="text-xs text-gray-500 mb-4">Stand: März 2026</p>
+
+      <h4>1. Anbieter und Geltungsbereich</h4>
+      <p>
+        Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung des Dienstes <strong>GlowKey AI</strong>,
+        betrieben von:
+      </p>
+      <p>
+        <strong>Yuliia Parkina</strong><br/>
+        GlowKey AI<br/>
+        Wagenburgstrasse 79<br/>
+        70184 Stuttgart<br/>
+        Deutschland<br/>
+        E-Mail: <a href="mailto:yuliia.parkina@gmail.com" className="text-[#B89F7A] hover:underline">yuliia.parkina@gmail.com</a>
+      </p>
+
+      <h4>2. Leistungsbeschreibung</h4>
+      <p>
+        GlowKey AI ist eine webbasierte Anwendung zur KI-gestützten Analyse von Kosmetikinhaltsstoffen (INCI).
+        Der Dienst wird in einer kostenlosen Basisversion sowie einer kostenpflichtigen Premium-Version angeboten.
+      </p>
+      <p>
+        <strong>Kostenlose Version:</strong> bis zu 15 Scans pro Tag, bis zu 10 „Beachte"-Analysen pro Tag,
+        bis zu 3 KI-Fragen pro Tag.
+      </p>
+      <p>
+        <strong>Premium-Version:</strong> unbegrenzte Scans, unbegrenzte „Beachte"-Analysen,
+        bis zu 10 KI-Fragen pro Tag, vollständige Scan-Historie.
+      </p>
+      <p>
+        Die Analyseergebnisse dienen ausschließlich der allgemeinen Information und stellen
+        <strong> keine medizinische, dermatologische oder ärztliche Beratung</strong> dar.
+        Bei Hauterkrankungen oder gesundheitlichen Beschwerden wenden Sie sich bitte an einen Arzt oder Apotheker.
+      </p>
+
+      <h4>3. Vertragsschluss und Premium-Abonnement</h4>
+      <p>
+        Durch Klick auf „Auf Premium upgraden" und Abschluss des Zahlungsvorgangs über Stripe
+        kommt ein Abonnementvertrag zwischen Ihnen und Yuliia Parkina (GlowKey AI) zustande.
+        Der Vertrag wird in deutscher oder englischer Sprache geschlossen.
+      </p>
+      <p>
+        Der Preis beträgt <strong>€ 4,99 pro Monat</strong> (inkl. gesetzlicher MwSt., soweit anwendbar).
+        Die Abrechnung erfolgt monatlich im Voraus über den Zahlungsdienstleister Stripe.
+        Akzeptierte Zahlungsmethoden: Kreditkarte.
+      </p>
+
+      <h4>4. Widerrufsrecht</h4>
+      <p>
+        <strong>Widerrufsbelehrung gemäß § 355 BGB</strong>
+      </p>
+      <p>
+        Sie haben das Recht, binnen <strong>14 Tagen ohne Angabe von Gründen</strong> diesen Vertrag
+        zu widerrufen. Die Widerrufsfrist beträgt 14 Tage ab dem Tag des Vertragsschlusses.
+      </p>
+      <p>
+        Um Ihr Widerrufsrecht auszuüben, müssen Sie uns:
+      </p>
+      <p>
+        <strong>Yuliia Parkina, GlowKey AI</strong><br/>
+        Wagenburgstrasse 79, 70184 Stuttgart<br/>
+        E-Mail: <a href="mailto:yuliia.parkina@gmail.com" className="text-[#B89F7A] hover:underline">yuliia.parkina@gmail.com</a>
+      </p>
+      <p>
+        mittels einer eindeutigen Erklärung (z. B. eine E-Mail) über Ihren Entschluss,
+        diesen Vertrag zu widerrufen, informieren.
+      </p>
+      <p>
+        <strong>Folgen des Widerrufs:</strong> Wenn Sie diesen Vertrag widerrufen, erstatten wir Ihnen
+        alle Zahlungen, die wir von Ihnen erhalten haben, unverzüglich und spätestens binnen 14 Tagen
+        ab dem Tag, an dem die Mitteilung über Ihren Widerruf bei uns eingegangen ist.
+        Für diese Rückzahlung verwenden wir dasselbe Zahlungsmittel, das Sie bei der ursprünglichen
+        Transaktion eingesetzt haben.
+      </p>
+      <p className="text-xs bg-amber-50 border border-amber-200 rounded p-3 mt-2">
+        <strong>Hinweis zum vorzeitigen Beginn:</strong> Wenn Sie ausdrücklich verlangen, dass die Leistung
+        vor Ablauf der Widerrufsfrist beginnen soll, und Sie Ihr Widerrufsrecht dennoch ausüben,
+        haben Sie uns einen angemessenen Betrag für die bis zum Widerruf erbrachten Leistungen zu zahlen.
+      </p>
+
+      <h4>5. Kündigung des Abonnements</h4>
+      <p>
+        Das Premium-Abonnement verlängert sich automatisch um jeweils einen Monat, sofern es nicht
+        gekündigt wird. Sie können das Abonnement jederzeit zum Ende der laufenden Abrechnungsperiode
+        kündigen, indem Sie uns per E-Mail an{' '}
+        <a href="mailto:yuliia.parkina@gmail.com" className="text-[#B89F7A] hover:underline">yuliia.parkina@gmail.com</a>{' '}
+        kontaktieren. Nach der Kündigung bleibt der Zugang bis zum Ende der bezahlten Periode erhalten.
+      </p>
+
+      <h4>6. Verfügbarkeit und Haftung</h4>
+      <p>
+        Wir bemühen uns um eine hohe Verfügbarkeit des Dienstes, übernehmen jedoch keine Garantie
+        für eine ununterbrochene Erreichbarkeit. Wartungsarbeiten und technische Störungen sind möglich.
+      </p>
+      <p>
+        Die Haftung von GlowKey AI ist auf Vorsatz und grobe Fahrlässigkeit beschränkt, soweit keine
+        Verletzung wesentlicher Vertragspflichten vorliegt. Für die Richtigkeit, Vollständigkeit
+        und Aktualität der KI-generierten Analyseergebnisse wird keine Gewähr übernommen.
+      </p>
+
+      <h4>7. Nutzungsrechte und verbotene Nutzung</h4>
+      <p>
+        Sie erhalten ein einfaches, nicht übertragbares Recht zur Nutzung des Dienstes für
+        persönliche, nicht-kommerzielle Zwecke. Untersagt ist insbesondere:
+        automatisiertes Abrufen von Daten (Scraping), Weiterverkauf der Analyseergebnisse,
+        sowie jede Nutzung, die gegen geltendes Recht verstößt.
+      </p>
+
+      <h4>8. Änderungen der AGB</h4>
+      <p>
+        Wir behalten uns vor, diese AGB mit einer Frist von mindestens 30 Tagen zu ändern.
+        Sie werden per E-Mail über wesentliche Änderungen informiert. Widersprechen Sie
+        nicht innerhalb von 30 Tagen, gelten die neuen AGB als akzeptiert.
+      </p>
+
+      <h4>9. Anwendbares Recht und Gerichtsstand</h4>
+      <p>
+        Es gilt das Recht der Bundesrepublik Deutschland. Gerichtsstand für Kaufleute
+        und juristische Personen ist Stuttgart.
+      </p>
+    </div>
+  );
+}
+
 export function ImpressumContent() {
   return (
     <div>
