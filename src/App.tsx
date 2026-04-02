@@ -11,7 +11,7 @@ import { analyzeProductImage, AnalysisResult, ShopLink, translateAnalysisResult,
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
-import { LegalModal, PrivacyPolicyContent, ImpressumContent } from './components/LegalModals';
+import { LegalModal, PrivacyPolicyContent, ImpressumContent, AGBContent } from './components/LegalModals';
 import { UserGuideModal } from './components/UserGuideModal';
 import { fetchProductImage } from './lib/productImage';
 import { AlternativesSection } from './components/AlternativesSection';
@@ -161,8 +161,10 @@ export default function App() {
 
   const [isPrivacyOpen, setIsPrivacyOpen]     = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
+  const [isAgbOpen, setIsAgbOpen]             = useState(false);
   const [isGuideOpen, setIsGuideOpen]         = useState(false);
   const [copied, setCopied]                   = useState(false);
+  const [captionCopied, setCaptionCopied]     = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
 
   const subscription = useSubscription(user);
@@ -301,13 +303,41 @@ export default function App() {
       const { data, error } = await supabase.from('shared_results').insert({ result }).select('id').single();
       if (error || !data) throw new Error('Failed to save');
       const shareUrl = `${window.location.origin}?share=${data.id}`;
-      const shareText = `${result.productName} by ${result.brand}\n\n${result.analysis}`;
+
+      // Rich post text optimised for Instagram / TikTok captions
+      const safeIngredients = (result.ingredients ?? [])
+        .filter((i: { status: string }) => i.status === '🟢')
+        .slice(0, 3)
+        .map((i: { name: string }) => i.name)
+        .join(', ');
+      const warnIngredients = (result.ingredients ?? [])
+        .filter((i: { status: string }) => i.status === '🔴')
+        .slice(0, 2)
+        .map((i: { name: string }) => i.name)
+        .join(', ');
+
+      const shareText = [
+        `✨ ${result.productName} by ${result.brand}`,
+        '',
+        result.analysis?.split('.')[0] + '.',
+        safeIngredients  ? `✅ Safe: ${safeIngredients}` : '',
+        warnIngredients  ? `⚠️ Watch out: ${warnIngredients}` : '',
+        '',
+        `🔗 Full analysis: ${shareUrl}`,
+        '',
+        '#GlowKeyAI #SkinCare #CleanBeauty #INCI #CosmeticIngredients',
+      ].filter(Boolean).join('\n');
+
       if (navigator.share) {
-        await navigator.share({ title: result.productName, text: shareText, url: shareUrl });
+        await navigator.share({
+          title: `${result.productName} — GlowKey AI`,
+          text: shareText,
+          url: shareUrl,
+        });
       } else {
-        await navigator.clipboard.writeText(shareUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        await navigator.clipboard.writeText(shareText);
+        setCaptionCopied(true);
+        setTimeout(() => setCaptionCopied(false), 2500);
       }
     } catch (_) {
       await navigator.clipboard.writeText(window.location.href).catch(() => {});
@@ -397,7 +427,7 @@ export default function App() {
               </div>
 
               {/* Preview area */}
-              <div className="relative aspect-[3/2] border-2 border-dashed border-[#D4C3A3] rounded-sm overflow-hidden bg-[#FDFBF7]">
+              <div className="relative aspect-[5/2] border-2 border-dashed border-[#D4C3A3] rounded-sm overflow-hidden bg-[#FDFBF7]">
                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-90" referrerPolicy="no-referrer" />
                 ) : (
@@ -433,7 +463,7 @@ export default function App() {
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept="image/*;capture=camera"
+                accept="image/*"
                 capture="environment"
                 className="hidden"
               />
@@ -504,7 +534,8 @@ export default function App() {
                 <h2 className="text-sm font-serif tracking-[0.2em] text-[#B89F7A] uppercase mb-4">
                   {t[lang].ingredientAnalysis}
                 </h2>
-                <ProductHeroImage name={result.productName} brand={result.brand} userPhoto={scanPhotoUrl} />
+
+                {/* Medical disclaimer — small text at bottom of every result */}
                 <h3 className="text-2xl font-serif text-[#2C3E50] mb-1">{result.productName}</h3>
                 <p className="text-sm text-[#4A4A4A] italic">{result.brand}</p>
                 {isTranslating && (
@@ -594,19 +625,48 @@ export default function App() {
               />
 
               <div className="mt-8 pt-6 border-t border-[#D4C3A3] space-y-4">
-                <div className="bg-[#B89F7A]/5 p-4 rounded-sm border border-[#B89F7A]/20 text-xs text-[#4A4A4A] space-y-2">
-                  <p><strong>Transparency:</strong> {t[lang].aiTransparency}</p>
-                  <p><strong>Disclaimer:</strong> {t[lang].aiDisclaimer}</p>
+                <div className="flex items-start gap-1.5 text-[10px] text-[#B89F7A]/70">
+                  <span className="shrink-0 mt-0.5">⚠</span>
+                  <span>{t[lang].aiDisclaimer}</span>
                 </div>
 
-                <button
-                  onClick={handleShare}
-                  disabled={isSharing}
-                  className="w-full py-4 regency-button tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-                  <span>{copied ? t[lang].copied : t[lang].share}</span>
-                </button>
+                <div className="space-y-2">
+                  <button
+                    onClick={handleShare}
+                    disabled={isSharing}
+                    className="w-full py-4 regency-button tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+                    <span>
+                      {captionCopied ? t[lang].captionCopied : t[lang].share}
+                    </span>
+                  </button>
+
+                  {/* Desktop fallback hint — only shown when Web Share API unavailable */}
+                  {'share' in navigator ? (
+                    <p className="text-center text-[10px] text-[#B89F7A]/60">
+                      {lang === 'ru' ? 'Откроет меню: TikTok, Instagram, WhatsApp и др.' :
+                       lang === 'uk' ? 'Відкриє меню: TikTok, Instagram, WhatsApp тощо' :
+                       lang === 'de' ? 'Öffnet Menü: TikTok, Instagram, WhatsApp u. a.' :
+                       lang === 'es' ? 'Abrirá el menú: TikTok, Instagram, WhatsApp, etc.' :
+                       lang === 'fr' ? 'Ouvrira le menu: TikTok, Instagram, WhatsApp, etc.' :
+                       lang === 'it' ? 'Aprirà il menu: TikTok, Instagram, WhatsApp, ecc.' :
+                       lang === 'tr' ? 'Menü açılır: TikTok, Instagram, WhatsApp vb.' :
+                       'Opens share menu: TikTok, Instagram, WhatsApp & more'}
+                    </p>
+                  ) : (
+                    <p className="text-center text-[10px] text-[#B89F7A]/60">
+                      {lang === 'ru' ? 'Скопирует готовый текст поста с хэштегами' :
+                       lang === 'uk' ? 'Скопіює готовий текст поста з хештегами' :
+                       lang === 'de' ? 'Kopiert den fertigen Post-Text mit Hashtags' :
+                       lang === 'es' ? 'Copia el texto del post con hashtags' :
+                       lang === 'fr' ? 'Copie le texte du post avec hashtags' :
+                       lang === 'it' ? 'Copia il testo del post con hashtag' :
+                       lang === 'tr' ? 'Hashtag\'li gönderi metnini kopyalar' :
+                       'Copies post caption with hashtags — paste into TikTok or Instagram'}
+                    </p>
+                  )}
+                </div>
 
                 <button onClick={handleReset} className="w-full py-4 regency-button tracking-widest">
                   {t[lang].anotherProduct}
@@ -624,6 +684,10 @@ export default function App() {
             {t[lang].privacyPolicy}
           </button>
           <span>|</span>
+          <button onClick={() => setIsAgbOpen(true)} className="hover:text-[#2C3E50] transition-colors underline decoration-[#B89F7A]/30 underline-offset-4">
+            {t[lang].agb}
+          </button>
+          <span>|</span>
           <button onClick={() => setIsImpressumOpen(true)} className="hover:text-[#2C3E50] transition-colors underline decoration-[#B89F7A]/30 underline-offset-4">
             {t[lang].impressum}
           </button>
@@ -634,6 +698,7 @@ export default function App() {
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
 
       <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent />} />
+      <LegalModal isOpen={isAgbOpen} onClose={() => setIsAgbOpen(false)} title={t[lang].agb} content={<AGBContent />} />
       <LegalModal isOpen={isImpressumOpen} onClose={() => setIsImpressumOpen(false)} title={t[lang].impressum} content={<ImpressumContent />} />
       <UserGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} lang={lang} />
 
