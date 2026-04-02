@@ -183,6 +183,8 @@ Ensure the output strictly follows the JSON schema.`.trim();
   - Explicitly tie observations to the selected preferences.
   - Do not refer to personal data or identity.
   - Consider factor combinations (e.g. sensitive skin + alcohol).
+  - ALLERGIES: If the user listed any allergies or intolerances, you MUST check every ingredient against that list. Any match or close derivative MUST appear in "What to look out for" with a clear warning. Never omit this even if the rest of the product looks safe.
+  - CLIMATE: If the user specified a climate, you MUST comment on how the product's ingredients perform in that environment (e.g. humectants in dry climate, SPF relevance in sunny climate, occlusive agents in cold/windy climate, lightweight formulas in humid climate). Include this in "Beneficial components" or "What to look out for" as appropriate.
 
 USER PREFERENCES:
 ${profileLines}`;
