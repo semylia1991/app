@@ -429,7 +429,7 @@ function getRandomQuote(lang: Language): Quote {
   return list[Math.floor(Math.random() * list.length)];
 }
  
-// 9 steps × 1.3 s = 11.7 s — covers typical Gemini response time
+// 9 steps × 3 s = 27 s — covers typical Gemini response time
 const STEP_DELAYS = [0, 1300, 2600, 3900, 5200, 6500, 7800, 9100, 10400];
  
 interface Props {
