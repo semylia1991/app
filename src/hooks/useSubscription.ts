@@ -5,20 +5,20 @@ import { supabase } from '../lib/supabase';
 export type Plan = 'free' | 'premium';
 
 export interface UsageLimits {
-  scansPerDay: number;       // free: 15, premium: Infinity
-  noteAnalysisPerDay: number; // free: 10, premium: Infinity
+  scansPerDay: number;       // free: 15, premium: 100
+  noteAnalysisPerDay: number; // free: 15, premium: 100
   askAiPerDay: number;       // free: 3,  premium: 10
 }
 
 export const LIMITS: Record<Plan, UsageLimits> = {
   free: {
     scansPerDay: 15,
-    noteAnalysisPerDay: 10,
+    noteAnalysisPerDay: 15,
     askAiPerDay: 3,
   },
   premium: {
-    scansPerDay: Infinity,
-    noteAnalysisPerDay: Infinity,
+    scansPerDay: 100,
+    noteAnalysisPerDay: 100,
     askAiPerDay: 10,
   },
 };
