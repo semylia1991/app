@@ -1,3 +1,4 @@
+
 /**
  * api/stripe-checkout.mjs — Vercel/Netlify Serverless Function
  * Creates a Stripe Checkout Session and returns the redirect URL.
