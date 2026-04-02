@@ -51,6 +51,55 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10); // "2026-03-28"
 }
 
+// ── Tamper-resistant localStorage ────────────────────────────────────────────
+// Signs usage data with a daily HMAC key derived from the date + a static salt.
+// Not cryptographically bulletproof (key is in JS bundle), but stops casual
+// DevTools edits — anyone who clears storage simply resets to 0 anyway.
+
+const SALT = 'glowkey-usage-v1';
+
+async function signData(data: UsageToday, date: string): Promise<string> {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(`${SALT}:${date}`),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', keyMaterial, enc.encode(JSON.stringify(data)));
+  return btoa(String.fromCharCode(...new Uint8Array(sig)));
+}
+
+async function verifyData(data: UsageToday, date: string, sig: string): Promise<boolean> {
+  try {
+    const expected = await signData(data, date);
+    return expected === sig;
+  } catch {
+    return false;
+  }
+}
+
+async function loadLocalUsage(date: string): Promise<UsageToday> {
+  const empty: UsageToday = { scans: 0, noteAnalysis: 0, askAi: 0 };
+  try {
+    const raw = localStorage.getItem(`usage_${date}`);
+    if (!raw) return empty;
+    const { data, sig } = JSON.parse(raw);
+    const valid = await verifyData(data, date, sig);
+    if (!valid) {
+      // Tampering detected — reset
+      localStorage.removeItem(`usage_${date}`);
+      return empty;
+    }
+    return data;
+  } catch {
+    return empty;
+  }
+}
+
+async function saveLocalUsage(data: UsageToday, date: string): Promise<void> {
+  const sig = await signData(data, date);
+  localStorage.setItem(`usage_${date}`, JSON.stringify({ data, sig }));
+}
+
 export function useSubscription(user: User | null): SubscriptionState {
   const [plan, setPlan] = useState<Plan>('free');
   const [usage, setUsage] = useState<UsageToday>({ scans: 0, noteAnalysis: 0, askAi: 0 });
@@ -58,9 +107,8 @@ export function useSubscription(user: User | null): SubscriptionState {
 
   const fetchData = useCallback(async () => {
     if (!user) {
-      // Non-logged-in users — use localStorage for usage, always free
-      const stored = localStorage.getItem(`usage_${todayKey()}`);
-      const parsed = stored ? JSON.parse(stored) : { scans: 0, noteAnalysis: 0, askAi: 0 };
+      // Non-logged-in users — use signed localStorage for usage, always free
+      const parsed = await loadLocalUsage(todayKey());
       setUsage(parsed);
       setPlan('free');
       setLoading(false);
@@ -114,10 +162,10 @@ export function useSubscription(user: User | null): SubscriptionState {
       setUsage(prev => ({ ...prev, [field]: prev[field] + 1 }));
 
       if (!user) {
-        // persist to localStorage
+        // persist to signed localStorage
         setUsage(prev => {
           const next = { ...prev, [field]: prev[field] + 1 };
-          localStorage.setItem(`usage_${today}`, JSON.stringify(next));
+          saveLocalUsage(next, today);
           return next;
         });
         return;
