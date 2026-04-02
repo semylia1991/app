@@ -14,6 +14,7 @@ import { CookieBanner } from './components/CookieBanner';
 import { LegalModal, PrivacyPolicyContent, ImpressumContent, AGBContent } from './components/LegalModals';
 import { UserGuideModal } from './components/UserGuideModal';
 import { fetchProductImage } from './lib/productImage';
+import { generateShareCard } from './lib/shareCard';
 import { AlternativesSection } from './components/AlternativesSection';
 import { WhereToBuy } from './components/WhereToBuy';
 import { CollapsibleSection } from './components/CollapsibleSection';
@@ -300,11 +301,11 @@ export default function App() {
     if (!result) return;
     setIsSharing(true);
     try {
+      // 1. Save to Supabase for the share link
       const { data, error } = await supabase.from('shared_results').insert({ result }).select('id').single();
-      if (error || !data) throw new Error('Failed to save');
-      const shareUrl = `${window.location.origin}?share=${data.id}`;
+      const shareUrl = (!error && data) ? `${window.location.origin}?share=${data.id}` : window.location.origin;
 
-      // Rich post text optimised for Instagram / TikTok captions
+      // 2. Caption text
       const safeIngredients = (result.ingredients ?? [])
         .filter((i: { status: string }) => i.status === '🟢')
         .slice(0, 3)
@@ -328,17 +329,39 @@ export default function App() {
         '#GlowKeyAI #SkinCare #CleanBeauty #INCI #CosmeticIngredients',
       ].filter(Boolean).join('\n');
 
+      // 3. Try sharing with image card (works for TikTok / Instagram on mobile)
+      if (navigator.share && navigator.canShare) {
+        try {
+          const blob = await generateShareCard(result);
+          const file = new File([blob], 'glowkey-analysis.png', { type: 'image/png' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `${result.productName} — GlowKey AI`,
+              text: shareText,
+            });
+            return;
+          }
+        } catch {
+          // Image share failed — fall through to text share
+        }
+      }
+
+      // 4. Fallback: text-only share (desktop browsers, older mobile)
       if (navigator.share) {
         await navigator.share({
           title: `${result.productName} — GlowKey AI`,
           text: shareText,
           url: shareUrl,
         });
-      } else {
-        await navigator.clipboard.writeText(shareText);
-        setCaptionCopied(true);
-        setTimeout(() => setCaptionCopied(false), 2500);
+        return;
       }
+
+      // 5. Last resort: copy to clipboard
+      await navigator.clipboard.writeText(shareText);
+      setCaptionCopied(true);
+      setTimeout(() => setCaptionCopied(false), 2500);
+
     } catch (_) {
       await navigator.clipboard.writeText(window.location.href).catch(() => {});
     } finally {
