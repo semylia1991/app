@@ -49,6 +49,8 @@ export interface SerializedProfile {
   hairType?: string;
   scalpCondition?: string;
   hairProblems?: string;
+  climate?: string;
+  allergies?: string;
 }
 
 async function callFunction<T>(body: object): Promise<T> {
