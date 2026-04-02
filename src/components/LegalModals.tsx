@@ -395,6 +395,10 @@ export function ImpressumContent() {
         <strong>Verantwortlich für den Inhalt:</strong><br/>
         Yuliia Parkina (Anschrift wie oben)
       </p>
+      <p>
+        <strong>Umsatzsteuer:</strong><br/>
+        Gemäß § 19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).
+      </p>
       <p><strong>EU-Streitschlichtung:</strong><br/>
       Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{' '}
       <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer" className="text-[#B89F7A] hover:underline">
