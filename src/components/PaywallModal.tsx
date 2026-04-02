@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Sparkles, Zap, History, Crown, Loader2 } from 'lucide-react';
-import { Language } from '../i18n';
+import { X, Sparkles, History, Crown, Loader2, LogIn } from 'lucide-react';
+import { Language, t } from '../i18n';
+import { supabase } from '../lib/supabase';
 
 interface Props {
   isOpen: boolean;
@@ -79,17 +80,31 @@ const MAYBE_LATER: Record<Language, string> = {
 
 export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
   const [isLoading, setIsLoading] = useState(false);
-
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
+  const handleSignIn = async () => {
+    setIsSigningIn(true);
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    setIsSigningIn(false);
+  };
 
   const handleUpgrade = async () => {
+    // Safety guard — should never happen because button is hidden when userId is missing
+    if (!userId) {
+      setUpgradeError('Please sign in first.');
+      return;
+    }
     setIsLoading(true);
     setUpgradeError(null);
     try {
       const res = await fetch('/api/stripe-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: userId ?? 'anonymous' }),
+        body: JSON.stringify({ userId }),
       });
       const data = await res.json();
       if (data.url) {
@@ -161,20 +176,45 @@ export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
 
             {/* CTA */}
             <div className="px-6 pb-6 pt-2 space-y-3">
-              <button
-                onClick={handleUpgrade}
-                disabled={isLoading}
-                className="w-full py-3.5 bg-[#2C3E50] text-white text-xs tracking-widest uppercase font-semibold hover:bg-[#2C3E50]/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Sparkles size={14} />
-                )}
-                {UPGRADE_LABEL[lang]}
-              </button>
-              {upgradeError && (
-                <p className="text-xs text-red-600 text-center -mt-1">{upgradeError}</p>
+              {!userId ? (
+                <>
+                  <p className="text-xs text-center text-[#B89F7A] leading-relaxed">
+                    {lang === 'de' ? 'Bitte melden Sie sich an, um Premium zu abonnieren.' :
+                     lang === 'ru' ? 'Войдите, чтобы оформить подписку.' :
+                     lang === 'uk' ? 'Увійдіть, щоб оформити підписку.' :
+                     'Please sign in to subscribe.'}
+                  </p>
+                  <button
+                    onClick={handleSignIn}
+                    disabled={isSigningIn}
+                    className="w-full py-3.5 bg-[#2C3E50] text-white text-xs tracking-widest uppercase font-semibold hover:bg-[#2C3E50]/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {isSigningIn ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <LogIn size={14} />
+                    )}
+                    {t[lang].signIn}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleUpgrade}
+                    disabled={isLoading}
+                    className="w-full py-3.5 bg-[#2C3E50] text-white text-xs tracking-widest uppercase font-semibold hover:bg-[#2C3E50]/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Sparkles size={14} />
+                    )}
+                    {UPGRADE_LABEL[lang]}
+                  </button>
+                  {upgradeError && (
+                    <p className="text-xs text-red-600 text-center -mt-1">{upgradeError}</p>
+                  )}
+                </>
               )}
 
               <button
