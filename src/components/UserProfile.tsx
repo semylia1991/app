@@ -297,15 +297,6 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
                   <SectionTitle emoji="🌍" label={T.profileClimate} />
                   <MultiChip keys={CLIMATE_KEYS} selected={profile.climate ?? []} onChange={v => update('climate', v)} lang={lang} />
 
-                  <SectionTitle emoji="⚠️" label={T.profileAllergies} />
-                  <textarea
-                    value={profile.allergies}
-                    onChange={e => update('allergies', e.target.value)}
-                    placeholder={T.profileAllergiesPlaceholder}
-                    rows={2}
-                    className="w-full px-3 py-2 text-xs text-[#2C3E50] border border-[#D4C3A3] rounded-sm bg-white focus:outline-none focus:border-[#B89F7A] resize-none placeholder:text-[#B89F7A]/50"
-                  />
- 
                   {/* Consent */}
                   <div className="mt-6 mb-2 p-4 bg-[#F5F0E8] border border-[#D4C3A3] rounded-sm">
                     <label className="flex items-start gap-3 cursor-pointer group">
