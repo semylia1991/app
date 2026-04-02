@@ -24,6 +24,7 @@ import { ScanHistory } from './components/ScanHistory';
 import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
 import { PersonalAnalysis } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
+import { FeedbackSurvey } from './components/FeedbackSurvey';
 import { useSubscription } from './hooks/useSubscription';
 
 function splitParagraphs(text: string): string[] {
@@ -162,6 +163,7 @@ export default function App() {
   const [isPrivacyOpen, setIsPrivacyOpen]     = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
   const [isAgbOpen, setIsAgbOpen]             = useState(false);
+  const [isSurveyOpen, setIsSurveyOpen]       = useState(false);
   const [isGuideOpen, setIsGuideOpen]         = useState(false);
   const [copied, setCopied]                   = useState(false);
   const [captionCopied, setCaptionCopied]     = useState(false);
@@ -275,6 +277,12 @@ export default function App() {
       setPreviewUrl(null);
       await saveScanToHistory(analysis);
       await subscription.incrementScans();
+      // Show feedback survey after the 3rd scan (once per device)
+      const newScanCount = subscription.usage.scans + 1;
+      const surveyShown = localStorage.getItem('feedbackSurveyShown');
+      if (newScanCount === 3 && !surveyShown) {
+        setTimeout(() => setIsSurveyOpen(true), 1500);
+      }
       posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
     } catch (err) {
       console.error(err);
@@ -669,6 +677,16 @@ export default function App() {
         onClose={() => setPaywallReason(null)}
         lang={lang}
         reason={paywallReason ?? 'scans'}
+        userId={user?.id}
+      />
+
+      <FeedbackSurvey
+        isOpen={isSurveyOpen}
+        onClose={() => {
+          setIsSurveyOpen(false);
+          localStorage.setItem('feedbackSurveyShown', '1');
+        }}
+        lang={lang}
         userId={user?.id}
       />
     </div>
