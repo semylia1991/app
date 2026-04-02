@@ -277,10 +277,10 @@ export default function App() {
       setPreviewUrl(null);
       await saveScanToHistory(analysis);
       await subscription.incrementScans();
-      // Show feedback survey after the 3rd scan (once per device)
-      const newScanCount = subscription.usage.scans + 1;
-      const surveyShown = localStorage.getItem('feedbackSurveyShown');
-      if (newScanCount === 3 && !surveyShown) {
+      // Show feedback survey every 5th scan
+      const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
+      localStorage.setItem('totalScanCount', String(totalScans));
+      if (totalScans % 5 === 0) {
         setTimeout(() => setIsSurveyOpen(true), 1500);
       }
       posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
@@ -444,7 +444,6 @@ export default function App() {
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 accept="image/*"
-                capture="environment"
                 className="hidden"
               />
               <input
@@ -682,10 +681,7 @@ export default function App() {
 
       <FeedbackSurvey
         isOpen={isSurveyOpen}
-        onClose={() => {
-          setIsSurveyOpen(false);
-          localStorage.setItem('feedbackSurveyShown', '1');
-        }}
+        onClose={() => setIsSurveyOpen(false)}
         lang={lang}
         userId={user?.id}
       />
