@@ -14,7 +14,6 @@ import { CookieBanner } from './components/CookieBanner';
 import { LegalModal, PrivacyPolicyContent, ImpressumContent, AGBContent } from './components/LegalModals';
 import { UserGuideModal } from './components/UserGuideModal';
 import { fetchProductImage } from './lib/productImage';
-import { generateShareCard } from './lib/shareCard';
 import { AlternativesSection } from './components/AlternativesSection';
 import { WhereToBuy } from './components/WhereToBuy';
 import { CollapsibleSection } from './components/CollapsibleSection';
@@ -301,67 +300,17 @@ export default function App() {
     if (!result) return;
     setIsSharing(true);
     try {
-      // 1. Save to Supabase for the share link
       const { data, error } = await supabase.from('shared_results').insert({ result }).select('id').single();
-      const shareUrl = (!error && data) ? `${window.location.origin}?share=${data.id}` : window.location.origin;
-
-      // 2. Caption text
-      const safeIngredients = (result.ingredients ?? [])
-        .filter((i: { status: string }) => i.status === '🟢')
-        .slice(0, 3)
-        .map((i: { name: string }) => i.name)
-        .join(', ');
-      const warnIngredients = (result.ingredients ?? [])
-        .filter((i: { status: string }) => i.status === '🔴')
-        .slice(0, 2)
-        .map((i: { name: string }) => i.name)
-        .join(', ');
-
-      const shareText = [
-        `✨ ${result.productName} by ${result.brand}`,
-        '',
-        result.analysis?.split('.')[0] + '.',
-        safeIngredients  ? `✅ Safe: ${safeIngredients}` : '',
-        warnIngredients  ? `⚠️ Watch out: ${warnIngredients}` : '',
-        '',
-        `🔗 Full analysis: ${shareUrl}`,
-        '',
-        '#GlowKeyAI #SkinCare #CleanBeauty #INCI #CosmeticIngredients',
-      ].filter(Boolean).join('\n');
-
-      // 3. Try sharing with image card (works for TikTok / Instagram on mobile)
-      if (navigator.share && navigator.canShare) {
-        try {
-          const blob = await generateShareCard(result);
-          const file = new File([blob], 'glowkey-analysis.png', { type: 'image/png' });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: `${result.productName} — GlowKey AI`,
-              text: shareText,
-            });
-            return;
-          }
-        } catch {
-          // Image share failed — fall through to text share
-        }
-      }
-
-      // 4. Fallback: text-only share (desktop browsers, older mobile)
+      if (error || !data) throw new Error('Failed to save');
+      const shareUrl = `${window.location.origin}?share=${data.id}`;
+      const shareText = `${result.productName} by ${result.brand}\n\n${result.analysis}`;
       if (navigator.share) {
-        await navigator.share({
-          title: `${result.productName} — GlowKey AI`,
-          text: shareText,
-          url: shareUrl,
-        });
-        return;
+        await navigator.share({ title: result.productName, text: shareText, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       }
-
-      // 5. Last resort: copy to clipboard
-      await navigator.clipboard.writeText(shareText);
-      setCaptionCopied(true);
-      setTimeout(() => setCaptionCopied(false), 2500);
-
     } catch (_) {
       await navigator.clipboard.writeText(window.location.href).catch(() => {});
     } finally {
@@ -589,17 +538,30 @@ export default function App() {
                 </CollapsibleSection>
 
                 <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />} collapseLabel={cl}>
-                  <ul className="space-y-2">
-                    {result.ingredients.map((ing, idx) => (
-                      <li key={idx} className="flex items-start gap-2 py-1 border-b border-[#D4C3A3]/20 last:border-0">
-                        <span className="text-base shrink-0 mt-0.5">{ing.status}</span>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-[#2C3E50] text-xs uppercase tracking-wide">{ing.name}</span>
-                          <span className="text-xs text-[#4A4A4A]">{ing.description}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                  {result.ingredients.length === 0 ? (
+                    <p className="text-xs text-[#B89F7A] italic">
+                      {lang === 'ru' ? 'Состав не найден. Сфотографируйте этикетку с INCI-списком крупным планом.' :
+                       lang === 'uk' ? 'Склад не знайдено. Сфотографуйте етикетку зі списком INCI великим планом.' :
+                       lang === 'de' ? 'Inhaltsstoffe nicht gefunden. Fotografieren Sie bitte das INCI-Etikett in Nahaufnahme.' :
+                       lang === 'es' ? 'Ingredientes no encontrados. Fotografíe la etiqueta INCI de cerca.' :
+                       lang === 'fr' ? 'Ingrédients introuvables. Photographiez l\'étiquette INCI en gros plan.' :
+                       lang === 'it' ? 'Ingredienti non trovati. Fotografa l\'etichetta INCI da vicino.' :
+                       lang === 'tr' ? 'İçerikler bulunamadı. Lütfen INCI etiketini yakından fotoğraflayın.' :
+                       'Ingredients not found. Please photograph the INCI label up close.'}
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {result.ingredients.map((ing, idx) => (
+                        <li key={idx} className="flex items-start gap-2 py-1 border-b border-[#D4C3A3]/20 last:border-0">
+                          <span className="text-base shrink-0 mt-0.5">{ing.status}</span>
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-[#2C3E50] text-xs uppercase tracking-wide">{ing.name}</span>
+                            <span className="text-xs text-[#4A4A4A]">{ing.description}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </CollapsibleSection>
 
                 <CollapsibleSection title={t[lang].usage} icon={<Info size={20} />} collapseLabel={cl}>
