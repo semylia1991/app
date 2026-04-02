@@ -173,7 +173,6 @@ export default function App() {
   const [paywallReason, setPaywallReason] = useState<'scans' | 'note' | 'askAi' | null>(null);
 
   const fileInputRef      = useRef<HTMLInputElement>(null);
-  const galleryInputRef   = useRef<HTMLInputElement>(null);
   const isFirstRender     = useRef(true);
   const originalResult    = useRef<AnalysisResult | null>(null);
   const translationCache  = useRef<Map<Language, AnalysisResult>>(new Map());
@@ -406,8 +405,11 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Preview area */}
-              <div className="relative aspect-[5/2] border-2 border-dashed border-[#D4C3A3] rounded-sm overflow-hidden bg-[#FDFBF7]">
+              {/* Clickable upload zone */}
+              <div
+                className="relative aspect-[5/2] border-2 border-dashed border-[#D4C3A3] rounded-sm overflow-hidden bg-[#FDFBF7] cursor-pointer hover:border-[#B89F7A] hover:bg-[#B89F7A]/5 transition-all"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-90" referrerPolicy="no-referrer" />
                 ) : (
@@ -418,37 +420,10 @@ export default function App() {
                 )}
               </div>
 
-              {/* Two buttons: Camera + Gallery */}
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center justify-center gap-2 py-3 border border-[#D4C3A3] text-xs tracking-widest uppercase text-[#B89F7A] hover:bg-[#B89F7A]/5 hover:border-[#B89F7A] transition-all rounded-sm"
-                >
-                  <Camera size={14} />
-                  {t[lang].takePhoto}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => galleryInputRef.current?.click()}
-                  className="flex items-center justify-center gap-2 py-3 border border-[#D4C3A3] text-xs tracking-widest uppercase text-[#B89F7A] hover:bg-[#B89F7A]/5 hover:border-[#B89F7A] transition-all rounded-sm"
-                >
-                  <span className="text-sm">🖼</span>
-                  {t[lang].chooseFromGallery}
-                </button>
-              </div>
-
-              {/* Hidden inputs */}
+              {/* Hidden input */}
               <input
                 type="file"
                 ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                className="hidden"
-              />
-              <input
-                type="file"
-                ref={galleryInputRef}
                 onChange={handleFileChange}
                 accept="image/*"
                 className="hidden"
