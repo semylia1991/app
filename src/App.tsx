@@ -666,31 +666,7 @@ export default function App() {
                   </button>
 
                   {/* Desktop fallback hint — only shown when Web Share API unavailable */}
-                  {'share' in navigator ? (
-                    <p className="text-center text-[10px] text-[#B89F7A]/60">
-                      {lang === 'ru' ? 'Откроет меню: TikTok, Instagram, WhatsApp и др.' :
-                       lang === 'uk' ? 'Відкриє меню: TikTok, Instagram, WhatsApp тощо' :
-                       lang === 'de' ? 'Öffnet Menü: TikTok, Instagram, WhatsApp u. a.' :
-                       lang === 'es' ? 'Abrirá el menú: TikTok, Instagram, WhatsApp, etc.' :
-                       lang === 'fr' ? 'Ouvrira le menu: TikTok, Instagram, WhatsApp, etc.' :
-                       lang === 'it' ? 'Aprirà il menu: TikTok, Instagram, WhatsApp, ecc.' :
-                       lang === 'tr' ? 'Menü açılır: TikTok, Instagram, WhatsApp vb.' :
-                       'Opens share menu: TikTok, Instagram, WhatsApp & more'}
-                    </p>
-                  ) : (
-                    <p className="text-center text-[10px] text-[#B89F7A]/60">
-                      {lang === 'ru' ? 'Скопирует готовый текст поста с хэштегами' :
-                       lang === 'uk' ? 'Скопіює готовий текст поста з хештегами' :
-                       lang === 'de' ? 'Kopiert den fertigen Post-Text mit Hashtags' :
-                       lang === 'es' ? 'Copia el texto del post con hashtags' :
-                       lang === 'fr' ? 'Copie le texte du post avec hashtags' :
-                       lang === 'it' ? 'Copia il testo del post con hashtag' :
-                       lang === 'tr' ? 'Hashtag\'li gönderi metnini kopyalar' :
-                       'Copies post caption with hashtags — paste into TikTok or Instagram'}
-                    </p>
-                  )}
-                </div>
-
+                 
                 <button onClick={handleReset} className="w-full py-4 regency-button tracking-widest">
                   {t[lang].anotherProduct}
                 </button>
