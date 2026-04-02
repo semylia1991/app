@@ -17,12 +17,16 @@ export interface UserProfile {
   hairType: string[];        // keys: hairStraight | hairWavy | hairCurly | hairCoily | hairBrittle | hairUnknown
   scalpCondition: string[];  // keys: scalpDry | scalpOily | scalpNormal | scalpUnknown
   hairProblems: string[];    // keys: hairDandruff | hairItching | hairLoss | hairNone
+  climate: string[];         // keys: climateDry | climateWindy | climateSunny | climateCold | climateHumid | climateAny
+  allergies: string;         // free-text: e.g. "nut oil, lanolin, propolis"
   consentGiven: boolean;
 }
  
 const EMPTY_PROFILE: UserProfile = {
   skinType: [], skinSensitivity: [], skinConditions: [],
   ageRange: '', hairType: [], scalpCondition: [], hairProblems: [],
+  climate: [],
+  allergies: '',
   consentGiven: false,
 };
  
@@ -35,6 +39,7 @@ const AGE_RANGE_KEYS      = ['ageUnder25',     'age2535',        'age3545',     
 const HAIR_TYPE_KEYS      = ['hairStraight',   'hairWavy',       'hairCurly',            'hairCoily',        'hairBrittle',  'hairUnknown'] as const;
 const SCALP_COND_KEYS     = ['scalpDry',       'scalpOily',      'scalpNormal',          'scalpUnknown'] as const;
 const HAIR_PROBLEM_KEYS   = ['hairDandruff',   'hairItching',    'hairLoss',             'hairNone'] as const;
+const CLIMATE_KEYS        = ['climateDry', 'climateWindy', 'climateSunny', 'climateCold', 'climateHumid', 'climateAny'] as const;
  
 // Translate a canonical key to the current language
 type TranslationKey = keyof ReturnType<typeof t['en']>;
@@ -129,6 +134,8 @@ export function translateProfile(profile: UserProfile, lang: Language) {
     hairType:       profile.hairType.map(k => tr(lang, k)),
     scalpCondition: profile.scalpCondition.map(k => tr(lang, k)),
     hairProblems:   profile.hairProblems.map(k => tr(lang, k)),
+    climate:        (profile.climate ?? []).map(k => tr(lang, k)),
+    allergies:      profile.allergies ?? '',
   };
 }
  
@@ -286,6 +293,18 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
  
                   <SectionTitle emoji="🌵" label={T.profileHairProblems} />
                   <MultiChip keys={HAIR_PROBLEM_KEYS} selected={profile.hairProblems} onChange={v => update('hairProblems', v)} lang={lang} />
+
+                  <SectionTitle emoji="🌍" label={T.profileClimate} />
+                  <MultiChip keys={CLIMATE_KEYS} selected={profile.climate ?? []} onChange={v => update('climate', v)} lang={lang} />
+
+                  <SectionTitle emoji="⚠️" label={T.profileAllergies} />
+                  <textarea
+                    value={profile.allergies}
+                    onChange={e => update('allergies', e.target.value)}
+                    placeholder={T.profileAllergiesPlaceholder}
+                    rows={2}
+                    className="w-full px-3 py-2 text-xs text-[#2C3E50] border border-[#D4C3A3] rounded-sm bg-white focus:outline-none focus:border-[#B89F7A] resize-none placeholder:text-[#B89F7A]/50"
+                  />
  
                   {/* Consent */}
                   <div className="mt-6 mb-2 p-4 bg-[#F5F0E8] border border-[#D4C3A3] rounded-sm">
