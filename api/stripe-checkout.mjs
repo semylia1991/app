@@ -8,17 +8,35 @@
  *   VITE_APP_URL        — https://your-app.com (for success/cancel redirect)
  */
 
+const ALLOWED_ORIGIN = (process.env.VITE_APP_URL || '').replace(/\/$/, '');
+
 export default async function handler(req, res) {
-  // CORS
+  // CORS — only allow requests from the configured APP_URL
   const origin = req.headers['origin'] || '';
-  res.setHeader('Access-Control-Allow-Origin', origin || '*');
+
+  if (!ALLOWED_ORIGIN) {
+    // Env var not set — block all cross-origin requests in production
+    console.error('VITE_APP_URL is not configured');
+    return res.status(500).json({ error: 'Server misconfiguration' });
+  }
+
+  if (origin !== ALLOWED_ORIGIN) {
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
+
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Vary', 'Origin');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
   const { userId } = req.body ?? {};
+
+  if (!userId || userId === 'anonymous') {
+    return res.status(400).json({ error: 'User must be signed in to subscribe.' });
+  }
 
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const priceId   = process.env.STRIPE_PRICE_ID;
