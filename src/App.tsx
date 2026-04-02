@@ -665,8 +665,9 @@ export default function App() {
                     </span>
                   </button>
 
-                  {/* Desktop fallback hint — only shown when Web Share API unavailable */}
-                 
+
+                </div>
+
                 <button onClick={handleReset} className="w-full py-4 regency-button tracking-widest">
                   {t[lang].anotherProduct}
                 </button>
