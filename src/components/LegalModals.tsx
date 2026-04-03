@@ -115,7 +115,11 @@ export function PrivacyPolicyContent() {
         Die Verarbeitung erfolgt auf Grundlage Ihrer ausdrücklichen Einwilligung gemäß
         Art. 6 Abs. 1 lit. a DSGVO, die Sie vor dem Hochladen eines Fotos erteilen.
         Sie können Ihre Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen,
-        indem Sie die Seite neu laden und das Foto nicht erneut hochladen.
+        indem Sie die Seite neu laden und das Foto nicht erneut hochladen.{' '}
+        <strong>Die Übermittlung von Daten an Google LLC (USA) erfolgt auf Grundlage von
+        Standardvertragsklauseln gemäß Art. 46 Abs. 2 lit. c DSGVO</strong> im Rahmen
+        der Google Cloud Data Processing Addendum:{' '}
+        <a href="https://cloud.google.com/terms/data-processing-addendum" target="_blank" rel="noopener noreferrer" className="text-[#B89F7A] hover:underline">cloud.google.com/terms/data-processing-addendum</a>.
       </p>
 
       <h4>4. Verarbeitung von Gesundheitsdaten im Nutzerprofil (Art. 9 DSGVO)</h4>
