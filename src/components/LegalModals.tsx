@@ -162,7 +162,9 @@ export function PrivacyPolicyContent() {
         Für die Speicherung von Nutzerdaten (Konto, Scan-Verlauf, Nutzerprofil, geteilte
         Analyseergebnisse) setzen wir den Dienst <strong>Supabase</strong> (Supabase Inc.,
         970 Toa Payoh North, Singapur) ein. Supabase handelt als Auftragsverarbeiter
-        gemäß Art. 28 DSGVO. Mit Supabase besteht ein Auftragsverarbeitungsvertrag (AVV).
+        gemäß Art. 28 DSGVO. Mit Supabase besteht ein Auftragsverarbeitungsvertrag (AVV).{' '}
+        <strong>Die Datenübermittlung in Drittländer erfolgt auf Grundlage von
+        Standardvertragsklauseln gemäß Art. 46 Abs. 2 lit. c DSGVO.</strong>{' '}
         Die Daten werden auf Servern innerhalb der EU (Frankfurt, AWS eu-central-1) gespeichert.
         Weitere Informationen:{' '}
         <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#B89F7A] hover:underline">https://supabase.com/privacy</a>.
@@ -272,11 +274,11 @@ export function AGBContent() {
         Der Dienst wird in einer kostenlosen Basisversion sowie einer kostenpflichtigen Premium-Version angeboten.
       </p>
       <p>
-        <strong>Kostenlose Version:</strong> bis zu 15 Scans pro Tag, bis zu 15 „Beachte"-Analysen pro Tag,
+        <strong>Kostenlose Version:</strong> bis zu 15 Scans pro Tag, bis zu 10 „Beachte"-Analysen pro Tag,
         bis zu 3 KI-Fragen pro Tag.
       </p>
       <p>
-        <strong>Premium-Version:</strong> bis zu 100 Scans pro Tag, bis zu 100 „Beachte"-Analysen,
+        <strong>Premium-Version:</strong> unbegrenzte Scans, unbegrenzte „Beachte"-Analysen,
         bis zu 10 KI-Fragen pro Tag, vollständige Scan-Historie.
       </p>
       <p>
