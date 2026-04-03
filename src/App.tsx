@@ -26,6 +26,7 @@ import { PersonalAnalysis } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
 import { FeedbackSurvey } from './components/FeedbackSurvey';
 import { useSubscription } from './hooks/useSubscription';
+import { SubscriptionPage } from './components/SubscriptionPage';
 
 function splitParagraphs(text: string): string[] {
   return text.split('\n\n').map(s => s.trim()).filter(Boolean);
@@ -171,6 +172,9 @@ export default function App() {
 
   const subscription = useSubscription(user);
   const [paywallReason, setPaywallReason] = useState<'scans' | 'note' | 'askAi' | null>(null);
+  const [showSubscriptionPage, setShowSubscriptionPage] = useState<boolean>(
+    () => window.location.search.includes('portal=return')
+  );
 
   const fileInputRef      = useRef<HTMLInputElement>(null);
   const isFirstRender     = useRef(true);
@@ -330,6 +334,24 @@ export default function App() {
 
   const cl = t[lang].collapse;
 
+  if (showSubscriptionPage && user) {
+    return (
+      <SubscriptionPage
+        user={user}
+        subscription={subscription}
+        onBack={() => {
+          setShowSubscriptionPage(false);
+          window.history.replaceState({}, '', window.location.pathname);
+          subscription.refresh();
+        }}
+        onUpgrade={() => {
+          setShowSubscriptionPage(false);
+          setPaywallReason('scans');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
       <div className="fixed top-0 left-0 w-full h-32 bg-gradient-to-b from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
@@ -351,6 +373,17 @@ export default function App() {
                   }}
                 />
                 <UserProfilePanel user={user} lang={lang} onProfileChange={setUserProfile} initialHasProfile={!!userProfile} />
+                <button
+                  onClick={() => setShowSubscriptionPage(true)}
+                  className={`text-xs px-2.5 py-1 border rounded-sm transition-colors font-serif tracking-wide ${
+                    subscription.isPremium
+                      ? 'border-[#B89F7A] text-[#B89F7A] hover:bg-[#B89F7A] hover:text-white'
+                      : 'border-[#D4C3A3] text-[#8A8A8A] hover:border-[#B89F7A] hover:text-[#B89F7A]'
+                  }`}
+                  title="Управление подпиской"
+                >
+                  {subscription.isPremium ? '✦ Premium' : 'Upgrade'}
+                </button>
               </>
             )}
             <AuthButton lang={lang} onUserChange={(u) => {
