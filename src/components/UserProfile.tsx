@@ -18,7 +18,6 @@ export interface UserProfile {
   scalpCondition: string[];  // keys: scalpDry | scalpOily | scalpNormal | scalpUnknown
   hairProblems: string[];    // keys: hairDandruff | hairItching | hairLoss | hairNone
   climate: string[];         // keys: climateDry | climateWindy | climateSunny | climateCold | climateHumid | climateAny
-  allergies: string;         // free-text: e.g. "nut oil, lanolin, propolis"
   consentGiven: boolean;
 }
  
@@ -33,8 +32,8 @@ const EMPTY_PROFILE: UserProfile = {
 // ── Option definitions — canonical key → i18n key (same value here) ───────────
  
 const SKIN_TYPE_KEYS      = ['skinOily',       'skinDry',        'skinCombination',      'skinUnknown'] as const;
-const SENSITIVITY_KEYS    = ['sensFragrances', 'sensAlcohol',    'sensEssentialOils',    'sensNone'] as const;
-const SKIN_CONDITION_KEYS = ['condAcne',       'condRosacea',    'condAtopicDermatitis', 'condPigmentation', 'condCouperose', 'condNone'] as const;
+const SENSITIVITY_KEYS    = ['sensIrritationAfterCare', 'sensReactionNewProducts', 'sensSunSensitivity', 'sensItching', 'sensTingling', 'sensFragrances', 'sensAlcohol', 'sensEssentialOils', 'sensNone'] as const;
+const SKIN_CONDITION_KEYS = ['condEnlargedPores', 'condBreakouts', 'condBlackheads', 'condUnevenTone', 'condIrritation', 'condRedness', 'condDarkSpots', 'condDullness', 'condFlaking', 'condTightness', 'condUnevenTexture', 'condPuffiness', 'condDarkCircles', 'condVisibleVessels', 'condNone'] as const;
 const AGE_RANGE_KEYS      = ['ageUnder25',     'age2535',        'age3545',              'age4550',          'age50plus'] as const;
 const HAIR_TYPE_KEYS      = ['hairStraight',   'hairWavy',       'hairCurly',            'hairCoily',        'hairBrittle',  'hairUnknown'] as const;
 const SCALP_COND_KEYS     = ['scalpDry',       'scalpOily',      'scalpNormal',          'scalpUnknown'] as const;
@@ -135,7 +134,6 @@ export function translateProfile(profile: UserProfile, lang: Language) {
     scalpCondition: profile.scalpCondition.map(k => tr(lang, k)),
     hairProblems:   profile.hairProblems.map(k => tr(lang, k)),
     climate:        (profile.climate ?? []).map(k => tr(lang, k)),
-    allergies:      profile.allergies ?? '',
   };
 }
  
