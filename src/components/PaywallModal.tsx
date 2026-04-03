@@ -46,14 +46,14 @@ const REASONS: Record<string, Record<string, string>> = {
 };
 
 const FEATURES: Record<Language, string[]> = {
-  en: ['Up to 100 scans per day', 'Up to 100 “Beachte” analyses', 'Up to 10 AI questions per day', 'No ads during analysis'],
+  en: ['Up to 100 scans per day', 'Up to 100 «Beachte» analyses', 'Up to 10 AI questions per day', 'No ads during analysis'],
   ru: ['До 100 сканирований в день', 'До 100 анализов «Beachte»', 'До 10 вопросов к ИИ в день', 'Без рекламы во время анализа'],
-  de: ['Bis zu 100 Scans pro Tag', 'Bis zu 100 „Beachte“-Analysen', '10 KI-Fragen pro Tag',  'Keine Werbung während der Analyse'],
+  de: ['Bis zu 100 Scans pro Tag', 'Bis zu 100 «Beachte»-Analysen', '10 KI-Fragen pro Tag',  'Keine Werbung während der Analyse'],
   uk: ['До 100 сканувань на день', 'До 100 аналізів «Beachte»', 'До 10 запитань до ШІ на день', 'Без реклами під час аналізу'],
-  es: [['Hasta 100 escaneos por día', 'Hasta 100 análisis de «Beachte»', 'Hasta 10 preguntas a la IA por día', 'Sin anuncios durante el análisis'],
+  es: ['Hasta 100 escaneos por día', 'Hasta 100 análisis de «Beachte»', 'Hasta 10 preguntas a la IA por día', 'Sin anuncios durante el análisis'],
   fr: ['Jusqu’à 100 scans par jour', 'Jusqu’à 100 analyses «Beachte»', 'Jusqu’à 10 questions à l’IA par jour', 'Sans publicité pendant l’analyse'],
   it: ['Fino a 100 scansioni al giorno', 'Fino a 100 analisi «Beachte»', 'Fino a 10 domande all’IA al giorno', 'Nessuna pubblicità durante l’analisi'],
-  tr: ['Günde en fazla 100 tarama', 'En fazla 100 “Beachte” analizi', 'Günde en fazla 10 yapay zeka sorusu', 'Analiz sırasında reklam yok'],
+  tr: ['Günde en fazla 100 tarama', 'En fazla 100 «Beachte» analizi', 'Günde en fazla 10 yapay zeka sorusu', 'Analiz sırasında reklam yok'],
 };
 
 const UPGRADE_LABEL: Record<Language, string> = {
