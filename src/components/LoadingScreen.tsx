@@ -430,7 +430,7 @@ function getRandomQuote(lang: Language): Quote {
 }
  
 // 9 steps × 3 s = 27 s — covers typical Gemini response time
-const STEP_DELAYS = [0, 1300, 2600, 3900, 5200, 6500, 7800, 9100, 10400];
+const STEP_DELAYS = [0, 3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000];
  
 interface Props {
   isVisible: boolean;
