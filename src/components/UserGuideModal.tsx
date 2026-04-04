@@ -110,7 +110,7 @@ const guideContent: Record<Language, {
     tips: [
       { icon: '🌟', title: 'Skin Type', desc: 'Oily, dry, combination — the AI considers this when evaluating ingredients and gives relevant recommendations.' },
       { icon: '🌺', title: 'Sensitivity & Reactions', desc: 'If you have indicated a sensitivity to flavourings, alcohol or essential oils in your preferences, the AI system will highlight these ingredients in the analysis results.' },
-      { icon: '🌧', title: 'Skin Conditions', desc: 'Acne, rosacea, telangiectasia, hyperpigmentation, atopic dermatitis — please describe these conditions in the preferences section so that we can take them into account in our analysis.' },
+      { icon: '🌧', title: 'Skin characteristics', desc: 'Skin rashes, enlarged pores, blackheads, uneven skin tone — please describe these issues in the ‘Settings’ section so that we can take them into account in our analysis.' },
       { icon: '☘️', title: 'Hair & Scalp Type', desc: 'When selecting shampoos, hair masks and hair care products, artificial intelligence takes into account data from your preferences: hair type, scalp condition and any issues specified in your settings.' },
     ],
 
@@ -174,7 +174,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Совместимость', desc: 'С какими активами и продуктами сочетается, а что категорически не стоит использовать одновременно.' },
       { icon: '🕐', title: 'Срок хранения', desc: 'Как и где хранить продукт, чтобы он не потерял эффективность. Срок годности после вскрытия.' },
       { icon: '🔄', title: 'Альтернативы', desc: '3–5 реальных продуктов со схожим составом — на случай, если что-то в составе вас не устроило или продукт недоступен.' },
-      { icon: '📝', title: 'Персональная заметка', desc: 'Анализ специально для вас — если вы заполнили профиль кожи и волос. ИИ учтёт ваши особенности.' },
+      { icon: '📝', title: 'Обрати внимание', desc: 'Анализ специально для вас — если вы заполнили профиль кожи и волос. ИИ учтёт ваши особенности.' },
     ],
 
     badgesLabel: 'Цветовые маркеры',
@@ -189,12 +189,12 @@ const guideContent: Record<Language, {
 
     profileLabel: 'Персонализация',
     profileTitle: 'Анализ именно для',
-    profileTitleEm: 'вашей кожи',
+    profileTitleEm: 'ваших предпочтений',
     profileIntro: 'Если вы зарегистрируетесь и заполните профиль, каждый анализ будет учитывать ваши личные особенности.',
     tips: [
       { icon: '🌟', title: 'Тип кожи', desc: 'Жирная, сухая, комбинированная — ИИ учтёт это при оценке ингредиентов и даст релевантные рекомендации.' },
       { icon: '🌺', title: 'Чувствительность и реакции', desc: 'Укажите, если у вас есть непереносимость парфюмов, спирта, эфирных масел — и ИИ обязательно выделит эти ингредиенты в анализе.' },
-      { icon: '🌧', title: 'Состояния кожи', desc: 'Акне, розацеа, купероз, пигментация, атопический дерматит — расскажите о своих особенностях, чтобы получить точный персональный комментарий.' },
+      { icon: '🌧', title: 'Особенности кожи', desc: 'Кожные высыпания, расширенные поры, угри, неровный цвет лица — пожалуйста, опишите эти проблемы в разделе «Настройки», чтобы мы могли учесть их в нашем анализе.' },
       { icon: '☘️', title: 'Тип волос и кожи головы', desc: 'Для анализа шампуней, масок и средств по уходу за волосами — укажите тип волос, состояние кожи головы и проблемы.' },
     ],
 
@@ -258,12 +258,12 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Verträglichkeit', desc: 'Welche Wirkstoffe und Produkte gut kombinierbar sind und was auf keinen Fall gleichzeitig verwendet werden sollte.' },
       { icon: '🕐', title: 'Haltbarkeit', desc: 'Wie und wo das Produkt gelagert werden soll, um seine Wirksamkeit zu erhalten. Haltbarkeit nach dem Öffnen (PAO).' },
       { icon: '🔄', title: 'Alternativen', desc: '3–5 reale Produkte mit ähnlicher Formel — falls etwas in der Zusammensetzung nicht zusagt oder das Produkt nicht verfügbar ist.' },
-      { icon: '📝', title: 'Persönliche Notiz', desc: 'Analyse speziell für Sie — wenn Sie Ihr Haut- und Haarprofil ausgefüllt haben. Die KI berücksichtigt Ihre Besonderheiten.' },
+      { icon: '📝', title: 'Bitte beachten Sie', desc: 'Analyse speziell für Sie — wenn Sie Ihr Haut- und Haarprofil ausgefüllt haben. Die KI berücksichtigt Ihre Besonderheiten.' },
     ],
 
     badgesLabel: 'Farbmarkierungen',
     badgesTitle: 'Was die Sicherheits-',
-    badgesTitleEm: 'symbole bedeuten',
+    badgesTitleEm: 'Ihre Präferenzen',
     badgesIntro: 'Jeder Inhaltsstoff erhält eine von drei Bewertungen auf Basis internationaler Kosmetikdatenbanken.',
     badges: [
       { dot: '🟢', label: 'Sicher', desc: 'Der Inhaltsstoff ist gut untersucht, weit verbreitet und wirft laut aktuellen wissenschaftlichen Daten keine Bedenken auf. Für die meisten Hauttypen geeignet.' },
@@ -278,7 +278,7 @@ const guideContent: Record<Language, {
     tips: [
       { icon: '🌟', title: 'Hauttyp', desc: 'Fettig, trocken, Mischhaut — die KI berücksichtigt dies bei der Bewertung der Inhaltsstoffe und gibt relevante Empfehlungen.' },
       { icon: '🌺', title: 'Empfindlichkeit & Reaktionen', desc: 'Geben Sie an, wenn Sie Unverträglichkeiten gegenüber Düften, Alkohol oder ätherischen Ölen haben — die KI hebt diese Inhaltsstoffe in der Analyse hervor.' },
-      { icon: '🌧', title: 'Hautzustände', desc: 'Akne, Rosacea, Couperose, Pigmentierung, atopische Dermatitis — teilen Sie Ihre Besonderheiten für einen präzisen persönlichen Kommentar.' },
+      { icon: '🌧', title: 'Hautmerkmale', desc: 'Hautausschläge, vergrößerte Poren, Akne, ungleichmäßiger Teint – bitte beschreiben Sie diese Probleme im Abschnitt „Einstellungen“, damit wir sie bei unserer Analyse berücksichtigen können.' },
       { icon: '☘️', title: 'Haar- & Kopfhauttyp', desc: 'Für die Analyse von Shampoos, Masken und Haarpflegeprodukten — geben Sie Ihren Haartyp, Kopfhautzustand und eventuelle Probleme an.' },
     ],
 
@@ -332,7 +332,7 @@ const guideContent: Record<Language, {
     reportLabel: 'Що ви отримуєте',
     reportTitle: 'Розділи',
     reportTitleEm: 'звіту',
-    reportIntro: 'Кожен аналіз містить дев\'ять розгортуваних секцій. Натисніть на будь-яку, щоб розкрити подробиці.',
+    reportIntro: 'Кожен аналіз містить дев'ять розгортуваних секцій. Натисніть на будь-яку, щоб розкрити подробиці.',
     features: [
       { icon: '🛡️', title: 'Загальний аналіз', desc: 'Короткий висновок про склад продукту: що це таке, яка його формула, на що варто звернути увагу в першу чергу.' },
       { icon: '🌿', title: 'Інгредієнти', desc: 'Повний список компонентів з описом і кольоровою оцінкою безпеки кожного. Жодних скорочень — лише зрозуміла мова.' },
@@ -342,7 +342,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Сумісність', desc: 'З якими активами і продуктами поєднується, а що категорично не варто використовувати одночасно.' },
       { icon: '🕐', title: 'Термін зберігання', desc: 'Як і де зберігати продукт, щоб він не втратив ефективність. Термін придатності після відкриття.' },
       { icon: '🔄', title: 'Альтернативи', desc: '3–5 реальних продуктів зі схожим складом — на випадок, якщо щось у складі вас не влаштувало або продукт недоступний.' },
-      { icon: '📝', title: 'Персональна нотатка', desc: 'Аналіз спеціально для вас — якщо ви заповнили профіль шкіри та волосся. ШІ врахує ваші особливості.' },
+      { icon: '📝', title: 'Зверніть увагу', desc: 'Аналіз спеціально для вас — якщо ви заповнили профіль шкіри та волосся. ШІ врахує ваші особливості.' },
     ],
 
     badgesLabel: 'Кольорові маркери',
@@ -357,12 +357,12 @@ const guideContent: Record<Language, {
 
     profileLabel: 'Персоналізація',
     profileTitle: 'Аналіз саме для',
-    profileTitleEm: 'вашої шкіри',
+    profileTitleEm: 'Ваших уподобаннь',
     profileIntro: 'Якщо ви зареєструєтесь і заповните профіль, кожен аналіз враховуватиме ваші особисті особливості.',
     tips: [
       { icon: '🌟', title: 'Тип шкіри', desc: 'Жирна, суха, комбінована — ШІ врахує це при оцінці інгредієнтів і дасть релевантні рекомендації.' },
       { icon: '🌺', title: 'Чутливість та реакції', desc: 'Вкажіть, якщо у вас є непереносимість парфумів, спирту, ефірних олій — і ШІ обов\'язково виділить ці інгредієнти в аналізі.' },
-      { icon: '🌧', title: 'Стани шкіри', desc: 'Акне, розацеа, куперозі, пігментація, атопічний дерматит — розкажіть про свої особливості для точного персонального коментаря.' },
+      { icon: '🌧', title: 'Особливості шкіри', desc: 'Шкірні висипання, розширені пори, вугрі, нерівний тон шкіри — будь ласка, опишіть ці проблеми в розділі «Налаштування», щоб ми могли врахувати їх у нашому аналізі.' },
       { icon: '☘️', title: 'Тип волосся та шкіри голови', desc: 'Для аналізу шампунів, масок і засобів для догляду за волоссям — вкажіть тип волосся, стан шкіри голови та проблеми.' },
     ],
 
@@ -446,7 +446,7 @@ const guideContent: Record<Language, {
     tips: [
       { icon: '🌟', title: 'Tipo de piel', desc: 'Grasa, seca, mixta — la IA lo considera al evaluar los ingredientes y da recomendaciones relevantes.' },
       { icon: '🌺', title: 'Sensibilidad y reacciones', desc: 'Indica si tienes intolerancia a fragancias, alcohol o aceites esenciales — y la IA destacará esos ingredientes en el análisis.' },
-      { icon: '🌧', title: 'Condiciones de la piel', desc: 'Acné, rosácea, cuperosis, pigmentación, dermatitis atópica — comparte tus particularidades para un comentario personal preciso.' },
+      { icon: '🌧', title: 'Condiciones de la piel', desc: 'Erupciones cutáneas, poros dilatados, espinillas, tono de piel irregular: por favor, describe estos problemas en la sección «Configuración» para que podamos tenerlos en cuenta en nuestro análisis.' },
       { icon: '☘️', title: 'Tipo de cabello y cuero cabelludo', desc: 'Para el análisis de champús, mascarillas y productos capilares — especifica tu tipo de cabello, estado del cuero cabelludo y problemas.' },
     ],
 
@@ -530,7 +530,7 @@ const guideContent: Record<Language, {
     tips: [
       { icon: '🌟', title: 'Type de peau', desc: 'Grasse, sèche, mixte — l\'IA en tient compte lors de l\'évaluation des ingrédients et donne des recommandations pertinentes.' },
       { icon: '🌺', title: 'Sensibilité et réactions', desc: 'Indique si tu as des intolérances aux parfums, à l\'alcool ou aux huiles essentielles — et l\'IA mettra en évidence ces ingrédients dans l\'analyse.' },
-      { icon: '🌧', title: 'Conditions cutanées', desc: 'Acné, rosacée, couperose, pigmentation, dermatite atopique — partage tes spécificités pour un commentaire personnel précis.' },
+      { icon: '🌧', title: 'Conditions cutanées', desc: 'Éruptions cutanées, pores dilatés, points noirs, teint irrégulier : veuillez décrire ces problèmes dans la section « Paramètres » afin que nous puissions en tenir compte dans notre analyse.' },
       { icon: '☘️', title: 'Type de cheveux et cuir chevelu', desc: 'Pour l\'analyse des shampoings, masques et produits capillaires — précise ton type de cheveux, l\'état de ton cuir chevelu et les problèmes.' },
     ],
 
@@ -614,7 +614,7 @@ const guideContent: Record<Language, {
     tips: [
       { icon: '🌟', title: 'Tipo di pelle', desc: 'Grassa, secca, mista — l\'IA lo considera nella valutazione degli ingredienti e fornisce raccomandazioni pertinenti.' },
       { icon: '🌺', title: 'Sensibilità e reazioni', desc: 'Indica se hai intolleranze a fragranze, alcol o oli essenziali — e l\'IA evidenzierà quegli ingredienti nell\'analisi.' },
-      { icon: '🌧', title: 'Condizioni della pelle', desc: 'Acne, rosacea, couperose, pigmentazione, dermatite atopica — condividi le tue specificità per un commento personale preciso.' },
+      { icon: '🌧', title: 'Condizioni della pelle', desc: 'Eruzioni cutanee, pori dilatati, punti neri, incarnato non uniforme: ti preghiamo di descrivere questi problemi nella sezione «Impostazioni», in modo che possiamo tenerne conto nella nostra analisi.' },
       { icon: '☘️', title: 'Tipo di capelli e cuoio capelluto', desc: 'Per l\'analisi di shampoo, maschere e prodotti per capelli — specifica il tipo di capelli, le condizioni del cuoio capelluto e i problemi.' },
     ],
 
@@ -698,7 +698,7 @@ const guideContent: Record<Language, {
     tips: [
       { icon: '🌟', title: 'Cilt Tipi', desc: 'Yağlı, kuru, karma — YZ içerikleri değerlendirirken bunu dikkate alır ve ilgili öneriler sunar.' },
       { icon: '🌺', title: 'Hassasiyet ve Reaksiyonlar', desc: 'Parfüm, alkol veya uçucu yağlara karşı tahammülsüzlüğünüz varsa belirtin — YZ bu içerikleri analizde mutlaka vurgular.' },
-      { icon: '🌧', title: 'Cilt Durumları', desc: 'Akne, rozase, kupero, pigmentasyon, atopik dermatit — hassas bir kişisel yorum için özelliklerinizi paylaşın.' },
+      { icon: '🌧', title: 'Cilt Durumları', desc: 'Ciltte kızarıklıklar, genişlemiş gözenekler, sivilceler, düzensiz cilt tonu — lütfen bu sorunları «Ayarlar» bölümünde belirtin, böylece analizimizde bunları dikkate alabilelim.' },
       { icon: '☘️', title: 'Saç ve Kafa Derisi Tipi', desc: 'Şampuan, maske ve saç bakım ürünleri analizi için saç tipinizi, kafa derisi durumunuzu ve sorunlarınızı belirtin.' },
     ],
 
