@@ -156,7 +156,7 @@ Ensure the output strictly follows the JSON schema.`.trim();
 
   const personalNoteSection = `
 
-- personalNote: Based on the user preferences below and the product ingredients, generate an analysis note IN ${language}.
+- Please note: Based on the user preferences below and the product ingredients, generate an analysis note IN ${language}.
   The text MUST explicitly include phrasing such as: "based on the selected preferences", "considering these preferences" or equivalent in ${language}.
   Follow this EXACT structure (translate all headings to ${language}):
 
@@ -168,9 +168,6 @@ Ensure the output strictly follows the JSON schema.`.trim();
 
   📋**[translate: Beneficial components:]**
   - [ingredient] — [what function it performs in the context of these preferences]
-
-  👤**[translate: General comment:]**
-  (neutral conclusion, referencing the preferences, no recommendations)
 
   ---
   ⚠️*[translate: Automated analysis based on selected preferences. Not medical advice.]*
