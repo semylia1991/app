@@ -22,7 +22,11 @@ export function PersonalAnalysis({ lang, result, userProfile, canUseNote, onLimi
     userProfile.skinType.length > 0 ||
     userProfile.skinConditions.length > 0 ||
     userProfile.skinSensitivity.length > 0 ||
-    userProfile.hairType.length > 0
+    userProfile.hairType.length > 0 ||
+    userProfile.scalpCondition.length > 0 ||
+    userProfile.hairProblems.length > 0 ||
+    (userProfile.climate ?? []).length > 0 ||
+    !!userProfile.ageRange
   );
 
   // User has no profile → prompt to create one
