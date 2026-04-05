@@ -264,6 +264,7 @@ export default function App() {
               hairType:        p.hairType.join(', ')         || undefined,
               scalpCondition:  p.scalpCondition.join(', ')  || undefined,
               hairProblems:    p.hairProblems.join(', ')     || undefined,
+              climate:         p.climate.join(', ')          || undefined,
             };
           })()
         : undefined;
