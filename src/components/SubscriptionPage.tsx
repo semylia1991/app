@@ -1,21 +1,24 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
+import { Language, t } from '../i18n';
 import type { User } from '@supabase/supabase-js';
 import type { SubscriptionState } from '../hooks/useSubscription';
 
 interface Props {
   user: User;
   subscription: SubscriptionState;
+  lang: Language;
   onBack: () => void;
   onUpgrade: () => void;
 }
 
-export function SubscriptionPage({ user, subscription, onBack, onUpgrade }: Props) {
+export function SubscriptionPage({ user, subscription, lang, onBack, onUpgrade }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
 
-  const { isPremium, plan, usage, limits } = subscription;
+  const { isPremium, usage, limits } = subscription;
+  const T = t[lang] ?? t['en'];
 
   const openPortal = async () => {
     setLoading(true);
@@ -23,7 +26,7 @@ export function SubscriptionPage({ user, subscription, onBack, onUpgrade }: Prop
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) throw new Error('Сессия истекла. Войдите снова.');
+      if (!token) throw new Error('Session expired. Please sign in again.');
 
       const res = await fetch('/api/stripe-portal', {
         method: 'POST',
@@ -34,7 +37,7 @@ export function SubscriptionPage({ user, subscription, onBack, onUpgrade }: Prop
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Ошибка сервера');
+      if (!res.ok) throw new Error(data.error || 'Server error');
 
       window.location.href = data.url;
     } catch (err: any) {
@@ -44,7 +47,7 @@ export function SubscriptionPage({ user, subscription, onBack, onUpgrade }: Prop
   };
 
   const usagePercent = (used: number, limit: number) =>
-    limit === Infinity ? 0 : Math.min(100, Math.round((used / limit) * 100));
+    Math.min(100, Math.round((used / limit) * 100));
 
   return (
     <motion.div
@@ -55,75 +58,68 @@ export function SubscriptionPage({ user, subscription, onBack, onUpgrade }: Prop
     >
       <div className="w-full max-w-md">
 
-        {/* Назад */}
+        {/* Back */}
         <button
           onClick={onBack}
           className="mb-8 flex items-center gap-2 text-sm text-[#B89F7A] hover:text-[#2C3E50] transition-colors"
         >
-          ← Назад
+          {T.subBack}
         </button>
 
-        <h1 className="text-2xl font-serif text-[#2C3E50] mb-1">Подписка</h1>
+        <h1 className="text-2xl font-serif text-[#2C3E50] mb-1">{T.subTitle}</h1>
         <p className="text-sm text-[#8A8A8A] mb-8">{user.email}</p>
 
-        {/* Текущий план */}
+        {/* Current plan */}
         <div className="bg-white border border-[#E8DCC8] rounded-lg p-5 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-[#2C3E50]">Текущий план</span>
+            <span className="text-sm font-medium text-[#2C3E50]">{T.subCurrentPlan}</span>
             <span className={`text-xs font-medium px-3 py-1 rounded-full ${
               isPremium
                 ? 'bg-[#F0F7E6] text-[#3B6D11]'
                 : 'bg-[#F5F1EB] text-[#8A8A8A]'
             }`}>
-              {isPremium ? '✦ Premium' : 'Бесплатный'}
+              {isPremium ? T.subPlanPremium : T.subPlanFree}
             </span>
           </div>
 
-          {/* Использование сегодня */}
+          {/* Today's usage */}
           <div className="space-y-3">
             <UsageLine
-              label="Сканы"
+              label={T.subScans}
               used={usage.scans}
               limit={limits.scansPerDay}
               percent={usagePercent(usage.scans, limits.scansPerDay)}
-              unlimited={isPremium}
             />
             <UsageLine
-              label="Анализ состава"
+              label={T.subNoteAnalysis}
               used={usage.noteAnalysis}
               limit={limits.noteAnalysisPerDay}
               percent={usagePercent(usage.noteAnalysis, limits.noteAnalysisPerDay)}
-              unlimited={isPremium}
             />
             <UsageLine
-              label="AI-вопросы"
+              label={T.subAskAi}
               used={usage.askAi}
               limit={limits.askAiPerDay}
               percent={usagePercent(usage.askAi, limits.askAiPerDay)}
-              unlimited={false}
             />
           </div>
         </div>
 
-        {/* Что включено */}
+        {/* Features */}
         <div className="bg-white border border-[#E8DCC8] rounded-lg p-5 mb-6">
           <p className="text-xs font-medium text-[#8A8A8A] uppercase tracking-wider mb-3">
-            {isPremium ? 'Ваши возможности' : 'Premium открывает'}
+            {isPremium ? T.subYourFeatures : T.subPremiumUnlocks}
           </p>
           <div className="space-y-2">
             {[
-              { text: 'Неограниченные сканы', premium: true },
-              { text: 'Полная история сканирований', premium: true },
-              { text: 'Анализ без лимитов', premium: true },
-              { text: 'До 10 AI-вопросов в день', premium: false },
+              { text: T.subFeatureScans,   premium: true },
+              { text: T.subFeatureHistory, premium: true },
+              { text: T.subFeatureNote,    premium: true },
+              { text: T.subFeatureAi,      premium: false },
             ].map(({ text, premium }) => (
               <div key={text} className="flex items-center gap-2">
                 <span className={`text-sm ${
-                  (isPremium && premium) || !premium
-                    ? 'text-[#3B6D11]'
-                    : isPremium
-                    ? 'text-[#3B6D11]'
-                    : 'text-[#B89F7A]'
+                  isPremium || !premium ? 'text-[#3B6D11]' : 'text-[#B89F7A]'
                 }`}>
                   {isPremium || !premium ? '✓' : '·'}
                 </span>
@@ -132,13 +128,11 @@ export function SubscriptionPage({ user, subscription, onBack, onUpgrade }: Prop
             ))}
           </div>
           {!isPremium && (
-            <p className="text-xs text-[#8A8A8A] mt-3">
-              €4,99 / месяц · отмена в любой момент
-            </p>
+            <p className="text-xs text-[#8A8A8A] mt-3">{T.subPrice}</p>
           )}
         </div>
 
-        {/* Действия */}
+        {/* Actions */}
         {isPremium ? (
           <div className="space-y-3">
             <button
@@ -146,23 +140,23 @@ export function SubscriptionPage({ user, subscription, onBack, onUpgrade }: Prop
               disabled={loading}
               className="w-full py-3 px-4 bg-[#2C3E50] text-white text-sm font-medium rounded-lg hover:bg-[#3d5166] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Открываем Stripe...' : 'Управление подпиской'}
+              {loading ? T.subManageLoading : T.subManage}
             </button>
             <p className="text-xs text-center text-[#B89F7A]">
-              Смена карты, история платежей и отмена — через защищённую страницу Stripe
+              {T.subManageHint}
             </p>
 
-            {/* §312k BGB — обязательная кнопка отмены */}
+            {/* §312k BGB — mandatory cancellation button */}
             <div className="mt-5 pt-5 border-t border-[#E8DCC8]">
               <p className="text-xs text-[#AAAAAA] mb-2 text-center">
-                Согласно §312k BGB вы вправе отменить подписку здесь:
+                {T.subCancelLaw}
               </p>
               <button
                 onClick={openPortal}
                 disabled={loading}
                 className="w-full py-2.5 px-4 border border-[#E8DCC8] text-[#8A8A8A] text-sm rounded-lg hover:border-[#c0a882] hover:text-[#2C3E50] transition-colors disabled:opacity-50"
               >
-                {loading ? '...' : 'Отменить подписку'}
+                {loading ? '...' : T.subCancelBtn}
               </button>
             </div>
           </div>
@@ -171,7 +165,7 @@ export function SubscriptionPage({ user, subscription, onBack, onUpgrade }: Prop
             onClick={onUpgrade}
             className="w-full py-3 px-4 bg-[#B89F7A] text-white text-sm font-medium rounded-lg hover:bg-[#a38a5e] transition-colors"
           >
-            Перейти на Premium — €4,99/мес
+            {T.subUpgradeBtn}
           </button>
         )}
 
@@ -182,46 +176,39 @@ export function SubscriptionPage({ user, subscription, onBack, onUpgrade }: Prop
         )}
 
         <p className="mt-8 text-xs text-[#CCBBAA] text-center leading-relaxed">
-          Платёжные данные хранятся только в Stripe.
-          GlowKey AI не имеет доступа к данным вашей карты.
+          {T.subPaymentNote}
         </p>
       </div>
     </motion.div>
   );
 }
 
-// Компонент строки использования
+// Usage line — always shows exact numbers (used / limit) with progress bar
 function UsageLine({
   label,
   used,
   limit,
   percent,
-  unlimited,
 }: {
   label: string;
   used: number;
   limit: number;
   percent: number;
-  unlimited: boolean;
 }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
         <span className="text-xs text-[#6A6A6A]">{label}</span>
-        <span className="text-xs text-[#8A8A8A]">
-          {unlimited ? `${used} / ∞` : `${used} / ${limit}`}
-        </span>
+        <span className="text-xs text-[#8A8A8A]">{used} / {limit}</span>
       </div>
-      {!unlimited && (
-        <div className="h-1 bg-[#F0EAE0] rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${
-              percent >= 90 ? 'bg-[#E24B4A]' : percent >= 60 ? 'bg-[#EF9F27]' : 'bg-[#B89F7A]'
-            }`}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-      )}
+      <div className="h-1 bg-[#F0EAE0] rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${
+            percent >= 90 ? 'bg-[#E24B4A]' : percent >= 60 ? 'bg-[#EF9F27]' : 'bg-[#B89F7A]'
+          }`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
     </div>
   );
 }
