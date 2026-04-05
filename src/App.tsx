@@ -339,6 +339,7 @@ export default function App() {
       <SubscriptionPage
         user={user}
         subscription={subscription}
+        lang={lang}
         onBack={() => {
           setShowSubscriptionPage(false);
           window.history.replaceState({}, '', window.location.pathname);
