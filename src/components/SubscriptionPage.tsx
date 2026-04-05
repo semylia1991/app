@@ -91,7 +91,7 @@ export function SubscriptionPage({ user, subscription, lang, onBack, onUpgrade }
               percent={usagePercent(usage.scans, limits.scansPerDay)}
             />
             <UsageLine
-              label={T.subNoteAnalysis}
+              label={T.noteSection}
               used={usage.noteAnalysis}
               limit={limits.noteAnalysisPerDay}
               percent={usagePercent(usage.noteAnalysis, limits.noteAnalysisPerDay)}
@@ -112,16 +112,16 @@ export function SubscriptionPage({ user, subscription, lang, onBack, onUpgrade }
           </p>
           <div className="space-y-2">
             {[
-              { text: T.subFeatureScans,   premium: true },
-              { text: T.subFeatureHistory, premium: true },
-              { text: T.subFeatureNote,    premium: true },
-              { text: T.subFeatureAi,      premium: false },
-            ].map(({ text, premium }) => (
+              { text: T.subFeatureScans,   premium: true,  alwaysDot: false },
+              { text: T.subFeatureHistory, premium: true,  alwaysDot: false },
+              { text: T.subFeatureNote,    premium: true,  alwaysDot: false },
+              { text: T.subFeatureAi,      premium: false, alwaysDot: true  },
+            ].map(({ text, premium, alwaysDot }) => (
               <div key={text} className="flex items-center gap-2">
                 <span className={`text-sm ${
-                  isPremium || !premium ? 'text-[#3B6D11]' : 'text-[#B89F7A]'
+                  alwaysDot ? 'text-[#B89F7A]' : isPremium || !premium ? 'text-[#3B6D11]' : 'text-[#B89F7A]'
                 }`}>
-                  {isPremium || !premium ? '✓' : '·'}
+                  {alwaysDot ? '·' : isPremium || !premium ? '✓' : '·'}
                 </span>
                 <span className="text-sm text-[#4A4A4A]">{text}</span>
               </div>
