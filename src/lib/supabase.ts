@@ -11,6 +11,6 @@ export type ScanRecord = {
   product_name: string;
   brand: string;
   result: object;
+  lang?: string;
   created_at: string;
 };
- 
