@@ -9,10 +9,11 @@ import { AnalysisResult } from '../services/ai';
 interface Props {
   user: User;
   lang: Language;
+  refreshKey?: number;
   onSelect: (result: AnalysisResult) => void;
 }
  
-export function ScanHistory({ user, lang, onSelect }: Props) {
+export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,9 +30,10 @@ export function ScanHistory({ user, lang, onSelect }: Props) {
     setLoading(false);
   };
  
+  // Fetch when panel opens OR when a new scan is saved (refreshKey changes)
   useEffect(() => {
     if (isOpen) fetchScans();
-  }, [isOpen]);
+  }, [isOpen, refreshKey]);
  
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
@@ -132,4 +134,3 @@ export function ScanHistory({ user, lang, onSelect }: Props) {
     </>
   );
 }
- 
