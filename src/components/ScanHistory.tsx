@@ -10,7 +10,7 @@ interface Props {
   user: User;
   lang: Language;
   refreshKey?: number;
-  onSelect: (result: AnalysisResult) => void;
+  onSelect: (result: AnalysisResult, scanLang?: string) => void;
 }
  
 export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
@@ -107,7 +107,7 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
                   animate={{ opacity: 1, y: 0 }}
                   className="flex items-center gap-3 p-3 bg-white border border-[#D4C3A3]/50 rounded-sm cursor-pointer hover:border-[#B89F7A] transition-colors group"
                   onClick={() => {
-                    onSelect(scan.result as AnalysisResult);
+                    onSelect(scan.result as AnalysisResult, scan.lang);
                     setIsOpen(false);
                   }}
                 >
