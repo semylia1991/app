@@ -160,6 +160,7 @@ export default function App() {
   const [user, setUser]               = useState<User | null>(null);
   const [sharedLoading, setSharedLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [scanHistoryKey, setScanHistoryKey] = useState(0);
 
   const [isPrivacyOpen, setIsPrivacyOpen]     = useState(false);
   const [isImpressumOpen, setIsImpressumOpen] = useState(false);
@@ -280,6 +281,7 @@ export default function App() {
       setFile(null);
       setPreviewUrl(null);
       await saveScanToHistory(analysis);
+      setScanHistoryKey(k => k + 1);
       await subscription.incrementScans();
       if (userProfile && analysisWithShops.personalNote) {
         await subscription.incrementNoteAnalysis();
@@ -368,6 +370,7 @@ export default function App() {
                 <ScanHistory
                   user={user}
                   lang={lang}
+                  refreshKey={scanHistoryKey}
                   onSelect={(r) => {
                     originalResult.current = r;
                     translationCache.current = new Map([[lang, r]]);
