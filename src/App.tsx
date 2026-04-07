@@ -238,6 +238,7 @@ export default function App() {
       product_name: analysis.productName,
       brand: analysis.brand,
       result: analysis,
+      lang,
     });
   };
 
@@ -371,9 +372,13 @@ export default function App() {
                   user={user}
                   lang={lang}
                   refreshKey={scanHistoryKey}
-                  onSelect={(r) => {
+                  onSelect={(r, scanLang) => {
                     originalResult.current = r;
-                    translationCache.current = new Map([[lang, r]]);
+                    // Cache under the scan's original language.
+                    // If scanLang differs from current lang, the translation
+                    // useEffect will detect a cache miss and retranslate.
+                    const sourceLang = (scanLang ?? lang) as Language;
+                    translationCache.current = new Map([[sourceLang, r]]);
                     setResult(r);
                   }}
                 />
