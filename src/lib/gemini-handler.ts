@@ -85,7 +85,7 @@ Formatting Rules:
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
-- [Skin type] — [why]
+- [Skin type] — [why and how product behaves on this skin type]
 
 📋 [translated label for "How to Apply"]:
 - [Step 1]
@@ -126,9 +126,6 @@ Formatting Rules:
 ⚗️ [translated label for "Actives Compatibility"]:
 - [Active ingredient] — [can/cannot combine, why]
 
-🧴 [translated label for "Skin Type Compatibility"]:
-- [Skin type] — [how product behaves on this skin type]
-
 🔗 [translated label for "Ingredient Synergy"]:
 - [Ingredient pair] — [how they enhance or conflict with each other]
 
@@ -151,7 +148,6 @@ Ensure the output strictly follows the JSON schema.`.trim();
     userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
     userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
     userProfile.climate         ? "Climate / environment: " + userProfile.climate        : null,
-    userProfile.allergies       ? "⚠️ ALLERGIES / INTOLERANCES (flag any matching ingredients as 🔴 and warn explicitly): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
 
   const personalNoteSection = `
@@ -285,6 +281,8 @@ export async function handleGeminiRequest(
       config: {
         responseMimeType: "application/json",
         responseSchema: buildAnalysisSchema(withNote),
+        temperature: 0.4,
+        topP: 0.9,
       },
     });
 
@@ -319,6 +317,72 @@ export async function handleGeminiRequest(
     });
     return { status: 200, body: { answer: response.text ?? "" } };
   }
+
+  // ── Re-generate personalNote with updated profile ───────────────────────────
+  if (action === "personalNote") {
+    const { result, userProfile, language } = body as {
+      result?: unknown; userProfile?: Record<string, unknown>; language?: string;
+    };
+    if (!result || !userProfile || !language) {
+      return { status: 400, body: { error: "result, userProfile, and language are required." } };
+    }
+
+    const profileLines = Object.entries(userProfile as Record<string, string>)
+      .filter(([, v]) => v)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join("\n");
+
+    const ingredients = Array.isArray((result as any).ingredients)
+      ? (result as any).ingredients
+          .map((i: any) => `${i.status} ${i.name}: ${i.description ?? ""}`)
+          .join("\n")
+      : "";
+
+    const prompt = `You are a cosmetic safety analyst. A product has already been analyzed.
+Your ONLY task: write a personalNote in ${language} based on the user preferences and the ingredient list below.
+Do NOT re-analyze the product. Do NOT invent ingredients. Use ONLY what is listed.
+
+USER PREFERENCES:
+${profileLines}
+
+PRODUCT: ${(result as any).productName ?? ""} by ${(result as any).brand ?? ""}
+INGREDIENTS:
+${ingredients}
+
+Return ONLY valid JSON with a single field "personalNote" (string, in ${language}).
+Structure (translate all headings to ${language}):
+
+🧴 **[Brief summary]** — 1-2 sentences referencing the preferences explicitly.
+
+🔗 **[What to look out for:]**
+- [ingredient] — [why it may matter given these preferences]
+
+📋 **[Beneficial components:]**
+- [ingredient] — [what it does in the context of these preferences]
+
+---
+⚠️ *[Automated analysis based on selected preferences. Not medical advice.]*
+
+Rules: no medical advice, mild phrasing (may cause / worth noting), tie every observation to the preferences.
+If allergies listed — flag any matching ingredient in "What to look out for".`;
+
+    const response = await generateWithRetry(ai, {
+      model: MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: { personalNote: { type: Type.STRING } },
+          required: ["personalNote"],
+        },
+        temperature: 0.4,
+        topP: 0.9,
+      },
+    });
+    return { status: 200, rawText: response.text ?? "" };
+  }
+
 
   return { status: 400, body: { error: `Unknown action: "${action}"` } };
 }
