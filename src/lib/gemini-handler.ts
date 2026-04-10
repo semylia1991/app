@@ -100,9 +100,6 @@ Formatting Rules:
 - [Exact amount — drops, pea-size, pump etc.]
 - [How to spread or massage in]
 
-✅ [translated label for "Layering Order"]:
-- [Step number] [product type] — [example]
-
 🌡️ [translated label for "Before and After"]:
 - [What to do before applying — cleanse, tone etc.]
 - [What to apply after — serum, moisturizer, SPF etc.]
