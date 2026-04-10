@@ -85,7 +85,7 @@ NEVER invent ingredients, ratings, or studies. If data is not found, state "Data
 For each ingredient in the "ingredients" array you MUST always provide a "description" field. It must:
 - Explain what the ingredient IS and what it DOES in this product (function, mechanism)
 - Note any safety concerns, common reactions, or special properties
-- Be 1–3 sentences. Never leave it empty.
+- Be 1–7 words. Never leave it empty.
 
 Provide the analysis in ${language}.
 
