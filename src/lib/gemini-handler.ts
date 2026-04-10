@@ -5,7 +5,11 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const MODEL = "gemini-2.5-flash";
+const MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash-latest",
+];
 
 export interface HandlerResult {
   status: number;
@@ -85,7 +89,7 @@ Formatting Rules:
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
-- [Skin type] — [why and how product behaves on this skin type]
+- [Skin type] — [why]
 
 📋 [translated label for "How to Apply"]:
 - [Step 1]
@@ -99,6 +103,9 @@ Formatting Rules:
 💧 [translated label for "Amount to Use"]:
 - [Exact amount — drops, pea-size, pump etc.]
 - [How to spread or massage in]
+
+✅ [translated label for "Layering Order"]:
+- [Step number] [product type] — [example]
 
 🌡️ [translated label for "Before and After"]:
 - [What to do before applying — cleanse, tone etc.]
@@ -123,6 +130,9 @@ Formatting Rules:
 ⚗️ [translated label for "Actives Compatibility"]:
 - [Active ingredient] — [can/cannot combine, why]
 
+🧴 [translated label for "Skin Type Compatibility"]:
+- [Skin type] — [how product behaves on this skin type]
+
 🔗 [translated label for "Ingredient Synergy"]:
 - [Ingredient pair] — [how they enhance or conflict with each other]
 
@@ -145,6 +155,7 @@ Ensure the output strictly follows the JSON schema.`.trim();
     userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
     userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
     userProfile.climate         ? "Climate / environment: " + userProfile.climate        : null,
+    userProfile.allergies       ? "⚠️ ALLERGIES / INTOLERANCES (flag any matching ingredients as 🔴 and warn explicitly): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
 
   const personalNoteSection = `
@@ -204,30 +215,30 @@ Answer in ${language}.
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 
-// ── Retry wrapper for transient Gemini errors (503 / 429) ─────────────────────
+// ── Retry + model fallback for transient Gemini errors (503 / 429) ──────────
+function isTransient(err: any): boolean {
+  const s = String(err?.message ?? "") + String(err?.status ?? "") + String(err?.code ?? "");
+  return s.includes("503") || s.includes("429") || s.includes("UNAVAILABLE") ||
+         s.includes("RESOURCE_EXHAUSTED") || s.includes("high demand") || s.includes("quota");
+}
+
 async function generateWithRetry(
   ai: GoogleGenAI,
   params: Parameters<GoogleGenAI["models"]["generateContent"]>[0],
-  maxAttempts = 3,
 ) {
   let lastError: unknown;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await ai.models.generateContent(params);
-    } catch (err: any) {
-      lastError = err;
-      const errStr = String(err?.message ?? "") + String(err?.status ?? "") + String(err?.code ?? "");
-      const retryable =
-        errStr.includes("503") ||
-        errStr.includes("429") ||
-        errStr.includes("UNAVAILABLE") ||
-        errStr.includes("RESOURCE_EXHAUSTED") ||
-        errStr.includes("high demand") ||
-        errStr.includes("quota");
-      if (!retryable || attempt === maxAttempts) throw err;
-      const delay = attempt * 500; // 500ms, 1000ms — stays within Vercel 10s timeout
-      await new Promise(r => setTimeout(r, delay));
+  for (const model of MODELS) {
+    const p = { ...params, model };
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        return await ai.models.generateContent(p);
+      } catch (err: any) {
+        lastError = err;
+        if (!isTransient(err)) throw err; // non-transient — fail immediately
+        if (attempt < 2) await new Promise(r => setTimeout(r, 600));
+      }
     }
+    // Both attempts on this model failed — try next model
   }
   throw lastError;
 }
