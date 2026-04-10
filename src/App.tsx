@@ -167,6 +167,7 @@ export default function App() {
   const [isAgbOpen, setIsAgbOpen]             = useState(false);
   const [isSurveyOpen, setIsSurveyOpen]       = useState(false);
   const [isGuideOpen, setIsGuideOpen]         = useState(false);
+  const [isProfileOpen, setIsProfileOpen]     = useState(false);
   const [copied, setCopied]                   = useState(false);
   const [captionCopied, setCaptionCopied]     = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
@@ -382,7 +383,7 @@ export default function App() {
                     setResult(r);
                   }}
                 />
-                <UserProfilePanel user={user} lang={lang} onProfileChange={setUserProfile} initialHasProfile={!!userProfile} />
+                <UserProfilePanel user={user} lang={lang} onProfileChange={setUserProfile} initialHasProfile={!!userProfile} externalOpen={isProfileOpen} onExternalOpenChange={setIsProfileOpen} />
                 <button
                   onClick={() => setShowSubscriptionPage(true)}
                   className={`text-xs px-2.5 py-1 border rounded-sm transition-colors font-serif tracking-wide ${
@@ -424,7 +425,7 @@ export default function App() {
           <div className="mt-4">
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#B89F7A] text-[11px] tracking-[0.2em] uppercase text-white font-medium shadow-sm hover:bg-[#A08860] hover:shadow-md active:scale-95 transition-all duration-200"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-[#B89F7A] text-[10px] tracking-[0.25em] uppercase text-[#B89F7A] hover:bg-[#B89F7A] hover:text-white transition-all duration-200"
             >
               <span>✦</span>
               {t[lang].userGuide}
@@ -558,10 +559,12 @@ export default function App() {
                   <PersonalAnalysis
                     lang={lang}
                     result={result}
+                    user={user}
                     userProfile={userProfile}
                     canUseNote={subscription.canScan}
                     onLimitReached={() => setPaywallReason('scans')}
                     onUsed={subscription.incrementNoteAnalysis}
+                    onOpenProfile={() => setIsProfileOpen(true)}
                   />
                 </CollapsibleSection>
 
