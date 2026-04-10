@@ -216,14 +216,16 @@ async function generateWithRetry(
       return await ai.models.generateContent(params);
     } catch (err: any) {
       lastError = err;
-      const status = err?.status ?? err?.code ?? err?.httpCode;
+      const errStr = String(err?.message ?? "") + String(err?.status ?? "") + String(err?.code ?? "");
       const retryable =
-        status === 503 || status === 429 ||
-        status === "UNAVAILABLE" || status === "RESOURCE_EXHAUSTED" ||
-        String(err?.message ?? "").includes("503") ||
-        String(err?.message ?? "").includes("high demand");
+        errStr.includes("503") ||
+        errStr.includes("429") ||
+        errStr.includes("UNAVAILABLE") ||
+        errStr.includes("RESOURCE_EXHAUSTED") ||
+        errStr.includes("high demand") ||
+        errStr.includes("quota");
       if (!retryable || attempt === maxAttempts) throw err;
-      const delay = attempt * 1500;
+      const delay = attempt * 500; // 500ms, 1000ms — stays within Vercel 10s timeout
       await new Promise(r => setTimeout(r, delay));
     }
   }
