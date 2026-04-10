@@ -298,7 +298,7 @@ export async function handleGeminiRequest(
       config: {
         responseMimeType: "application/json",
         responseSchema: buildAnalysisSchema(withNote),
-        temperature: 0.4,
+        temperature: 0.2,
         topP: 0.9,
       },
     });
