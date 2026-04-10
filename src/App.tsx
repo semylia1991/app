@@ -294,10 +294,17 @@ export default function App() {
         setTimeout(() => setIsSurveyOpen(true), 1500);
       }
       posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError(t[lang].error);
-      posthog.capture('scan_error', { lang });
+      const msg = String(err?.message ?? '');
+      const isOverloaded = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand');
+      setError(isOverloaded
+        ? (lang === 'ru' ? 'Сервис временно перегружен. Подождите несколько секунд и попробуйте снова.' :
+           lang === 'uk' ? 'Сервіс тимчасово перевантажений. Зачекайте кілька секунд і спробуйте знову.' :
+           lang === 'de' ? 'Der Dienst ist vorübergehend überlastet. Bitte warten Sie kurz und versuchen Sie es erneut.' :
+           'The AI service is temporarily overloaded. Please wait a moment and try again.')
+        : t[lang].error);
+      posthog.capture('scan_error', { lang, overloaded: isOverloaded });
     } finally {
       setIsAnalyzing(false);
     }
