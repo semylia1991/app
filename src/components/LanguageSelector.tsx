@@ -7,14 +7,14 @@ interface Props {
 }
  
 const LANGUAGES: { code: Language; flag: string; label: string }[] = [
-  { code: 'en', flag: '🇬🇧', label: 'EN' },
   { code: 'de', flag: '🇩🇪', label: 'DE' },
-  { code: 'ru', flag: '🇷🇺', label: 'RU' },
-  { code: 'uk', flag: '🇺🇦', label: 'UA' },
+  { code: 'en', flag: '🇬🇧', label: 'EN' },
   { code: 'es', flag: '🇪🇸', label: 'ES' },
   { code: 'fr', flag: '🇫🇷', label: 'FR' },
   { code: 'it', flag: '🇮🇹', label: 'IT' },
+  { code: 'ru', flag: '🇷🇺', label: 'RU' },
   { code: 'tr', flag: '🇹🇷', label: 'TR' },
+  { code: 'uk', flag: '🇺🇦', label: 'UA' },
 ];
  
 export function LanguageSelector({ currentLang, onSelect }: Props) {
@@ -39,4 +39,3 @@ export function LanguageSelector({ currentLang, onSelect }: Props) {
     </div>
   );
 }
-    
