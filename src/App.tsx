@@ -424,11 +424,11 @@ export default function App() {
           <div className="mt-4">
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="inline-flex items-center gap-2.5 px-6 py-3 bg-[#B89F7A] text-white text-sm font-semibold tracking-[0.15em] uppercase shadow-md hover:bg-[#A08860] hover:shadow-lg active:scale-95 transition-all duration-200"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-[#2C3E50] text-white text-base font-bold tracking-[0.12em] uppercase rounded-sm shadow-lg hover:bg-[#B89F7A] hover:shadow-xl active:scale-95 transition-all duration-200"
             >
-              <span>✦</span>
+              <span className="text-[#B89F7A] group-hover:text-white transition-colors">✦</span>
               {t[lang].userGuide}
-              <span>✦</span>
+              <span className="text-[#B89F7A] group-hover:text-white transition-colors">✦</span>
             </button>
           </div>
         </motion.div>
