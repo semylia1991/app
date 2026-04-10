@@ -1,19 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Crown, RefreshCw } from 'lucide-react';
+import { Crown, RefreshCw, LogIn, Settings } from 'lucide-react';
 import { t, Language } from '../i18n';
 import { AnalysisResult, SerializedProfile } from '../services/ai';
 import { UserProfile, translateProfile } from './UserProfile';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 const FUNCTION_URL = '/api/gemini';
 
 interface Props {
   lang: Language;
   result: AnalysisResult;
+  user: User | null;
   userProfile: UserProfile | null;
   canUseNote: boolean;
   onLimitReached: () => void;
   onUsed: () => Promise<void>;
+  onOpenProfile: () => void;
 }
 
 function serializeProfile(profile: UserProfile, lang: Language): SerializedProfile {
@@ -59,12 +63,57 @@ async function fetchPersonalNote(
   return data.personalNote as string;
 }
 
-export function PersonalAnalysis({ lang, result, userProfile, canUseNote, onLimitReached, onUsed }: Props) {
+const SIGN_IN_LABELS: Record<Language, string> = {
+  en: 'Sign in to get a personalised analysis based on your skin profile.',
+  ru: 'Войдите, чтобы получить персональный анализ на основе вашего профиля кожи.',
+  de: 'Melden Sie sich an, um eine personalisierte Analyse basierend auf Ihrem Hautprofil zu erhalten.',
+  uk: 'Увійдіть, щоб отримати персональний аналіз на основі вашого профілю шкіри.',
+  es: 'Inicia sesión para obtener un análisis personalizado basado en tu perfil de piel.',
+  fr: 'Connectez-vous pour obtenir une analyse personnalisée basée sur votre profil de peau.',
+  it: 'Accedi per ottenere un\'analisi personalizzata basata sul tuo profilo della pelle.',
+  tr: 'Cilt profilinize göre kişiselleştirilmiş analiz almak için giriş yapın.',
+};
+
+const SIGN_IN_BTN: Record<Language, string> = {
+  en: 'Sign in with Google',
+  ru: 'Войти через Google',
+  de: 'Mit Google anmelden',
+  uk: 'Увійти через Google',
+  es: 'Iniciar sesión con Google',
+  fr: 'Se connecter avec Google',
+  it: 'Accedi con Google',
+  tr: 'Google ile giriş yap',
+};
+
+const FILL_PROFILE_LABELS: Record<Language, string> = {
+  en: 'Fill in your preferences to get a personalised note.',
+  ru: 'Заполните предпочтения, чтобы получить персональный анализ.',
+  de: 'Füllen Sie Ihre Präferenzen aus, um einen personalisierten Hinweis zu erhalten.',
+  uk: 'Заповніть вподобання, щоб отримати персональний аналіз.',
+  es: 'Completa tus preferencias para obtener una nota personalizada.',
+  fr: 'Remplissez vos préférences pour obtenir une note personnalisée.',
+  it: 'Compila le tue preferenze per ricevere una nota personalizzata.',
+  tr: 'Kişiselleştirilmiş not almak için tercihlerinizi doldurun.',
+};
+
+const FILL_PROFILE_BTN: Record<Language, string> = {
+  en: 'Fill in preferences',
+  ru: 'Заполнить предпочтения',
+  de: 'Präferenzen ausfüllen',
+  uk: 'Заповнити вподобання',
+  es: 'Completar preferencias',
+  fr: 'Remplir les préférences',
+  it: 'Compila le preferenze',
+  tr: 'Tercihleri doldur',
+};
+
+export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, onLimitReached, onUsed, onOpenProfile }: Props) {
   const T = t[lang];
 
   const [note, setNote]       = useState<string | null>(result.personalNote ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
 
   const noteProfileKey = useRef<string>(profileKey(userProfile));
   const currentKey = profileKey(userProfile);
@@ -104,10 +153,53 @@ export function PersonalAnalysis({ lang, result, userProfile, canUseNote, onLimi
     }
   }
 
-  if (!hasProfile) {
-    return <p className="text-xs text-[#B89F7A] py-2 italic">{T.noteNoProfile}</p>;
+  async function handleSignIn() {
+    setSigningIn(true);
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    setSigningIn(false);
   }
 
+  // ── Not logged in ──────────────────────────────────────────────────────────
+  if (!user) {
+    return (
+      <div className="flex flex-col gap-3 py-2">
+        <p className="text-xs text-[#4A4A4A] leading-relaxed">
+          {SIGN_IN_LABELS[lang]}
+        </p>
+        <button
+          onClick={handleSignIn}
+          disabled={signingIn}
+          className="inline-flex items-center gap-2 self-start px-4 py-2 bg-[#2C3E50] text-white text-[11px] font-semibold rounded-sm hover:bg-[#2C3E50]/90 transition-all disabled:opacity-50"
+        >
+          <LogIn size={13} />
+          {signingIn ? '...' : SIGN_IN_BTN[lang]}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Logged in but no profile ───────────────────────────────────────────────
+  if (!hasProfile) {
+    return (
+      <div className="flex flex-col gap-3 py-2">
+        <p className="text-xs text-[#4A4A4A] leading-relaxed">
+          {FILL_PROFILE_LABELS[lang]}
+        </p>
+        <button
+          onClick={onOpenProfile}
+          className="inline-flex items-center gap-2 self-start px-4 py-2 bg-[#B89F7A] text-white text-[11px] font-semibold rounded-sm hover:bg-[#A08860] transition-all"
+        >
+          <Settings size={13} />
+          {FILL_PROFILE_BTN[lang]}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Premium limit reached ──────────────────────────────────────────────────
   if (!canUseNote && !note) {
     return (
       <div
