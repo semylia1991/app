@@ -144,12 +144,22 @@ interface Props {
   lang: Language;
   onProfileChange?: (profile: UserProfile | null) => void;
   initialHasProfile?: boolean;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
  
-export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfile = false }: Props) {
+export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfile = false, externalOpen, onExternalOpenChange }: Props) {
   const [isOpen, setIsOpen]         = useState(false);
   const [profile, setProfile]       = useState<UserProfile>(EMPTY_PROFILE);
   const [loading, setLoading]       = useState(false);
+
+  // Sync external open trigger (from PersonalAnalysis "fill preferences" button)
+  useEffect(() => {
+    if (externalOpen) {
+      setIsOpen(true);
+      onExternalOpenChange?.(false);
+    }
+  }, [externalOpen]);
   const [saved, setSaved]           = useState(false);
   const [hasProfile, setHasProfile] = useState(initialHasProfile);
   const [deleting, setDeleting]     = useState(false);
