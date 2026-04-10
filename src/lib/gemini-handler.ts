@@ -17,6 +17,12 @@ export interface HandlerResult {
   body: unknown;
   rawText?: string;
 }
+ 
+export interface HandlerResult {
+  status: number;
+  body: unknown;
+  rawText?: string;
+}
 
 // ── JSON schema ───────────────────────────────────────────────────────────────
 
