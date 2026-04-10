@@ -7,7 +7,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const MODELS = [
   "gemini-2.5-flash",
-  "gemini-1.5-flash-latest",
+  "gemini-1.5-flash",
 ];
 
 export interface HandlerResult {
@@ -233,7 +233,10 @@ async function generateWithRetry(
         return await ai.models.generateContent(p);
       } catch (err: any) {
         lastError = err;
-        if (!isTransient(err)) throw err; // non-transient — fail immediately
+        if (!isTransient(err)) {
+        if (String(err?.status ?? "").includes("404") || String(err?.message ?? "").includes("404")) break;
+        throw err;
+      } // non-transient — fail immediately
         if (attempt < 2) await new Promise(r => setTimeout(r, 600));
       }
     }
