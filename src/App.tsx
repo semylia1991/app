@@ -424,7 +424,7 @@ export default function App() {
           <div className="mt-4">
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-[#B89F7A] text-[10px] tracking-[0.25em] uppercase text-[#B89F7A] hover:bg-[#B89F7A] hover:text-white transition-all duration-200"
+              className="inline-flex items-center gap-2.5 px-6 py-3 bg-[#B89F7A] text-white text-sm font-semibold tracking-[0.15em] uppercase shadow-md hover:bg-[#A08860] hover:shadow-lg active:scale-95 transition-all duration-200"
             >
               <span>✦</span>
               {t[lang].userGuide}
@@ -445,13 +445,11 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full max-w-md bg-[#FDFBF7] regency-border p-8 shadow-xl"
             >
-              {!previewUrl && (
-                <div className="text-center mb-6">
-                  <p className="text-sm text-[#B89F7A] leading-relaxed mt-3 px-4 font-bold">
-                    {t[lang].description}
-                  </p>
-                </div>
-              )}
+              <div className="text-center mb-6">
+                <p className="text-xs text-[#B89F7A] leading-relaxed mt-3 px-4 font-bold">
+                  {t[lang].description}
+                </p>
+              </div>
 
               {/* Clickable upload zone */}
               <div
