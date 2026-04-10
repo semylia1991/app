@@ -72,17 +72,33 @@ async function compressImage(base64: string): Promise<{ data: string; mimeType: 
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const MAX = 1024;
+      // Two-pass compression:
+      // Pass 1 — resize to MAX_PX on the long side (keeps INCI text readable)
+      // Pass 2 — if the JPEG still exceeds SIZE_LIMIT, halve quality until it fits
+      const MAX_PX    = 800;
+      const SIZE_LIMIT = 100 * 1024; // 100 KB target
+
       let { width, height } = img;
-      if (width > MAX || height > MAX) {
-        if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
-        else                { width  = Math.round((width  * MAX) / height); height = MAX; }
+      if (width > MAX_PX || height > MAX_PX) {
+        if (width > height) { height = Math.round((height * MAX_PX) / width); width = MAX_PX; }
+        else                { width  = Math.round((width  * MAX_PX) / height); height = MAX_PX; }
       }
+
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
       canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+
+      let quality = 0.75;
+      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+      // Estimate byte size of base64 payload
+      const byteSize = (dataUrl.length * 3) / 4;
+      if (byteSize > SIZE_LIMIT) {
+        quality = 0.60;
+        dataUrl = canvas.toDataURL("image/jpeg", quality);
+      }
+
       resolve({ data: dataUrl, mimeType: "image/jpeg" });
     };
     img.src = base64;
