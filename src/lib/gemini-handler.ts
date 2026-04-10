@@ -85,7 +85,7 @@ Formatting Rules:
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
-- [Skin type] — [how product behaves on this skin type and why]
+- [Skin type] — [why and how product behaves on this skin type]
 
 📋 [translated label for "How to Apply"]:
 - [Step 1]
@@ -99,9 +99,6 @@ Formatting Rules:
 💧 [translated label for "Amount to Use"]:
 - [Exact amount — drops, pea-size, pump etc.]
 - [How to spread or massage in]
-
-✅ [translated label for "Layering Order"]:
-- [Step number] [product type] — [example]
 
 🌡️ [translated label for "Before and After"]:
 - [What to do before applying — cleanse, tone etc.]
@@ -290,6 +287,37 @@ export async function handleGeminiRequest(
     });
     return { status: 200, body: { answer: response.text ?? "" } };
   }
+
+  // ── Re-generate personalNote with updated profile ───────────────────────────
+  if (action === "personalNote") {
+    const { result, userProfile, language } = body as {
+      result?: unknown; userProfile?: Record<string, unknown>; language?: string;
+    };
+    if (!result || !userProfile || !language) {
+      return { status: 400, body: { error: "result, userProfile, and language are required." } };
+    }
+    const prompt = buildAnalyzePrompt(language as string, userProfile) +
+      "\n\nIMPORTANT: You already have the full analysis result below. " +
+      "Do NOT re-analyze the product. ONLY generate the personalNote field " +
+      "based on the user preferences and the existing ingredient data.\n\n" +
+      "Existing analysis:\n" + JSON.stringify(result);
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: { personalNote: { type: Type.STRING } },
+          required: ["personalNote"],
+        },
+        temperature: 0.1,
+        topP: 0.8,
+      },
+    });
+    return { status: 200, rawText: response.text ?? "" };
+  }
+
 
   return { status: 400, body: { error: `Unknown action: "${action}"` } };
 }
