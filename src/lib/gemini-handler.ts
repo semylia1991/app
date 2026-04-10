@@ -145,7 +145,6 @@ Ensure the output strictly follows the JSON schema.`.trim();
     userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
     userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
     userProfile.climate         ? "Climate / environment: " + userProfile.climate        : null,
-  ].filter(Boolean).join("\n");
 
   const personalNoteSection = `
 
@@ -203,6 +202,29 @@ Answer in ${language}.
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
+
+// ── Retry wrapper for transient Gemini errors (503 / 429) ─────────────────────
+async function generateWithRetry(
+  ai: GoogleGenAI,
+  params: Parameters<GoogleGenAI["models"]["generateContent"]>[0],
+  maxAttempts = 3,
+) {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await ai.models.generateContent(params);
+    } catch (err: any) {
+      lastError = err;
+      const status = err?.status ?? err?.code;
+      const retryable = status === 503 || status === 429;
+      if (!retryable || attempt === maxAttempts) throw err;
+      const delay = attempt * 1500;
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw lastError;
+}
+
 export async function handleGeminiRequest(
   body: Record<string, unknown>,
   apiKey: string,
@@ -220,7 +242,7 @@ export async function handleGeminiRequest(
     if (!message || typeof message !== "string") {
       return { status: 400, body: { error: "message is required and must be a string." } };
     }
-    const response = await ai.models.generateContent({ model: MODEL, contents: message });
+    const response = await generateWithRetry(ai, { model: MODEL, contents: message });
     return { status: 200, body: { response: response.text } };
   }
 
@@ -240,7 +262,7 @@ export async function handleGeminiRequest(
     const imageData = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
     const withNote  = !!userProfile;
 
-    const response = await ai.models.generateContent({
+    const response = await generateWithRetry(ai, {
       model: MODEL,
       contents: [{
         parts: [
@@ -251,8 +273,6 @@ export async function handleGeminiRequest(
       config: {
         responseMimeType: "application/json",
         responseSchema: buildAnalysisSchema(withNote),
-        temperature: 0.1,
-        topP: 0.8,
       },
     });
 
@@ -265,7 +285,7 @@ export async function handleGeminiRequest(
     if (!result || !targetLanguage) {
       return { status: 400, body: { error: "result and targetLanguage are required." } };
     }
-    const response = await ai.models.generateContent({
+    const response = await generateWithRetry(ai, {
       model: MODEL,
       contents: buildTranslatePrompt(result, targetLanguage),
       config: { responseMimeType: "application/json" },
@@ -281,43 +301,12 @@ export async function handleGeminiRequest(
     if (!question || !context || !language) {
       return { status: 400, body: { error: "question, context, and language are required." } };
     }
-    const response = await ai.models.generateContent({
+    const response = await generateWithRetry(ai, {
       model: MODEL,
       contents: buildAskPrompt(question, context, language),
     });
     return { status: 200, body: { answer: response.text ?? "" } };
   }
-
-  // ── Re-generate personalNote with updated profile ───────────────────────────
-  if (action === "personalNote") {
-    const { result, userProfile, language } = body as {
-      result?: unknown; userProfile?: Record<string, unknown>; language?: string;
-    };
-    if (!result || !userProfile || !language) {
-      return { status: 400, body: { error: "result, userProfile, and language are required." } };
-    }
-    const prompt = buildAnalyzePrompt(language as string, userProfile) +
-      "\n\nIMPORTANT: You already have the full analysis result below. " +
-      "Do NOT re-analyze the product. ONLY generate the personalNote field " +
-      "based on the user preferences and the existing ingredient data.\n\n" +
-      "Existing analysis:\n" + JSON.stringify(result);
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: { personalNote: { type: Type.STRING } },
-          required: ["personalNote"],
-        },
-        temperature: 0.1,
-        topP: 0.8,
-      },
-    });
-    return { status: 200, rawText: response.text ?? "" };
-  }
-
 
   return { status: 400, body: { error: `Unknown action: "${action}"` } };
 }
