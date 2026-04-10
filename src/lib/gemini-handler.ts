@@ -2,14 +2,16 @@
  * gemini-handler.ts — single source of truth for all Gemini AI logic.
  * Imported by server.ts (dev) and api/gemini.mjs (prod Netlify).
  */
-
+ 
 import { GoogleGenAI, Type } from "@google/genai";
-
+ 
+// ── Available models (updated April 2026) ─────────────────────────────────────
 const MODELS = [
-  "gemini-2.5-flash",
-  "gemini-1.5-flash",
+  "gemini-2.5-flash",        // Основная модель: лучший баланс скорости, цены и качества
+  "gemini-2.5-flash-lite",   // Более быстрый и дешёвый вариант
+  // "gemini-2.5-pro",       // Раскомментировать, если нужна максимальная точность (дороже)
 ];
-
+ 
 export interface HandlerResult {
   status: number;
   body: unknown;
