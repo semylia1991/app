@@ -35,7 +35,7 @@ function splitParagraphs(text: string): string[] {
 function UsageSection({ text }: { text: string }) {
   const blocks = splitParagraphs(text);
   return (
-    <div className="space-y-3 text-base text-[#4A4A4A]">
+    <div className="space-y-3 text-sm text-[#4A4A4A]">
       {blocks.map((block, i) => {
         const colonIdx = block.indexOf(':');
         if (colonIdx !== -1) {
@@ -60,7 +60,7 @@ function UsageSection({ text }: { text: string }) {
 function BenefitsSection({ text }: { text: string }) {
   const blocks = splitParagraphs(text);
   return (
-    <div className="space-y-3 text-base text-[#4A4A4A]">
+    <div className="space-y-3 text-sm text-[#4A4A4A]">
       {blocks.map((block, i) => {
         const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length === 0) return null;
@@ -445,11 +445,13 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full max-w-md bg-[#FDFBF7] regency-border p-8 shadow-xl"
             >
-              <div className="text-center mb-6">
-                <p className="text-sm text-[#B89F7A] leading-relaxed mt-3 px-4 font-bold">
-                  {t[lang].description}
-                </p>
-              </div>
+              {!previewUrl && (
+                <div className="text-center mb-6">
+                  <p className="text-sm text-[#B89F7A] leading-relaxed mt-3 px-4 font-bold">
+                    {t[lang].description}
+                  </p>
+                </div>
+              )}
 
               {/* Clickable upload zone */}
               <div
@@ -491,7 +493,7 @@ export default function App() {
                       />
                       <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     </div>
-                    <span className="text-sm text-[#4A4A4A] leading-relaxed group-hover:text-[#2C3E50] transition-colors">
+                    <span className="text-xs text-[#4A4A4A] leading-relaxed group-hover:text-[#2C3E50] transition-colors">
                       {t[lang].consent}
                     </span>
                   </label>
@@ -583,8 +585,8 @@ export default function App() {
                         <li key={idx} className="flex items-start gap-2 py-1 border-b border-[#D4C3A3]/20 last:border-0">
                           <span className="text-base shrink-0 mt-0.5">{ing.status}</span>
                           <div className="flex flex-col">
-                            <span className="font-semibold text-[#2C3E50] text-sm uppercase tracking-wide">{ing.name}</span>
-                            <span className="text-sm text-[#4A4A4A]">{ing.description}</span>
+                            <span className="font-semibold text-[#2C3E50] text-xs uppercase tracking-wide">{ing.name}</span>
+                            <span className="text-xs text-[#4A4A4A]">{ing.description}</span>
                           </div>
                         </li>
                       ))}
