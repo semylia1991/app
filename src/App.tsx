@@ -294,17 +294,10 @@ export default function App() {
         setTimeout(() => setIsSurveyOpen(true), 1500);
       }
       posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      const msg = String(err?.message ?? '');
-      const isOverloaded = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand');
-      setError(isOverloaded
-        ? (lang === 'ru' ? 'Сервис временно перегружен. Подождите несколько секунд и попробуйте снова.' :
-           lang === 'uk' ? 'Сервіс тимчасово перевантажений. Зачекайте кілька секунд і спробуйте знову.' :
-           lang === 'de' ? 'Der Dienst ist vorübergehend überlastet. Bitte warten Sie kurz und versuchen Sie es erneut.' :
-           'The AI service is temporarily overloaded. Please wait a moment and try again.')
-        : t[lang].error);
-      posthog.capture('scan_error', { lang, overloaded: isOverloaded });
+      setError(t[lang].error);
+      posthog.capture('scan_error', { lang });
     } finally {
       setIsAnalyzing(false);
     }
@@ -431,7 +424,7 @@ export default function App() {
           <div className="mt-4">
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-[#B89F7A] text-[10px] tracking-[0.25em] uppercase text-[#B89F7A] hover:bg-[#B89F7A] hover:text-white transition-all duration-200"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#B89F7A] text-[11px] tracking-[0.2em] uppercase text-white font-medium shadow-sm hover:bg-[#A08860] hover:shadow-md active:scale-95 transition-all duration-200"
             >
               <span>✦</span>
               {t[lang].userGuide}
