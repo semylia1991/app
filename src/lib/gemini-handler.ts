@@ -41,6 +41,7 @@ function buildAnalysisSchema(withPersonalNote: boolean) {
           status:      { type: Type.STRING, enum: ["🟢", "🟡", "🔴"] },
           description: { type: Type.STRING },
         },
+        required: ["name", "status", "description 1-10 words"],
       },
     },
     usage:        { type: Type.STRING },
