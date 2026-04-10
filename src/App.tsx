@@ -424,11 +424,11 @@ export default function App() {
           <div className="mt-4">
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="inline-flex items-center gap-3 px-8 py-4 bg-[#2C3E50] text-white text-base font-bold tracking-[0.12em] uppercase rounded-sm shadow-lg hover:bg-[#B89F7A] hover:shadow-xl active:scale-95 transition-all duration-200"
+              className="inline-flex items-center gap-2.5 px-6 py-3 bg-[#B89F7A] text-white text-sm font-semibold tracking-[0.15em] uppercase shadow-md hover:bg-[#A08860] hover:shadow-lg active:scale-95 transition-all duration-200"
             >
-              <span className="text-[#B89F7A] group-hover:text-white transition-colors">✦</span>
+              <span>✦</span>
               {t[lang].userGuide}
-              <span className="text-[#B89F7A] group-hover:text-white transition-colors">✦</span>
+              <span>✦</span>
             </button>
           </div>
         </motion.div>
@@ -445,11 +445,13 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full max-w-md bg-[#FDFBF7] regency-border p-8 shadow-xl"
             >
-              <div className="text-center mb-6">
-                <p className="text-xs text-[#B89F7A] leading-relaxed mt-3 px-4 font-bold">
-                  {t[lang].description}
-                </p>
-              </div>
+              {!previewUrl && (
+                <div className="text-center mb-6">
+                  <p className="text-base text-[#B89F7A] leading-relaxed mt-3 px-4 font-bold">
+                    {t[lang].description}
+                  </p>
+                </div>
+              )}
 
               {/* Clickable upload zone */}
               <div
