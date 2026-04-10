@@ -19,15 +19,15 @@ interface Props {
 function serializeProfile(profile: UserProfile, lang: Language): SerializedProfile {
   const p = translateProfile(profile, lang);
   return {
-    skinType:        p.skinType.join(', ')       || undefined,
-    skinSensitivity: p.skinSensitivity.join(', ')|| undefined,
-    skinConditions:  p.skinConditions.join(', ') || undefined,
-    ageRange:        p.ageRange                   || undefined,
-    hairType:        p.hairType.join(', ')        || undefined,
-    scalpCondition:  p.scalpCondition.join(', ') || undefined,
-    hairProblems:    p.hairProblems.join(', ')    || undefined,
-    climate:         p.climate.join(', ')         || undefined,
-    allergies:       (profile as any).allergies   || undefined,
+    skinType:        p.skinType.join(', ')        || undefined,
+    skinSensitivity: p.skinSensitivity.join(', ') || undefined,
+    skinConditions:  p.skinConditions.join(', ')  || undefined,
+    ageRange:        p.ageRange                    || undefined,
+    hairType:        p.hairType.join(', ')         || undefined,
+    scalpCondition:  p.scalpCondition.join(', ')  || undefined,
+    hairProblems:    p.hairProblems.join(', ')     || undefined,
+    climate:         p.climate.join(', ')          || undefined,
+    allergies:       (profile as any).allergies    || undefined,
   };
 }
 
@@ -41,14 +41,13 @@ async function fetchPersonalNote(
   profile: UserProfile,
   lang: Language,
 ): Promise<string> {
-  const serialized = serializeProfile(profile, lang);
   const res = await fetch(FUNCTION_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       action: 'personalNote',
       result,
-      userProfile: serialized,
+      userProfile: serializeProfile(profile, lang),
       language: lang,
     }),
   });
@@ -67,9 +66,9 @@ export function PersonalAnalysis({ lang, result, userProfile, canUseNote, onLimi
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
 
-  // Track which profile version was used to generate the current note
-  const noteProfileKey = useRef<string>(userProfile ? profileKey(userProfile) : '');
+  const noteProfileKey = useRef<string>(profileKey(userProfile));
   const currentKey = profileKey(userProfile);
+  const profileChanged = !!userProfile && currentKey !== noteProfileKey.current;
 
   const hasProfile = !!userProfile && (
     userProfile.skinType.length > 0 ||
@@ -82,20 +81,15 @@ export function PersonalAnalysis({ lang, result, userProfile, canUseNote, onLimi
     !!userProfile.ageRange
   );
 
-  const profileChanged = hasProfile && currentKey !== noteProfileKey.current;
-
-  // Auto-refresh when profile changes and we already have a result
   useEffect(() => {
     if (!hasProfile || !profileChanged || !canUseNote) return;
     regenerate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentKey]);
 
   async function regenerate() {
-    if (!userProfile || !canUseNote) {
-      if (!canUseNote) onLimitReached();
-      return;
-    }
+    if (!userProfile) return;
+    if (!canUseNote) { onLimitReached(); return; }
     setLoading(true);
     setError(null);
     try {
@@ -111,11 +105,7 @@ export function PersonalAnalysis({ lang, result, userProfile, canUseNote, onLimi
   }
 
   if (!hasProfile) {
-    return (
-      <p className="text-xs text-[#B89F7A] py-2 italic">
-        {T.noteNoProfile}
-      </p>
-    );
+    return <p className="text-xs text-[#B89F7A] py-2 italic">{T.noteNoProfile}</p>;
   }
 
   if (!canUseNote && !note) {
@@ -145,22 +135,13 @@ export function PersonalAnalysis({ lang, result, userProfile, canUseNote, onLimi
     return (
       <div className="flex items-center gap-2 py-2">
         <p className="text-xs text-red-400 italic flex-1">{error}</p>
-        <button
-          onClick={regenerate}
-          className="text-xs text-[#B89F7A] underline"
-        >
-          Retry
-        </button>
+        <button onClick={regenerate} className="text-xs text-[#B89F7A] underline">Retry</button>
       </div>
     );
   }
 
   if (!note) {
-    return (
-      <p className="text-xs text-[#B89F7A]/70 py-2 italic">
-        {T.noteRescan}
-      </p>
-    );
+    return <p className="text-xs text-[#B89F7A]/70 py-2 italic">{T.noteRescan}</p>;
   }
 
   return (
