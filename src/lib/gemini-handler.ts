@@ -5,7 +5,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-1.5-flash";
 
 export interface HandlerResult {
   status: number;
