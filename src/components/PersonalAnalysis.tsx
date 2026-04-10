@@ -64,14 +64,14 @@ async function fetchPersonalNote(
 }
 
 const SIGN_IN_LABELS: Record<Language, string> = {
-  en: 'Sign in to get a personalised analysis based on your skin profile.',
-  ru: 'Войдите, чтобы получить персональный анализ на основе вашего профиля кожи.',
-  de: 'Melden Sie sich an, um eine personalisierte Analyse basierend auf Ihrem Hautprofil zu erhalten.',
-  uk: 'Увійдіть, щоб отримати персональний аналіз на основі вашого профілю шкіри.',
-  es: 'Inicia sesión para obtener un análisis personalizado basado en tu perfil de piel.',
-  fr: 'Connectez-vous pour obtenir une analyse personnalisée basée sur votre profil de peau.',
-  it: 'Accedi per ottenere un\'analisi personalizzata basata sul tuo profilo della pelle.',
-  tr: 'Cilt profilinize göre kişiselleştirilmiş analiz almak için giriş yapın.',
+  en: 'Sign in to get a more accurate analysis based on your preferences.',
+  ru: 'Войдите, чтобы получить более точный анализ на основе ваших предпочтений.',
+  de: 'Melden Sie sich an, um eine genauere Analyse basierend auf Ihren Präferenzen zu erhalten.',
+  uk: 'Увійдіть, щоб отримати більш точний аналіз на основі ваших вподобань.',
+  es: 'Inicia sesión para obtener un análisis más preciso basado en tus preferencias.',
+  fr: 'Connectez-vous pour obtenir une analyse plus précise basée sur vos préférences.',
+  it: 'Accedi per ottenere un\'analisi più precisa basata sulle tue preferenze.',
+  tr: 'Tercihlerinize göre daha doğru bir analiz almak için giriş yapın.',
 };
 
 const SIGN_IN_BTN: Record<Language, string> = {
