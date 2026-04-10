@@ -2,22 +2,16 @@
  * gemini-handler.ts — single source of truth for all Gemini AI logic.
  * Imported by server.ts (dev) and api/gemini.mjs (prod Netlify).
  */
- 
+
 import { GoogleGenAI, Type } from "@google/genai";
- 
+
 // ── Available models (updated April 2026) ─────────────────────────────────────
 const MODELS = [
   "gemini-2.5-flash",        // Основная модель: лучший баланс скорости, цены и качества
   "gemini-2.5-flash-lite",   // Более быстрый и дешёвый вариант
   // "gemini-2.5-pro",       // Раскомментировать, если нужна максимальная точность (дороже)
 ];
- 
-export interface HandlerResult {
-  status: number;
-  body: unknown;
-  rawText?: string;
-}
- 
+
 export interface HandlerResult {
   status: number;
   body: unknown;
@@ -41,7 +35,7 @@ function buildAnalysisSchema(withPersonalNote: boolean) {
           status:      { type: Type.STRING, enum: ["🟢", "🟡", "🔴"] },
           description: { type: Type.STRING },
         },
-        required: ["name", "status", "description 1-10 words"],
+        required: ["name", "status", "description"],
       },
     },
     usage:        { type: Type.STRING },
@@ -88,6 +82,11 @@ Extract the product name, brand, and INCI ingredients. Correct any OCR errors.
 If data is missing, search your knowledge base (EWG Skin Deep, CosDNA, INCI Decoder, PubChem, CIR, EU CosIng).
 NEVER invent ingredients, ratings, or studies. If data is not found, state "Data not found in public databases.".
 
+For each ingredient in the "ingredients" array you MUST always provide a "description" field. It must:
+- Explain what the ingredient IS and what it DOES in this product (function, mechanism)
+- Note any safety concerns, common reactions, or special properties
+- Be 1–3 sentences. Never leave it empty.
+
 Provide the analysis in ${language}.
 
 Formatting Rules:
@@ -97,7 +96,7 @@ Formatting Rules:
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
-- [Skin type] — [why and how product behaves on this skin type]
+- [Skin type] — [why]
 
 📋 [translated label for "How to Apply"]:
 - [Step 1]
@@ -137,6 +136,9 @@ Formatting Rules:
 
 ⚗️ [translated label for "Actives Compatibility"]:
 - [Active ingredient] — [can/cannot combine, why]
+
+🧴 [translated label for "Skin Type Compatibility"]:
+- [Skin type] — [how product behaves on this skin type]
 
 🔗 [translated label for "Ingredient Synergy"]:
 - [Ingredient pair] — [how they enhance or conflict with each other]
