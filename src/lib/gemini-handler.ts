@@ -260,7 +260,7 @@ export async function handleGeminiRequest(
     if (!message || typeof message !== "string") {
       return { status: 400, body: { error: "message is required and must be a string." } };
     }
-    const response = await generateWithRetry(ai, { model: MODEL, contents: message });
+    const response = await generateWithRetry(ai, { contents: message });
     return { status: 200, body: { response: response.text } };
   }
 
@@ -281,7 +281,6 @@ export async function handleGeminiRequest(
     const withNote  = !!userProfile;
 
     const response = await generateWithRetry(ai, {
-      model: MODEL,
       contents: [{
         parts: [
           { text: buildAnalyzePrompt(language, userProfile) },
@@ -306,7 +305,6 @@ export async function handleGeminiRequest(
       return { status: 400, body: { error: "result and targetLanguage are required." } };
     }
     const response = await generateWithRetry(ai, {
-      model: MODEL,
       contents: buildTranslatePrompt(result, targetLanguage),
       config: { responseMimeType: "application/json" },
     });
@@ -322,7 +320,6 @@ export async function handleGeminiRequest(
       return { status: 400, body: { error: "question, context, and language are required." } };
     }
     const response = await generateWithRetry(ai, {
-      model: MODEL,
       contents: buildAskPrompt(question, context, language),
     });
     return { status: 200, body: { answer: response.text ?? "" } };
@@ -377,7 +374,6 @@ Rules: no medical advice, mild phrasing (may cause / worth noting), tie every ob
 If allergies listed — flag any matching ingredient in "What to look out for".`;
 
     const response = await generateWithRetry(ai, {
-      model: MODEL,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
