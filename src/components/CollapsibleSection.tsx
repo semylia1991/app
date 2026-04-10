@@ -23,7 +23,7 @@ export function CollapsibleSection({ title, icon, children, defaultOpen = false,
           <span className="text-[#B89F7A] group-hover:scale-110 transition-transform">
             {icon}
           </span>
-          <h3 className="font-serif text-lg text-[#2C3E50] tracking-wide">
+          <h3 className="font-serif text-xl text-[#2C3E50] tracking-wide">
             {title}
           </h3>
         </div>
@@ -41,7 +41,7 @@ export function CollapsibleSection({ title, icon, children, defaultOpen = false,
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="p-4 pt-0 text-[#4A4A4A] text-sm leading-relaxed">
+            <div className="p-4 pt-0 text-[#4A4A4A] text-base leading-relaxed">
               {children}
             </div>
 
