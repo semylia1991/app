@@ -85,7 +85,7 @@ Formatting Rules:
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
-- [Skin type] — [why]
+- [Skin type] — [how product behaves on this skin type and why]
 
 📋 [translated label for "How to Apply"]:
 - [Step 1]
@@ -126,9 +126,6 @@ Formatting Rules:
 ⚗️ [translated label for "Actives Compatibility"]:
 - [Active ingredient] — [can/cannot combine, why]
 
-🧴 [translated label for "Skin Type Compatibility"]:
-- [Skin type] — [how product behaves on this skin type]
-
 🔗 [translated label for "Ingredient Synergy"]:
 - [Ingredient pair] — [how they enhance or conflict with each other]
 
@@ -151,7 +148,6 @@ Ensure the output strictly follows the JSON schema.`.trim();
     userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
     userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
     userProfile.climate         ? "Climate / environment: " + userProfile.climate        : null,
-    userProfile.allergies       ? "⚠️ ALLERGIES / INTOLERANCES (flag any matching ingredients as 🔴 and warn explicitly): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
 
   const personalNoteSection = `
@@ -258,6 +254,8 @@ export async function handleGeminiRequest(
       config: {
         responseMimeType: "application/json",
         responseSchema: buildAnalysisSchema(withNote),
+        temperature: 0.1,
+        topP: 0.8,
       },
     });
 
