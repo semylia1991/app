@@ -96,7 +96,7 @@ Formatting Rules:
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
-- [Skin type] — [why]
+- [Skin type] — [why and how product behaves on this skin type]
 
 📋 [translated label for "How to Apply"]:
 - [Step 1]
@@ -136,9 +136,6 @@ Formatting Rules:
 
 ⚗️ [translated label for "Actives Compatibility"]:
 - [Active ingredient] — [can/cannot combine, why]
-
-🧴 [translated label for "Skin Type Compatibility"]:
-- [Skin type] — [how product behaves on this skin type]
 
 🔗 [translated label for "Ingredient Synergy"]:
 - [Ingredient pair] — [how they enhance or conflict with each other]
