@@ -167,6 +167,7 @@ export default function App() {
   const [isAgbOpen, setIsAgbOpen]             = useState(false);
   const [isSurveyOpen, setIsSurveyOpen]       = useState(false);
   const [isGuideOpen, setIsGuideOpen]         = useState(false);
+  const [isProfileOpen, setIsProfileOpen]     = useState(false);
   const [copied, setCopied]                   = useState(false);
   const [captionCopied, setCaptionCopied]     = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
@@ -382,7 +383,7 @@ export default function App() {
                     setResult(r);
                   }}
                 />
-                <UserProfilePanel user={user} lang={lang} onProfileChange={setUserProfile} initialHasProfile={!!userProfile} />
+                <UserProfilePanel user={user} lang={lang} onProfileChange={setUserProfile} initialHasProfile={!!userProfile} externalOpen={isProfileOpen} onExternalOpenChange={setIsProfileOpen} />
                 <button
                   onClick={() => setShowSubscriptionPage(true)}
                   className={`text-xs px-2.5 py-1 border rounded-sm transition-colors font-serif tracking-wide ${
@@ -445,13 +446,11 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full max-w-md bg-[#FDFBF7] regency-border p-8 shadow-xl"
             >
-              {!previewUrl && (
-                <div className="text-center mb-6">
-                  <p className="text-base text-[#B89F7A] leading-relaxed mt-3 px-4 font-bold">
-                    {t[lang].description}
-                  </p>
-                </div>
-              )}
+              <div className="text-center mb-6">
+                <p className="text-xs text-[#B89F7A] leading-relaxed mt-3 px-4 font-bold">
+                  {t[lang].description}
+                </p>
+              </div>
 
               {/* Clickable upload zone */}
               <div
@@ -560,10 +559,12 @@ export default function App() {
                   <PersonalAnalysis
                     lang={lang}
                     result={result}
+                    user={user}
                     userProfile={userProfile}
                     canUseNote={subscription.canScan}
                     onLimitReached={() => setPaywallReason('scans')}
                     onUsed={subscription.incrementNoteAnalysis}
+                    onOpenProfile={() => setIsProfileOpen(true)}
                   />
                 </CollapsibleSection>
 
