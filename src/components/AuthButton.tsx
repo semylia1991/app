@@ -31,7 +31,7 @@ export function AuthButton({ lang, onUserChange }: Props) {
           display: 'flex', alignItems: 'center', gap: 4,
           padding: '4px 10px', border: '1px solid #DDD5C8',
           background: 'transparent', color: '#8A8078',
-          fontSize: '0.6rem', fontWeight: 400, fontFamily: 'var(--font-sans)',
+          fontSize: '0.55rem', fontWeight: 400, fontFamily: 'var(--font-sans)',
           letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
           transition: 'all 0.2s'
         }}
@@ -46,9 +46,9 @@ export function AuthButton({ lang, onUserChange }: Props) {
   return (
     <button onClick={signIn} disabled={loading} style={{
       display: 'flex', alignItems: 'center', gap: 6,
-      padding: '6px 14px', background: '#1A1410', color: '#FAF7F2',
-      border: 'none', fontSize: '0.6rem', fontWeight: 500,
-      fontFamily: 'var(--font-sans)', letterSpacing: '0.12em', textTransform: 'uppercase',
+      padding: '5px 10px', background: '#1A1410', color: '#FAF7F2',
+      border: 'none', fontSize: '0.55rem', fontWeight: 500,
+      fontFamily: 'var(--font-sans)', letterSpacing: '0.1em', textTransform: 'uppercase',
       cursor: 'pointer', opacity: loading ? 0.6 : 1, transition: 'background 0.2s'
     }}
     onMouseEnter={e => (e.currentTarget.style.background = '#2D5A3D')}
