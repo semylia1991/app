@@ -123,7 +123,6 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
 interface ShopConfig {
   platform: string;
   favicon: string;
-  encoding: 'plus' | 'pct';
   buildUrl: (q: string) => string;
 }
 
@@ -131,7 +130,6 @@ const SHOP_CONFIGS: ShopConfig[] = [
   {
     platform: 'Google Shopping',
     favicon: 'https://www.google.com/favicon.ico',
-    encoding: 'plus',
     buildUrl: (q) => `https://www.google.com/search?q=${q}&tbm=shop`,
   },
 ];
@@ -139,10 +137,10 @@ const SHOP_CONFIGS: ShopConfig[] = [
 function buildShopLinks(productName: string, brand: string): ShopLink[] {
   const combined = [brand, productName].filter(Boolean).join(' ').trim();
   if (!combined) return [];
-  const qPlus = combined.split(/\s+/).join('+');
-  const qPct = encodeURIComponent(combined);
-  return SHOP_CONFIGS.map(({ platform, favicon, encoding, buildUrl }) => ({
-    platform, favicon, url: buildUrl(encoding === 'plus' ? qPlus : qPct),
+  // Wrap in quotes for exact phrase match → much more precise results
+  const q = encodeURIComponent(`"${combined}"`);
+  return SHOP_CONFIGS.map(({ platform, favicon, buildUrl }) => ({
+    platform, favicon, url: buildUrl(q),
   }));
 }
 
@@ -648,15 +646,11 @@ export default function App() {
                 </CollapsibleSection>
 
                 <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={15} />} collapseLabel={cl}>
-                  <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} />
+                  <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
                 </CollapsibleSection>
               </div>
 
-              <AskAI
-                lang={lang} context={result}
-                isPremium={subscription.isPremium}
-                onLimitReached={() => setPaywallReason('askAi')}
-              />
+
 
               {/* Footer actions */}
               <div style={{ padding: '20px 28px 32px', borderTop: '0.5px solid #DDD5C8' }}>
