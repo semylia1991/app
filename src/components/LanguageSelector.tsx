@@ -15,36 +15,54 @@ interface Props {
 }
 
 export function LanguageSelector({ currentLang, onSelect, logo }: Props) {
-  const row1 = LANGS.slice(0, 4);
-  const row2 = LANGS.slice(4, 8);
+  const row1 = LANGS.slice(0, 5);
+  const row2 = LANGS.slice(5, 8);
 
   const chipStyle = (active: boolean): React.CSSProperties => ({
-    display: 'flex', alignItems: 'center', gap: 4,
-    padding: '4px 9px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+    width: 44, // fixed width — все одинаковые
+    padding: '4px 0',
     background: active ? '#2D5A3D' : 'transparent',
     color: active ? '#FAF7F2' : '#8A8078',
     border: active ? '1px solid #2D5A3D' : '1px solid #DDD5C8',
-    fontSize: '0.62rem', fontWeight: active ? 500 : 400,
+    fontSize: '0.6rem', fontWeight: active ? 500 : 400,
     fontFamily: 'var(--font-sans)', letterSpacing: '0.06em',
     cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0,
+    boxSizing: 'border-box',
   });
 
+  const onEnter = (code: Language) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (currentLang !== code) {
+      e.currentTarget.style.borderColor = '#2D5A3D';
+      e.currentTarget.style.color = '#2D5A3D';
+      e.currentTarget.style.background = 'rgba(232,242,235,0.3)';
+    }
+  };
+  const onLeave = (code: Language) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (currentLang !== code) {
+      e.currentTarget.style.borderColor = '#DDD5C8';
+      e.currentTarget.style.color = '#8A8078';
+      e.currentTarget.style.background = 'transparent';
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', gap: 6 }}>
-      {/* Logo column */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Logo */}
       {logo && (
-        <div style={{ display: 'flex', alignItems: 'center', paddingRight: 6, borderRight: '0.5px solid #DDD5C8', marginRight: 2, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', paddingRight: 8, borderRight: '0.5px solid #DDD5C8', flexShrink: 0 }}>
           {logo}
         </div>
       )}
 
-      {/* Two rows of 4 chips */}
+      {/* Two rows: 5 top, 3 bottom */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {row1.map(({ code, flag, label }) => (
-            <button key={code} onClick={() => onSelect(code)} style={chipStyle(currentLang === code)}
-              onMouseEnter={e => { if (currentLang !== code) { const el = e.currentTarget; el.style.borderColor = '#2D5A3D'; el.style.color = '#2D5A3D'; el.style.background = 'rgba(232,242,235,0.3)'; }}}
-              onMouseLeave={e => { if (currentLang !== code) { const el = e.currentTarget; el.style.borderColor = '#DDD5C8'; el.style.color = '#8A8078'; el.style.background = 'transparent'; }}}>
+            <button key={code} onClick={() => onSelect(code)}
+              style={chipStyle(currentLang === code)}
+              onMouseEnter={onEnter(code)}
+              onMouseLeave={onLeave(code)}>
               <span style={{ fontSize: 11 }}>{flag}</span>
               <span>{label}</span>
             </button>
@@ -52,9 +70,10 @@ export function LanguageSelector({ currentLang, onSelect, logo }: Props) {
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {row2.map(({ code, flag, label }) => (
-            <button key={code} onClick={() => onSelect(code)} style={chipStyle(currentLang === code)}
-              onMouseEnter={e => { if (currentLang !== code) { const el = e.currentTarget; el.style.borderColor = '#2D5A3D'; el.style.color = '#2D5A3D'; el.style.background = 'rgba(232,242,235,0.3)'; }}}
-              onMouseLeave={e => { if (currentLang !== code) { const el = e.currentTarget; el.style.borderColor = '#DDD5C8'; el.style.color = '#8A8078'; el.style.background = 'transparent'; }}}>
+            <button key={code} onClick={() => onSelect(code)}
+              style={chipStyle(currentLang === code)}
+              onMouseEnter={onEnter(code)}
+              onMouseLeave={onLeave(code)}>
               <span style={{ fontSize: 11 }}>{flag}</span>
               <span>{label}</span>
             </button>
