@@ -92,11 +92,11 @@ Provide the analysis in ${language}.
 Formatting Rules:
 - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
 - analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
-- alternatives: Return 3–5 real products as a JSON array. Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence why it is a good alternative — similar ingredients, same concern, gentler formula, etc.).
+- alternatives: Return 2–4 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
-- [Skin type] — [why]
+- [Skin type] — [why and how product behaves on this skin type]
 
 📋 [translated label for "How to Apply"]:
 - [Step 1]
@@ -110,9 +110,6 @@ Formatting Rules:
 💧 [translated label for "Amount to Use"]:
 - [Exact amount — drops, pea-size, pump etc.]
 - [How to spread or massage in]
-
-✅ [translated label for "Layering Order"]:
-- [Step number] [product type] — [example]
 
 🌡️ [translated label for "Before and After"]:
 - [What to do before applying — cleanse, tone etc.]
@@ -136,9 +133,6 @@ Formatting Rules:
 
 ⚗️ [translated label for "Actives Compatibility"]:
 - [Active ingredient] — [can/cannot combine, why]
-
-🧴 [translated label for "Skin Type Compatibility"]:
-- [Skin type] — [how product behaves on this skin type]
 
 🔗 [translated label for "Ingredient Synergy"]:
 - [Ingredient pair] — [how they enhance or conflict with each other]
