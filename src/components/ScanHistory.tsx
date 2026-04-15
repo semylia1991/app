@@ -30,10 +30,15 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
     setLoading(false);
   };
  
-  // Fetch when panel opens OR when a new scan is saved (refreshKey changes)
+  // Refetch silently whenever a new scan is saved (refreshKey changes)
+  useEffect(() => {
+    fetchScans();
+  }, [refreshKey]);
+
+  // Also refetch when panel opens
   useEffect(() => {
     if (isOpen) fetchScans();
-  }, [isOpen, refreshKey]);
+  }, [isOpen]);
  
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
@@ -60,7 +65,7 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-[#B89F7A]/10 text-[#B89F7A] hover:bg-[#B89F7A]/20 hover:text-[#2C3E50] transition-all"
+        className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-[#B89F7A]/10 text-[#2D5A3D] hover:bg-[#B89F7A]/20 hover:text-[#1A1410] transition-all"
       >
         <Clock size={12} />
         <span>{t[lang].history}</span>
@@ -84,46 +89,46 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-            className="fixed top-0 right-0 h-full w-full max-w-sm bg-[#FDFBF7] z-[101] shadow-2xl flex flex-col"
+            className="fixed top-0 right-0 h-full w-full max-w-sm bg-[#FAF7F2] z-[101] shadow-2xl flex flex-col"
           >
-            <div className="flex items-center justify-between p-6 border-b border-[#D4C3A3]">
-              <h2 className="font-serif text-xl text-[#2C3E50]">{t[lang].history}</h2>
-              <button onClick={() => setIsOpen(false)} className="text-[#B89F7A] hover:text-[#2C3E50]">
+            <div className="flex items-center justify-between p-6 border-b border-[#DDD5C8]">
+              <h2 className="font-serif text-xl text-[#1A1410]">{t[lang].history}</h2>
+              <button onClick={() => setIsOpen(false)} className="text-[#2D5A3D] hover:text-[#1A1410]">
                 <X size={20} />
               </button>
             </div>
  
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {loading && (
-                <p className="text-center text-[#B89F7A] text-sm py-8">...</p>
+                <p className="text-center text-[#2D5A3D] text-sm py-8">...</p>
               )}
               {!loading && scans.length === 0 && (
-                <p className="text-center text-[#B89F7A] text-sm py-8">{t[lang].noHistory}</p>
+                <p className="text-center text-[#2D5A3D] text-sm py-8">{t[lang].noHistory}</p>
               )}
               {scans.map((scan) => (
                 <motion.div
                   key={scan.id}
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-3 p-3 bg-white border border-[#D4C3A3]/50 rounded-sm cursor-pointer hover:border-[#B89F7A] transition-colors group"
+                  className="flex items-center gap-3 p-3 bg-white border border-[#DDD5C8]/50 rounded-sm cursor-pointer hover:border-[#B89F7A] transition-colors group"
                   onClick={() => {
                     onSelect(scan.result as AnalysisResult, scan.lang);
                     setIsOpen(false);
                   }}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[#2C3E50] text-sm truncate">{scan.product_name}</p>
-                    <p className="text-xs text-[#B89F7A] italic truncate">{scan.brand}</p>
-                    <p className="text-[10px] text-[#B89F7A]/70 mt-0.5">{formatDate(scan.created_at)}</p>
+                    <p className="font-semibold text-[#1A1410] text-sm truncate">{scan.product_name}</p>
+                    <p className="text-xs text-[#2D5A3D] italic truncate">{scan.brand}</p>
+                    <p className="text-[10px] text-[#2D5A3D]/70 mt-0.5">{formatDate(scan.created_at)}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={(e) => deleteScan(scan.id, e)}
-                      className="opacity-0 group-hover:opacity-100 text-[#B89F7A] hover:text-red-400 transition-all"
+                      className="opacity-0 group-hover:opacity-100 text-[#2D5A3D] hover:text-red-400 transition-all"
                     >
                       <Trash2 size={14} />
                     </button>
-                    <ChevronRight size={14} className="text-[#B89F7A]" />
+                    <ChevronRight size={14} className="text-[#2D5A3D]" />
                   </div>
                 </motion.div>
               ))}
