@@ -361,7 +361,6 @@ export default function App() {
       <header style={{ background: '#FAF7F2', borderBottom: '0.5px solid #DDD5C8', padding: '48px 20px 20px' }}>
         {/* Top bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 8 }}>
-          <img src={logo} alt="logo" style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', minWidth: 0 }}>
             {user && (
               <>
@@ -410,7 +409,11 @@ export default function App() {
           </div>
         </div>
 
-        <LanguageSelector currentLang={lang} onSelect={setLang} />
+        <LanguageSelector
+          currentLang={lang}
+          onSelect={setLang}
+          logo={<img src={logo} alt="logo" style={{ width: 30, height: 30, objectFit: 'contain' }} />}
+        />
 
         {/* Hero */}
         <motion.div
