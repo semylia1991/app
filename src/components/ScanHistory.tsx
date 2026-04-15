@@ -5,19 +5,19 @@ import { supabase, ScanRecord } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { t, Language } from '../i18n';
 import { AnalysisResult } from '../services/ai';
- 
+
 interface Props {
   user: User;
   lang: Language;
   refreshKey?: number;
   onSelect: (result: AnalysisResult, scanLang?: string) => void;
 }
- 
+
 export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
- 
+
   const fetchScans = async () => {
     setLoading(true);
     const { data } = await supabase
@@ -29,8 +29,8 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
     setScans(data || []);
     setLoading(false);
   };
- 
-  // Refetch silently whenever a new scan is saved (refreshKey changes)
+
+  // Refetch silently whenever a new scan is saved
   useEffect(() => {
     fetchScans();
   }, [refreshKey]);
@@ -39,96 +39,108 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
   useEffect(() => {
     if (isOpen) fetchScans();
   }, [isOpen]);
- 
+
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
- 
+
   const deleteScan = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     await supabase.from('scan_history').delete().eq('id', id);
     setScans(prev => prev.filter(s => s.id !== id));
   };
- 
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString(lang === 'ar' ? 'ar' : lang === 'uk' ? 'uk' : lang, {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
     });
   };
- 
+
+  /* ── shared inline styles ── */
+  const panelBtn: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 4,
+    padding: '5px 10px',
+    border: '1px solid #DDD5C8',
+    background: 'transparent',
+    color: '#2D5A3D',
+    fontSize: '0.6rem', fontWeight: 500,
+    fontFamily: 'var(--font-sans)', letterSpacing: '0.1em',
+    textTransform: 'uppercase', cursor: 'pointer',
+    transition: 'all 0.2s',
+  };
+
   return (
     <>
+      {/* Trigger — квадратная рамка */}
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-[#B89F7A]/10 text-[#2D5A3D] hover:bg-[#B89F7A]/20 hover:text-[#1A1410] transition-all"
+        style={panelBtn}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = '#2D5A3D'; e.currentTarget.style.background = '#E8F2EB'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = '#DDD5C8'; e.currentTarget.style.background = 'transparent'; }}
       >
         <Clock size={12} />
         <span>{t[lang].history}</span>
       </button>
- 
+
       <AnimatePresence>
         {isOpen && (
           <motion.div
             key="history-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 100 }}
           />
         )}
         {isOpen && (
           <motion.div
             key="history-panel"
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
+            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-            className="fixed top-0 right-0 h-full w-full max-w-sm bg-[#FAF7F2] z-[101] shadow-2xl flex flex-col"
+            style={{ position: 'fixed', top: 0, right: 0, height: '100%', width: '100%', maxWidth: 380, background: '#FAF7F2', zIndex: 101, boxShadow: '0 0 40px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column' }}
           >
-            <div className="flex items-center justify-between p-6 border-b border-[#DDD5C8]">
-              <h2 className="font-serif text-xl text-[#1A1410]">{t[lang].history}</h2>
-              <button onClick={() => setIsOpen(false)} className="text-[#2D5A3D] hover:text-[#1A1410]">
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', borderBottom: '0.5px solid #DDD5C8' }}>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', fontWeight: 300, color: '#1A1410' }}>{t[lang].history}</h2>
+              <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8A8078', transition: 'color 0.2s' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#1A1410')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#8A8078')}>
                 <X size={20} />
               </button>
             </div>
- 
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {loading && (
-                <p className="text-center text-[#2D5A3D] text-sm py-8">...</p>
-              )}
+
+            {/* List */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {loading && <p style={{ textAlign: 'center', color: '#2D5A3D', fontSize: '0.875rem', padding: '32px 0' }}>...</p>}
               {!loading && scans.length === 0 && (
-                <p className="text-center text-[#2D5A3D] text-sm py-8">{t[lang].noHistory}</p>
+                <p style={{ textAlign: 'center', color: '#8A8078', fontSize: '0.875rem', padding: '32px 0' }}>{t[lang].noHistory}</p>
               )}
-              {scans.map((scan) => (
+              {scans.map(scan => (
                 <motion.div
                   key={scan.id}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-3 p-3 bg-white border border-[#DDD5C8]/50 rounded-sm cursor-pointer hover:border-[#B89F7A] transition-colors group"
-                  onClick={() => {
-                    onSelect(scan.result as AnalysisResult, scan.lang);
-                    setIsOpen(false);
-                  }}
+                  initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                  onClick={() => { onSelect(scan.result as AnalysisResult, scan.lang); setIsOpen(false); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: '#FFFFFF', border: '0.5px solid #DDD5C8', cursor: 'pointer', transition: 'border-color 0.2s' }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#2D5A3D')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = '#DDD5C8')}
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[#1A1410] text-sm truncate">{scan.product_name}</p>
-                    <p className="text-xs text-[#2D5A3D] italic truncate">{scan.brand}</p>
-                    <p className="text-[10px] text-[#2D5A3D]/70 mt-0.5">{formatDate(scan.created_at)}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 500, color: '#1A1410', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{scan.product_name}</p>
+                    <p style={{ fontSize: '0.75rem', color: '#2D5A3D', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{scan.brand}</p>
+                    <p style={{ fontSize: '0.65rem', color: 'rgba(45,90,61,0.6)', marginTop: 2 }}>{formatDate(scan.created_at)}</p>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                     <button
                       onClick={(e) => deleteScan(scan.id, e)}
-                      className="opacity-0 group-hover:opacity-100 text-[#2D5A3D] hover:text-red-400 transition-all"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DDD5C8', transition: 'color 0.2s', opacity: 0 }}
+                      className="group-hover-show"
+                      onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+                      onMouseLeave={e => (e.currentTarget.style.color = '#DDD5C8')}
                     >
                       <Trash2 size={14} />
                     </button>
-                    <ChevronRight size={14} className="text-[#2D5A3D]" />
+                    <ChevronRight size={14} style={{ color: '#2D5A3D' }} />
                   </div>
                 </motion.div>
               ))}
