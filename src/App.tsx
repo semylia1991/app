@@ -362,49 +362,58 @@ export default function App() {
         {/* Top bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <img src={logo} alt="logo" style={{ width: 36, height: 36, objectFit: 'contain' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            {/* Row 1: история + предпочтения + выход/войти */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {user && (
+                <>
+                  <ScanHistory
+                    user={user} lang={lang} refreshKey={scanHistoryKey}
+                    onSelect={(r, scanLang) => {
+                      originalResult.current = r;
+                      const sourceLang = (scanLang ?? lang) as Language;
+                      translationCache.current = new Map([[sourceLang, r]]);
+                      setResult(r);
+                    }}
+                  />
+                  <UserProfilePanel
+                    user={user} lang={lang} onProfileChange={setUserProfile}
+                    initialHasProfile={!!userProfile}
+                    externalOpen={isProfileOpen} onExternalOpenChange={setIsProfileOpen}
+                  />
+                </>
+              )}
+              <AuthButton lang={lang} onUserChange={(u) => {
+                setUser(u);
+                if (u) {
+                  posthog.identify(u.id, { email: u.email });
+                  supabase.from('user_profiles').select('profile').eq('user_id', u.id).single()
+                    .then(({ data }) => { if (data?.profile) setUserProfile(data.profile as UserProfile); });
+                } else {
+                  posthog.reset();
+                  setUserProfile(null);
+                }
+              }} />
+            </div>
+
+            {/* Row 2: Upgrade — только если авторизован */}
             {user && (
-              <>
-                <ScanHistory
-                  user={user} lang={lang} refreshKey={scanHistoryKey}
-                  onSelect={(r, scanLang) => {
-                    originalResult.current = r;
-                    const sourceLang = (scanLang ?? lang) as Language;
-                    translationCache.current = new Map([[sourceLang, r]]);
-                    setResult(r);
-                  }}
-                />
-                <UserProfilePanel
-                  user={user} lang={lang} onProfileChange={setUserProfile}
-                  initialHasProfile={!!userProfile}
-                  externalOpen={isProfileOpen} onExternalOpenChange={setIsProfileOpen}
-                />
-                <button
-                  onClick={() => setShowSubscriptionPage(true)}
-                  style={{
-                    fontSize: '0.6rem', padding: '4px 10px',
-                    border: `1px solid ${subscription.isPremium ? '#B8923A' : '#DDD5C8'}`,
-                    background: subscription.isPremium ? 'rgba(184,146,58,0.08)' : 'transparent',
-                    color: subscription.isPremium ? '#B8923A' : '#8A8078',
-                    fontFamily: 'var(--font-sans)', letterSpacing: '0.14em',
-                    textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s',
-                  }}
-                >
-                  {subscription.isPremium ? '✦ Premium' : 'Upgrade'}
-                </button>
-              </>
+              <button
+                onClick={() => setShowSubscriptionPage(true)}
+                style={{
+                  fontSize: '0.58rem', padding: '4px 10px',
+                  border: `1px solid ${subscription.isPremium ? '#B8923A' : '#DDD5C8'}`,
+                  background: subscription.isPremium ? 'rgba(184,146,58,0.08)' : 'transparent',
+                  color: subscription.isPremium ? '#B8923A' : '#8A8078',
+                  fontFamily: 'var(--font-sans)', letterSpacing: '0.14em',
+                  textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { if (!subscription.isPremium) e.currentTarget.style.borderColor = '#2D5A3D'; }}
+                onMouseLeave={e => { if (!subscription.isPremium) e.currentTarget.style.borderColor = '#DDD5C8'; }}
+              >
+                {subscription.isPremium ? '✦ Premium' : 'Upgrade'}
+              </button>
             )}
-            <AuthButton lang={lang} onUserChange={(u) => {
-              setUser(u);
-              if (u) {
-                posthog.identify(u.id, { email: u.email });
-                supabase.from('user_profiles').select('profile').eq('user_id', u.id).single()
-                  .then(({ data }) => { if (data?.profile) setUserProfile(data.profile as UserProfile); });
-              } else {
-                posthog.reset();
-                setUserProfile(null);
-              }
-            }} />
           </div>
         </div>
 
