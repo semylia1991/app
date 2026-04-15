@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { t, Language } from '../i18n';
  
 interface Quote { author: string; text: string; }
- 
-const QUOTES: Record<Language, Quote[]> = {
+const Q: Partial<Record<Language, Quote[]>> = {
   ru: [
     { author: "Albert Einstein", text: "«Воображение важнее знаний, потому что именно оно позволяет человеку выходить за пределы очевидного и создавать будущее»" },
     { author: "Steve Jobs", text: "«Единственный способ делать великую работу — любить то, что ты делаешь, несмотря на трудности и сомнения»" },
@@ -424,115 +423,78 @@ const QUOTES: Record<Language, Quote[]> = {
   ],
 };
  
-function getRandomQuote(lang: Language): Quote {
-  const list = QUOTES[lang] || QUOTES.en;
-  return list[Math.floor(Math.random() * list.length)];
-}
+const getQ = (l: Language) => { const list = Q[l] || Q['en']!; return list[Math.floor(Math.random() * list.length)]; };
+const DELAYS = [0, 3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000];
  
-// 9 steps × 3 s = 27 s — covers typical Gemini response time
-const STEP_DELAYS = [0, 3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000];
- 
-interface Props {
-  isVisible: boolean;
-  lang: Language;
-}
- 
-export function LoadingScreen({ isVisible, lang }: Props) {
-  const [quote, setQuote]           = useState<Quote>(() => getRandomQuote(lang));
-  const [activeStep, setActiveStep] = useState(0);
- 
+export function LoadingScreen({ isVisible, lang }: { isVisible: boolean; lang: Language }) {
+  const [quote, setQuote] = useState<Quote>(() => getQ(lang));
+  const [step, setStep] = useState(0);
   const T = t[lang];
-  const steps: string[] = [
-    T.loadingStep1,
-    T.loadingStep2,
-    T.loadingStep3,
-    T.loadingStep4,
-    T.loadingStep5,
-    T.loadingStep6,
-    T.loadingStep7,
-    T.loadingStep8,
-    T.loadingStep9,
-  ];
+  const steps = [T.loadingStep1, T.loadingStep2, T.loadingStep3, T.loadingStep4, T.loadingStep5, T.loadingStep6, T.loadingStep7, T.loadingStep8, T.loadingStep9];
  
   useEffect(() => {
-    if (!isVisible) {
-      setActiveStep(0);
-      return;
-    }
-    setQuote(getRandomQuote(lang));
-    setActiveStep(0);
- 
-    const timers = STEP_DELAYS.map((delay, i) =>
-      setTimeout(() => setActiveStep(i), delay)
-    );
+    if (!isVisible) { setStep(0); return; }
+    setQuote(getQ(lang)); setStep(0);
+    const timers = DELAYS.map((d, i) => setTimeout(() => setStep(i), d));
     return () => timers.forEach(clearTimeout);
   }, [isVisible, lang]);
  
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 flex flex-col items-center justify-center bg-[#FDFBF7]/95 backdrop-blur-sm px-8"
-        >
-          <div className="w-16 h-[1px] bg-[#D4C3A3] mb-10" />
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(245,240,232,0.97)', backdropFilter: 'blur(12px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+ 
+          {/* Gold ornament top */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
+            <div style={{ height: '0.5px', width: 40, background: 'linear-gradient(to right, transparent, #B8923A)' }} />
+            <span style={{ color: '#B8923A', fontSize: 10 }}>✦</span>
+            <div style={{ height: '0.5px', width: 40, background: 'linear-gradient(to left, transparent, #B8923A)' }} />
+          </div>
+ 
+          {/* Green spinner */}
+          <div style={{ position: 'relative', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 28 }}>
+            <div style={{ position: 'absolute', inset: 0, border: '1px solid #DDD5C8', borderTopColor: '#2D5A3D', borderRadius: '50%' }} className="animate-spin" />
+            <div style={{ width: 28, height: 28, background: '#2D5A3D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+          </div>
  
           {/* Quote */}
-          <motion.div
-            key={quote.text}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-sm text-center"
-          >
-            <p className="font-serif text-lg text-[#2C3E50] leading-relaxed mb-4 italic">
-              {quote.text}
-            </p>
-            <p className="text-xs tracking-[0.2em] text-[#B89F7A] uppercase">
-              — {quote.author}
-            </p>
+          <motion.div key={quote.text} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+            style={{ maxWidth: 320, textAlign: 'center', marginBottom: 8 }}>
+            <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.15rem', fontWeight: 300, color: '#1A1410', lineHeight: 1.65, fontStyle: 'italic' }}>{quote.text}</p>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: '0.6rem', fontWeight: 500, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#B8923A', marginTop: 8 }}>— {quote.author}</p>
           </motion.div>
  
-          <div className="w-16 h-[1px] bg-[#D4C3A3] mt-10 mb-8" />
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '20px 0' }}>
+            <div style={{ height: '0.5px', width: 32, background: 'linear-gradient(to right, transparent, #DDD5C8)' }} />
+            <div style={{ height: '0.5px', width: 32, background: 'linear-gradient(to left, transparent, #DDD5C8)' }} />
+          </div>
  
           {/* Steps */}
-          <div className="flex flex-col gap-2.5 w-full max-w-[260px]">
-            {steps.map((step, i) => {
-              const isDone   = i < activeStep;
-              const isActive = i === activeStep;
- 
+          <div style={{ width: '100%', maxWidth: 280, background: '#FAF7F2', border: '0.5px solid #DDD5C8', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {steps.map((s, i) => {
+              const done = i < step, active = i === step;
               return (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.25, delay: i * 0.04 }}
-                  className="flex items-center gap-2.5"
-                >
-                  {/* Indicator */}
-                  <div className="shrink-0 w-[16px] flex justify-center">
-                    {isDone ? (
-                      <CheckCircle size={14} className="text-[#B89F7A]" />
-                    ) : isActive ? (
-                      <Loader2 size={14} className="animate-spin text-[#2C3E50]" />
-                    ) : (
-                      <span className="w-[8px] h-[8px] rounded-full border border-[#D4C3A3] block" />
-                    )}
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 18, height: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {done
+                      ? <CheckCircle size={16} color="#2D5A3D" />
+                      : active
+                        ? <div style={{ width: 10, height: 10, border: '1.5px solid #DDD5C8', borderTopColor: '#2D5A3D', borderRadius: '50%' }} className="animate-spin" />
+                        : <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#DDD5C8' }} />}
                   </div>
- 
-                  {/* Label */}
-                  <span className={`text-[11px] tracking-wide transition-all duration-300 ${
-                    isActive
-                      ? 'text-[#2C3E50] font-semibold uppercase tracking-widest'
-                      : isDone
-                      ? 'text-[#B89F7A] uppercase tracking-wide'
-                      : 'text-[#D4C3A3] uppercase tracking-wide'
-                  }`}>
-                    {step}
+                  <span style={{
+                    fontFamily: 'var(--font-sans)', fontSize: '0.65rem',
+                    fontWeight: active ? 500 : 400, letterSpacing: '0.06em',
+                    color: done ? '#2D5A3D' : active ? '#1A1410' : 'rgba(0,0,0,0.22)',
+                    transition: 'color 0.3s'
+                  }}>
+                    {s}
                   </span>
-                </motion.div>
+                </div>
               );
             })}
           </div>
