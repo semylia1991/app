@@ -175,14 +175,14 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
 
   const triggerBtn: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 4,
-    padding: '5px 10px',
+    padding: '5px 8px',
     border: '1px solid #DDD5C8',
     background: 'transparent',
     color: '#2D5A3D',
-    fontSize: '0.6rem', fontWeight: 500,
-    fontFamily: 'var(--font-sans)', letterSpacing: '0.1em',
+    fontSize: '0.55rem', fontWeight: 500,
+    fontFamily: 'var(--font-sans)', letterSpacing: '0.08em',
     textTransform: 'uppercase', cursor: 'pointer',
-    transition: 'all 0.2s',
+    transition: 'all 0.2s', whiteSpace: 'nowrap', flexShrink: 0,
     position: 'relative',
   };
 
