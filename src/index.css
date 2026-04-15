@@ -1,65 +1,195 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-serif: "Cormorant Garamond", serif;
-  --font-sans: "Montserrat", sans-serif;
-  
-  --color-cream: #FDFBF7;
-  --color-gold: #B89F7A;
-  --color-gold-light: #D4C3A3;
-  --color-slate: #2C3E50;
-  --color-blue-light: #D4E0E8;
-  --color-rose-light: #E8D3D8;
+  --font-sans:  "DM Sans", sans-serif;
+
+  --color-ink:      #1A1410;
+  --color-surface:  #FAF7F2;
+  --color-off:      #F5F0E8;
+  --color-gold:     #B8923A;
+  --color-gold-dim: rgba(184,146,58,0.20);
+  --color-green:    #2D5A3D;
+  --color-green-lt: #E8F2EB;
+  --color-muted:    #8A8078;
+  --color-border:   #DDD5C8;
 }
+
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
-  background-color: var(--color-cream);
-  color: var(--color-slate);
-  font-family: var(--font-sans);
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23b89f7a' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-color: #F5F0E8;
+  color: #1A1410;
+  font-family: "DM Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
-h1, h2, h3, h4, h5, h6, .font-serif {
-  font-family: var(--font-serif);
+h1,h2,h3,h4,h5,h6,.font-serif {
+  font-family: "Cormorant Garamond", serif;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-gold-light);
-  border-radius: 10px;
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #DDD5C8; border-radius: 0; }
 
-.regency-border {
-  border: 1px solid var(--color-gold-light);
-  position: relative;
-}
-.regency-border::before {
-  content: '';
-  position: absolute;
-  top: 4px; left: 4px; right: 4px; bottom: 4px;
-  border: 1px solid rgba(184, 159, 122, 0.3);
-  pointer-events: none;
-}
-
-.regency-button {
-  background: linear-gradient(to bottom, #ffffff, #f5f0e6);
-  border: 1px solid var(--color-gold);
-  color: var(--color-slate);
-  font-family: var(--font-serif);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+/* ── LUXURY CARD ── */
+.luxury-card {
+  background: #FAF7F2;
+  border: 0.5px solid #DDD5C8;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
 }
-.regency-button:hover {
-  background: linear-gradient(to bottom, #f5f0e6, #eaddc5);
-  box-shadow: 0 4px 12px rgba(184, 159, 122, 0.2);
+
+/* inner gold border ornament */
+.luxury-card::before {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px; right: 3px; bottom: 3px;
+  border: 0.5px solid rgba(184,146,58,0.15);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* top gold stripe */
+.luxury-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, #B8923A, transparent);
+  z-index: 1;
+}
+
+/* ── BUTTONS ── */
+
+/* primary — green */
+.luxury-btn {
+  background: #2D5A3D;
+  color: #FAF7F2;
+  font-family: "DM Sans", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 500;
+  transition: background 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+}
+.luxury-btn:hover {
+  background: #3D7A55;
+  box-shadow: 0 4px 16px rgba(45,90,61,0.2);
+}
+.luxury-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* gold button */
+.gold-btn {
+  background: #B8923A;
+  color: #FAF7F2;
+  font-family: "DM Sans", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 500;
+  transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+}
+.gold-btn:hover { background: #A07830; }
+
+/* secondary outline */
+.outline-btn {
+  background: transparent;
+  border: 0.5px solid #DDD5C8;
+  color: #1A1410;
+  font-family: "DM Sans", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 400;
+  transition: border-color 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.outline-btn:hover {
+  border-color: #2D5A3D;
+  color: #2D5A3D;
+}
+
+/* ── COLLAPSIBLE SECTION ── */
+.section-row {
+  border-bottom: 0.5px solid rgba(221,213,200,0.6);
+  position: relative;
+}
+.section-row:last-child { border-bottom: none; }
+.section-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background 0.2s;
+}
+.section-row:hover::before { background: #2D5A3D; }
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 1px dashed #DDD5C8;
+  background: #F5F0E8;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.upload-zone:hover {
+  border-color: #2D5A3D;
+  background: rgba(232,242,235,0.3);
+}
+
+/* ── CHECKBOX ── */
+.luxury-check {
+  appearance: none;
+  width: 14px; height: 14px;
+  border: 1px solid #2D5A3D;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: background 0.2s;
+}
+.luxury-check:checked { background: #2D5A3D; }
+
+/* ── PROSE ── */
+.prose-luxury {
+  color: #5A5550;
+  font-size: 0.875rem;
+  line-height: 1.8;
+}
+.prose-luxury strong { color: #1A1410; font-weight: 500; }
+.prose-luxury p { margin-bottom: 0.5rem; }
+
+/* ── LOADING ── */
+.loading-backdrop {
+  background: rgba(245,240,232,0.97);
+  backdrop-filter: blur(12px);
+}
+
+/* ── ICON BADGE (sections) ── */
+.section-icon-wrap {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: #E8F2EB;
+  color: #2D5A3D;
+  flex-shrink: 0;
 }
