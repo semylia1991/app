@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, Trash2, ChevronRight, X } from 'lucide-react';
+import { Clock, Trash2, ChevronRight, X, AlertCircle } from 'lucide-react';
 import { supabase, ScanRecord } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { t, Language } from '../i18n';
@@ -14,18 +14,22 @@ interface Props {
 }
 
 export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
-  const [scans, setScans]   = useState<ScanRecord[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const [scans, setScans]     = useState<ScanRecord[]>([]);
+  const [isOpen, setIsOpen]   = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
 
-  // Use a ref so fetchScans always sees the latest user
   const userRef = useRef(user);
   useEffect(() => { userRef.current = user; }, [user]);
 
   const fetchScans = useCallback(async () => {
     const u = userRef.current;
-    if (!u?.id) return;
+    if (!u?.id) {
+      console.warn('[ScanHistory] fetchScans called without user');
+      return;
+    }
     setLoading(true);
+    setDbError(null);
     try {
       const { data, error } = await supabase
         .from('scan_history')
@@ -33,29 +37,32 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
         .eq('user_id', u.id)
         .order('created_at', { ascending: false })
         .limit(20);
-      if (error) { console.error('[ScanHistory] fetch error:', error); return; }
+
+      if (error) {
+        console.error('[ScanHistory] SELECT error:', error);
+        setDbError(`SELECT: ${error.message} (code: ${error.code})`);
+        return;
+      }
+      console.log('[ScanHistory] fetched', data?.length ?? 0, 'records');
       setScans(data || []);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Refetch every time a new scan is saved (refreshKey increments)
-  // Skip the very first render (refreshKey === 0 on mount)
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
+    console.log('[ScanHistory] refreshKey changed to', refreshKey, '— fetching');
     fetchScans();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
-  // Refetch whenever the panel opens
   useEffect(() => {
     if (isOpen) fetchScans();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Lock body scroll when open
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -63,7 +70,8 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
 
   const deleteScan = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await supabase.from('scan_history').delete().eq('id', id);
+    const { error } = await supabase.from('scan_history').delete().eq('id', id);
+    if (error) { console.error('[ScanHistory] DELETE error:', error); return; }
     setScans(prev => prev.filter(s => s.id !== id));
   };
 
@@ -121,10 +129,19 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+              {/* Debug error — visible in UI */}
+              {dbError && (
+                <div style={{ padding: '10px 12px', background: 'rgba(239,68,68,0.06)', border: '0.5px solid rgba(239,68,68,0.3)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <AlertCircle size={14} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+                  <p style={{ fontSize: '0.7rem', color: '#991B1B', lineHeight: 1.5 }}>{dbError}</p>
+                </div>
+              )}
+
               {loading && (
                 <p style={{ textAlign: 'center', color: '#2D5A3D', fontSize: '0.875rem', padding: '32px 0' }}>...</p>
               )}
-              {!loading && scans.length === 0 && (
+              {!loading && !dbError && scans.length === 0 && (
                 <p style={{ textAlign: 'center', color: '#8A8078', fontSize: '0.875rem', padding: '32px 0' }}>
                   {t[lang].noHistory}
                 </p>
@@ -132,7 +149,7 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
               {!loading && scans.map(scan => (
                 <motion.div key={scan.id}
                   initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                  onClick={() => { onSelect(scan.result as AnalysisResult, scan.lang); setIsOpen(false); }}
+                  onClick={() => { onSelect(scan.result as AnalysisResult); setIsOpen(false); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: '#FFFFFF', border: '0.5px solid #DDD5C8', cursor: 'pointer', transition: 'border-color 0.2s' }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = '#2D5A3D')}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = '#DDD5C8')}
