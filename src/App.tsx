@@ -424,17 +424,19 @@ export default function App() {
             {t[lang].title}
           </h1>
 
-          <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
-            <button
-              onClick={() => setIsGuideOpen(true)}
-              className="gold-btn"
-              style={{ padding: '12px 28px', display: 'inline-flex', alignItems: 'center', gap: 10 }}
-            >
-              <span style={{ fontSize: 9 }}>✦</span>
-              <span>{t[lang].userGuide}</span>
-              <span style={{ fontSize: 9 }}>✦</span>
-            </button>
-          </div>
+          {!result && (
+            <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
+              <button
+                onClick={() => setIsGuideOpen(true)}
+                className="gold-btn"
+                style={{ padding: '12px 28px', display: 'inline-flex', alignItems: 'center', gap: 10 }}
+              >
+                <span style={{ fontSize: 9 }}>✦</span>
+                <span>{t[lang].userGuide}</span>
+                <span style={{ fontSize: 9 }}>✦</span>
+              </button>
+            </div>
+          )}
         </motion.div>
 
         {/* Gold ornament divider */}
@@ -460,11 +462,13 @@ export default function App() {
               className="luxury-card"
               style={{ width: '100%', maxWidth: 440, padding: '36px 32px' }}
             >
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <p style={{ fontSize: '0.875rem', color: '#8A8078', lineHeight: 1.8, fontFamily: 'var(--font-sans)', fontWeight: 400 }}>
-                  {t[lang].description}
-                </p>
-              </div>
+              {!previewUrl && (
+                <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                  <p style={{ fontSize: '0.875rem', color: '#8A8078', lineHeight: 1.8, fontFamily: 'var(--font-sans)', fontWeight: 400 }}>
+                    {t[lang].description}
+                  </p>
+                </div>
+              )}
 
               {/* Upload zone */}
               <div
