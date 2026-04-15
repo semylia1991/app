@@ -194,7 +194,7 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
         onMouseLeave={e => { e.currentTarget.style.borderColor = '#DDD5C8'; e.currentTarget.style.background = 'transparent'; }}
       >
         <User size={12} />
-        <span>{T.profile}</span>
+        <span>{lang === 'ru' ? 'Предпочтения' : lang === 'uk' ? 'Вподобання' : lang === 'de' ? 'Einstellungen' : lang === 'es' ? 'Preferencias' : lang === 'fr' ? 'Préférences' : lang === 'it' ? 'Preferenze' : lang === 'tr' ? 'Tercihler' : 'Preferences'}</span>
         {hasProfile && (
           <span style={{ position: 'absolute', top: -2, right: -2, width: 7, height: 7, borderRadius: '50%', background: '#2D5A3D' }} />
         )}
