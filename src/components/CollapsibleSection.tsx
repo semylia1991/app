@@ -14,21 +14,32 @@ export function CollapsibleSection({ title, icon, children, defaultOpen = false,
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-[#D4C3A3]/50 last:border-0">
+    <div className="section-row">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between py-4 text-left group transition-colors hover:bg-[#B89F7A]/5 px-4 rounded-sm"
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '16px 24px',
+          background: isOpen ? 'rgba(232,242,235,0.25)' : 'transparent',
+          border: 'none', cursor: 'pointer', textAlign: 'left',
+          transition: 'background 0.2s',
+        }}
       >
-        <div className="flex items-center gap-3">
-          <span className="text-[#B89F7A] group-hover:scale-110 transition-transform">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* green icon badge */}
+          <span className="section-icon-wrap">
             {icon}
           </span>
-          <h3 className="font-serif text-xl text-[#2C3E50] tracking-wide">
+          <h3 style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: '1.2rem', fontWeight: 300,
+            color: '#1A1410', letterSpacing: '0.03em',
+          }}>
             {title}
           </h3>
         </div>
-        <span className="text-[#B89F7A] opacity-70 group-hover:opacity-100 transition-opacity">
-          {isOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        <span style={{ color: '#2D5A3D', display: 'flex', flexShrink: 0 }}>
+          {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </span>
       </button>
 
@@ -38,19 +49,26 @@ export function CollapsibleSection({ title, icon, children, defaultOpen = false,
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
           >
-            <div className="p-4 pt-0 text-[#4A4A4A] text-base leading-relaxed">
+            <div style={{ padding: '4px 24px 18px 64px', color: '#5A5550', fontSize: '0.875rem', lineHeight: 1.8 }}>
               {children}
             </div>
-
             <button
               onClick={() => setIsOpen(false)}
-              className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 text-[10px] uppercase tracking-widest text-[#B89F7A]/50 hover:text-[#B89F7A] transition-colors"
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: 4, paddingBottom: 10,
+                fontFamily: 'var(--font-sans)', fontSize: '0.55rem', fontWeight: 500,
+                letterSpacing: '0.2em', textTransform: 'uppercase',
+                color: 'rgba(138,128,120,0.6)', background: 'none', border: 'none', cursor: 'pointer',
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#2D5A3D')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(138,128,120,0.6)')}
             >
-              <ChevronUp size={12} />
-              <span>{collapseLabel ?? '↑'}</span>
+              <ChevronUp size={11} /><span>{collapseLabel ?? '↑'}</span>
             </button>
           </motion.div>
         )}
