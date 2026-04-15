@@ -32,12 +32,12 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
 
   // Refetch silently whenever a new scan is saved
   useEffect(() => {
-    fetchScans();
+    if (user) fetchScans();
   }, [refreshKey]);
 
   // Also refetch when panel opens
   useEffect(() => {
-    if (isOpen) fetchScans();
+    if (isOpen && user) fetchScans();
   }, [isOpen]);
 
   useEffect(() => {
