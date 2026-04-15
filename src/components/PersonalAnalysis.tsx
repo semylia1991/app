@@ -254,7 +254,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
         [&_li]:text-[#5A5550] [&_li]:leading-relaxed
         [&_hr]:border-[#DDD5C8]/50 [&_hr]:my-3
         [&_em]:text-xs [&_em]:text-[#B8923A] [&_em]:not-italic [&_em]:block [&_em]:mt-2"
-        style={{ fontFamily: 'var(--font-serif)', fontSize: '0.95rem' }}>
+        style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem' }}>
         <ReactMarkdown>{note}</ReactMarkdown>
       </div>
     </div>
