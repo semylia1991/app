@@ -243,7 +243,6 @@ export default function App() {
       product_name: analysis.productName,
       brand: analysis.brand,
       result: analysis,
-      lang,
     }).select();
     if (error) {
       console.error('[ScanHistory] INSERT error:', error.message, '| code:', error.code, '| details:', error.details, '| hint:', error.hint);
