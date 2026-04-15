@@ -234,17 +234,22 @@ export default function App() {
 
   const saveScanToHistory = async (analysis: AnalysisResult) => {
     if (!user) {
-      console.warn('[ScanHistory] No user — skipping save');
+      console.warn('[ScanHistory] saveScan — no user, skipping');
       return;
     }
-    const { error } = await supabase.from('scan_history').insert({
+    console.log('[ScanHistory] saving scan for user', user.id, analysis.productName);
+    const { data, error } = await supabase.from('scan_history').insert({
       user_id: user.id,
       product_name: analysis.productName,
       brand: analysis.brand,
       result: analysis,
       lang,
-    });
-    if (error) console.error('[ScanHistory] Insert error:', error);
+    }).select();
+    if (error) {
+      console.error('[ScanHistory] INSERT error:', error.message, '| code:', error.code, '| details:', error.details, '| hint:', error.hint);
+    } else {
+      console.log('[ScanHistory] saved OK, id:', data?.[0]?.id);
+    }
   };
 
   const handleAnalyze = async () => {
@@ -612,8 +617,8 @@ export default function App() {
                         <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '0.5px solid rgba(221,213,200,0.5)' }}>
                           <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
                           <div>
-                            <span style={{ display: 'block', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2 }}>{ing.name}</span>
-                            <span style={{ fontSize: '0.8rem', color: '#8A8078', lineHeight: 1.65 }}>{ing.description}</span>
+                            <span style={{ display: 'block', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2, fontFamily: 'var(--font-sans)' }}>{ing.name}</span>
+                            <span style={{ fontSize: '0.9rem', color: '#8A8078', lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>{ing.description}</span>
                           </div>
                         </li>
                       ))}
