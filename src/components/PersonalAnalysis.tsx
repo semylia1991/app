@@ -31,7 +31,6 @@ function serializeProfile(profile: UserProfile, lang: Language): SerializedProfi
     scalpCondition:  p.scalpCondition.join(', ')  || undefined,
     hairProblems:    p.hairProblems.join(', ')     || undefined,
     climate:         p.climate.join(', ')          || undefined,
-    allergies:       (profile as any).allergies    || undefined,
   };
 }
 
@@ -166,13 +165,13 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
   if (!user) {
     return (
       <div className="flex flex-col gap-3 py-2">
-        <p className="text-xs text-[#4A4A4A] leading-relaxed">
+        <p className="text-base text-[#5A5550] leading-relaxed">
           {SIGN_IN_LABELS[lang]}
         </p>
         <button
           onClick={handleSignIn}
           disabled={signingIn}
-          className="inline-flex items-center gap-2 self-start px-4 py-2 bg-[#2C3E50] text-white text-[11px] font-semibold rounded-sm hover:bg-[#2C3E50]/90 transition-all disabled:opacity-50"
+          className="inline-flex items-center gap-2 self-start px-4 py-2 bg-[#1A1410] text-white text-[11px] font-semibold rounded-sm hover:bg-[#1A1410]/90 transition-all disabled:opacity-50"
         >
           <LogIn size={13} />
           {signingIn ? '...' : SIGN_IN_BTN[lang]}
@@ -185,12 +184,12 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
   if (!hasProfile) {
     return (
       <div className="flex flex-col gap-3 py-2">
-        <p className="text-xs text-[#4A4A4A] leading-relaxed">
+        <p className="text-base text-[#5A5550] leading-relaxed">
           {FILL_PROFILE_LABELS[lang]}
         </p>
         <button
           onClick={onOpenProfile}
-          className="inline-flex items-center gap-2 self-start px-4 py-2 bg-[#B89F7A] text-white text-[11px] font-semibold rounded-sm hover:bg-[#A08860] transition-all"
+          className="inline-flex items-center gap-2 self-start px-4 py-2 bg-[#2D5A3D] text-white text-[11px] font-semibold rounded-sm hover:bg-[#3D7A55] transition-all"
         >
           <Settings size={13} />
           {FILL_PROFILE_BTN[lang]}
@@ -203,11 +202,11 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
   if (!canUseNote && !note) {
     return (
       <div
-        className="flex items-center gap-2 p-3 bg-[#B89F7A]/5 border border-dashed border-[#B89F7A]/30 rounded-sm cursor-pointer hover:bg-[#B89F7A]/10 transition-colors"
+        className="flex items-center gap-2 p-3 bg-[#2D5A3D]/5 border border-dashed border-[#B8923A]/30 rounded-sm cursor-pointer hover:bg-[#2D5A3D]/10 transition-colors"
         onClick={onLimitReached}
       >
-        <Crown size={14} className="text-[#B89F7A] shrink-0" />
-        <p className="text-xs text-[#B89F7A]">
+        <Crown size={14} className="text-[#B8923A] shrink-0" />
+        <p className="text-xs text-[#B8923A]">
           Daily limit reached. <span className="underline">Upgrade to Premium</span> for unlimited analyses.
         </p>
       </div>
@@ -217,8 +216,8 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-3">
-        <RefreshCw size={13} className="text-[#B89F7A] animate-spin" />
-        <p className="text-xs text-[#B89F7A] italic">Updating analysis for new preferences…</p>
+        <RefreshCw size={13} className="text-[#B8923A] animate-spin" />
+        <p className="text-xs text-[#B8923A] italic">Updating analysis for new preferences…</p>
       </div>
     );
   }
@@ -227,33 +226,33 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
     return (
       <div className="flex items-center gap-2 py-2">
         <p className="text-xs text-red-400 italic flex-1">{error}</p>
-        <button onClick={regenerate} className="text-xs text-[#B89F7A] underline">Retry</button>
+        <button onClick={regenerate} className="text-xs text-[#B8923A] underline">Retry</button>
       </div>
     );
   }
 
   if (!note) {
-    return <p className="text-xs text-[#B89F7A]/70 py-2 italic">{T.noteRescan}</p>;
+    return <p className="text-xs text-[#B8923A]/70 py-2 italic">{T.noteRescan}</p>;
   }
 
   return (
     <div>
       {profileChanged && (
-        <div className="flex items-center gap-2 mb-3 p-2 bg-[#F5F0E8] border border-[#D4C3A3]/40 rounded-sm">
-          <RefreshCw size={12} className="text-[#B89F7A]" />
-          <p className="text-xs text-[#B89F7A] flex-1">Preferences changed</p>
-          <button onClick={regenerate} className="text-xs text-[#2C3E50] underline font-medium">
+        <div className="flex items-center gap-2 mb-3 p-2 bg-[#E8F2EB] border border-[#2D5A3D]/20 rounded-sm">
+          <RefreshCw size={12} className="text-[#B8923A]" />
+          <p className="text-xs text-[#B8923A] flex-1">Preferences changed</p>
+          <button onClick={regenerate} className="text-xs text-[#1A1410] underline font-medium">
             Update analysis
           </button>
         </div>
       )}
-      <div className="prose prose-sm prose-stone max-w-none
-        [&_strong]:text-[#2C3E50] [&_strong]:font-semibold
-        [&_p]:text-xs [&_p]:text-[#4A4A4A] [&_p]:leading-relaxed [&_p]:mb-1
+      <div className="prose prose-base prose-stone max-w-none
+        [&_strong]:text-[#1A1410] [&_strong]:font-semibold
+        [&_p]:text-base [&_p]:text-[#5A5550] [&_p]:leading-relaxed [&_p]:mb-1
         [&_ul]:pl-4 [&_ul]:space-y-1 [&_ul]:mt-1
-        [&_li]:text-xs [&_li]:text-[#4A4A4A] [&_li]:leading-relaxed
-        [&_hr]:border-[#D4C3A3]/50 [&_hr]:my-3
-        [&_em]:text-[9px] [&_em]:text-[#B89F7A] [&_em]:not-italic [&_em]:block [&_em]:mt-2">
+        [&_li]:text-base [&_li]:text-[#5A5550] [&_li]:leading-relaxed
+        [&_hr]:border-[#DDD5C8]/50 [&_hr]:my-3
+        [&_em]:text-xs [&_em]:text-[#B8923A] [&_em]:not-italic [&_em]:block [&_em]:mt-2">
         <ReactMarkdown>{note}</ReactMarkdown>
       </div>
     </div>
