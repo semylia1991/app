@@ -31,6 +31,7 @@ function serializeProfile(profile: UserProfile, lang: Language): SerializedProfi
     scalpCondition:  p.scalpCondition.join(', ')  || undefined,
     hairProblems:    p.hairProblems.join(', ')     || undefined,
     climate:         p.climate.join(', ')          || undefined,
+    allergies:       (profile as any).allergies    || undefined,
   };
 }
 
@@ -248,11 +249,12 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
       )}
       <div className="prose prose-base prose-stone max-w-none
         [&_strong]:text-[#1A1410] [&_strong]:font-semibold
-        [&_p]:text-base [&_p]:text-[#5A5550] [&_p]:leading-relaxed [&_p]:mb-1
+        [&_p]:text-[#5A5550] [&_p]:leading-relaxed [&_p]:mb-1
         [&_ul]:pl-4 [&_ul]:space-y-1 [&_ul]:mt-1
-        [&_li]:text-base [&_li]:text-[#5A5550] [&_li]:leading-relaxed
+        [&_li]:text-[#5A5550] [&_li]:leading-relaxed
         [&_hr]:border-[#DDD5C8]/50 [&_hr]:my-3
-        [&_em]:text-xs [&_em]:text-[#B8923A] [&_em]:not-italic [&_em]:block [&_em]:mt-2">
+        [&_em]:text-xs [&_em]:text-[#B8923A] [&_em]:not-italic [&_em]:block [&_em]:mt-2"
+        style={{ fontFamily: 'var(--font-serif)', fontSize: '0.95rem' }}>
         <ReactMarkdown>{note}</ReactMarkdown>
       </div>
     </div>
