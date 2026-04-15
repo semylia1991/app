@@ -284,7 +284,6 @@ export default function App() {
       setFile(null);
       setPreviewUrl(null);
       await saveScanToHistory(analysis);
-      setScanHistoryKey(k => k + 1); // always increment so ScanHistory refetches
       await subscription.incrementScans();
       if (userProfile && analysisWithShops.personalNote) await subscription.incrementNoteAnalysis();
       const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
@@ -296,6 +295,7 @@ export default function App() {
       setError(t[lang].error);
       posthog.capture('scan_error', { lang });
     } finally {
+      setScanHistoryKey(k => k + 1);
       setIsAnalyzing(false);
     }
   };
