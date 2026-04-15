@@ -28,6 +28,7 @@ import { FeedbackSurvey } from './components/FeedbackSurvey';
 import { useSubscription } from './hooks/useSubscription';
 import { SubscriptionPage } from './components/SubscriptionPage';
 
+/* ── helpers ── */
 function splitParagraphs(text: string): string[] {
   return text.split('\n\n').map(s => s.trim()).filter(Boolean);
 }
@@ -35,7 +36,7 @@ function splitParagraphs(text: string): string[] {
 function UsageSection({ text }: { text: string }) {
   const blocks = splitParagraphs(text);
   return (
-    <div className="space-y-3 text-sm text-[#4A4A4A]">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} className="prose-luxury">
       {blocks.map((block, i) => {
         const colonIdx = block.indexOf(':');
         if (colonIdx !== -1) {
@@ -45,8 +46,8 @@ function UsageSection({ text }: { text: string }) {
           const body = block.slice(colonIdx + 1).trim();
           return (
             <p key={i}>
-              {emoji && <span className="mr-1">{emoji}</span>}
-              <strong className="text-[#2C3E50]">{label}</strong>
+              {emoji && <span style={{ marginRight: 4 }}>{emoji}</span>}
+              <strong style={{ color: '#1A1410' }}>{label}</strong>
               {body ? ' ' + body : ''}
             </p>
           );
@@ -60,7 +61,7 @@ function UsageSection({ text }: { text: string }) {
 function BenefitsSection({ text }: { text: string }) {
   const blocks = splitParagraphs(text);
   return (
-    <div className="space-y-3 text-sm text-[#4A4A4A]">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} className="prose-luxury">
       {blocks.map((block, i) => {
         const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
         if (lines.length === 0) return null;
@@ -70,10 +71,8 @@ function BenefitsSection({ text }: { text: string }) {
         if (isHeader) {
           return (
             <div key={i}>
-              <p className="font-bold text-[#2C3E50] mb-1">{header}</p>
-              {rest.map((line, j) => (
-                <p key={j} className="ml-2">{line}</p>
-              ))}
+              <p style={{ color: '#1A1410', fontWeight: 500, marginBottom: 3 }}>{header}</p>
+              {rest.map((line, j) => <p key={j} style={{ marginLeft: 12 }}>{line}</p>)}
             </div>
           );
         }
@@ -102,20 +101,24 @@ function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: str
   if (state === 'error') return null;
 
   return (
-    <div className="flex justify-center mb-4">
-      <div className="w-28 h-28 rounded-sm border border-[#D4C3A3] bg-[#F5F0E8] overflow-hidden flex items-center justify-center shadow-sm">
+    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+      <div style={{
+        width: 80, height: 80,
+        border: '0.5px solid #DDD5C8',
+        background: '#FAF7F2',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+      }}>
         {state === 'loading' && (
-          <div className="w-6 h-6 rounded-full border-2 border-[#B89F7A]/30 border-t-[#B89F7A] animate-spin" />
+          <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid #DDD5C8', borderTopColor: '#2D5A3D' }} className="animate-spin" />
         )}
         {state === 'loaded' && src && (
-          <img src={src} alt={name} className="w-full h-full object-contain p-2" onError={() => setState('error')} />
+          <img src={src} alt={name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} onError={() => setState('error')} />
         )}
       </div>
     </div>
   );
 }
-
-// ── Shop config ───────────────────────────────────────────────────────────────
 
 interface ShopConfig {
   platform: string;
@@ -137,16 +140,13 @@ function buildShopLinks(productName: string, brand: string): ShopLink[] {
   const combined = [brand, productName].filter(Boolean).join(' ').trim();
   if (!combined) return [];
   const qPlus = combined.split(/\s+/).join('+');
-  const qPct  = encodeURIComponent(combined);
+  const qPct = encodeURIComponent(combined);
   return SHOP_CONFIGS.map(({ platform, favicon, encoding, buildUrl }) => ({
-    platform,
-    favicon,
-    url: buildUrl(encoding === 'plus' ? qPlus : qPct),
+    platform, favicon, url: buildUrl(encoding === 'plus' ? qPlus : qPct),
   }));
 }
 
-// ── main component ────────────────────────────────────────────────────────────
-
+/* ── Main component ── */
 export default function App() {
   const [lang, setLang]               = useState<Language>('en');
   const [file, setFile]               = useState<File | null>(null);
@@ -178,11 +178,12 @@ export default function App() {
     () => window.location.search.includes('portal=return')
   );
 
-  const fileInputRef      = useRef<HTMLInputElement>(null);
-  const isFirstRender     = useRef(true);
-  const originalResult    = useRef<AnalysisResult | null>(null);
-  const translationCache  = useRef<Map<Language, AnalysisResult>>(new Map());
+  const fileInputRef     = useRef<HTMLInputElement>(null);
+  const isFirstRender    = useRef(true);
+  const originalResult   = useRef<AnalysisResult | null>(null);
+  const translationCache = useRef<Map<Language, AnalysisResult>>(new Map());
 
+  /* share link load */
   useEffect(() => {
     const shareId = new URLSearchParams(window.location.search).get('share');
     if (!shareId) return;
@@ -200,6 +201,7 @@ export default function App() {
       });
   }, []);
 
+  /* translation on lang change */
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (!originalResult.current || isAnalyzing) return;
@@ -245,10 +247,7 @@ export default function App() {
 
   const handleAnalyze = async () => {
     if (!previewUrl || !consent) return;
-    if (!subscription.canScan) {
-      setPaywallReason('scans');
-      return;
-    }
+    if (!subscription.canScan) { setPaywallReason('scans'); return; }
     setIsAnalyzing(true);
     setError(null);
     posthog.capture('scan_started', { lang });
@@ -285,15 +284,10 @@ export default function App() {
       await saveScanToHistory(analysis);
       setScanHistoryKey(k => k + 1);
       await subscription.incrementScans();
-      if (userProfile && analysisWithShops.personalNote) {
-        await subscription.incrementNoteAnalysis();
-      }
-      // Show feedback survey every 5th scan
+      if (userProfile && analysisWithShops.personalNote) await subscription.incrementNoteAnalysis();
       const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
       localStorage.setItem('totalScanCount', String(totalScans));
-      if (totalScans % 5 === 0) {
-        setTimeout(() => setIsSurveyOpen(true), 1500);
-      }
+      if (totalScans % 5 === 0) setTimeout(() => setIsSurveyOpen(true), 1500);
       posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
     } catch (err) {
       console.error(err);
@@ -339,6 +333,7 @@ export default function App() {
 
   const cl = t[lang].collapse;
 
+  /* Subscription page */
   if (showSubscriptionPage && user) {
     return (
       <SubscriptionPage
@@ -358,40 +353,42 @@ export default function App() {
     );
   }
 
+  /* ── RENDER ── */
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      <div className="fixed top-0 left-0 w-full h-32 bg-gradient-to-b from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#B89F7A]/10 to-transparent pointer-events-none z-0" />
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#F5F0E8' }}>
 
-      <header className="pt-6 pb-4 px-4 text-center relative">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <img src={logo} alt="logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
-          <div className="flex items-center gap-2">
+      {/* ── HEADER ── */}
+      <header style={{ background: '#FAF7F2', borderBottom: '0.5px solid #DDD5C8', padding: '48px 20px 20px' }}>
+        {/* Top bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <img src={logo} alt="logo" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {user && (
               <>
                 <ScanHistory
-                  user={user}
-                  lang={lang}
-                  refreshKey={scanHistoryKey}
+                  user={user} lang={lang} refreshKey={scanHistoryKey}
                   onSelect={(r, scanLang) => {
                     originalResult.current = r;
-                    // Cache under the scan's original language.
-                    // If scanLang differs from current lang, the translation
-                    // useEffect will detect a cache miss and retranslate.
                     const sourceLang = (scanLang ?? lang) as Language;
                     translationCache.current = new Map([[sourceLang, r]]);
                     setResult(r);
                   }}
                 />
-                <UserProfilePanel user={user} lang={lang} onProfileChange={setUserProfile} initialHasProfile={!!userProfile} externalOpen={isProfileOpen} onExternalOpenChange={setIsProfileOpen} />
+                <UserProfilePanel
+                  user={user} lang={lang} onProfileChange={setUserProfile}
+                  initialHasProfile={!!userProfile}
+                  externalOpen={isProfileOpen} onExternalOpenChange={setIsProfileOpen}
+                />
                 <button
                   onClick={() => setShowSubscriptionPage(true)}
-                  className={`text-xs px-2.5 py-1 border rounded-sm transition-colors font-serif tracking-wide ${
-                    subscription.isPremium
-                      ? 'border-[#B89F7A] text-[#B89F7A] hover:bg-[#B89F7A] hover:text-white'
-                      : 'border-[#D4C3A3] text-[#8A8A8A] hover:border-[#B89F7A] hover:text-[#B89F7A]'
-                  }`}
-                  title="Управление подпиской"
+                  style={{
+                    fontSize: '0.6rem', padding: '4px 10px',
+                    border: `1px solid ${subscription.isPremium ? '#B8923A' : '#DDD5C8'}`,
+                    background: subscription.isPremium ? 'rgba(184,146,58,0.08)' : 'transparent',
+                    color: subscription.isPremium ? '#B8923A' : '#8A8078',
+                    fontFamily: 'var(--font-sans)', letterSpacing: '0.14em',
+                    textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s',
+                  }}
                 >
                   {subscription.isPremium ? '✦ Premium' : 'Upgrade'}
                 </button>
@@ -401,14 +398,8 @@ export default function App() {
               setUser(u);
               if (u) {
                 posthog.identify(u.id, { email: u.email });
-                supabase
-                  .from('user_profiles')
-                  .select('profile')
-                  .eq('user_id', u.id)
-                  .single()
-                  .then(({ data }) => {
-                    if (data?.profile) setUserProfile(data.profile as UserProfile);
-                  });
+                supabase.from('user_profiles').select('profile').eq('user_id', u.id).single()
+                  .then(({ data }) => { if (data?.profile) setUserProfile(data.profile as UserProfile); });
               } else {
                 posthog.reset();
                 setUserProfile(null);
@@ -419,90 +410,109 @@ export default function App() {
 
         <LanguageSelector currentLang={lang} onSelect={setLang} />
 
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 mb-2">
-          <h2 className="text-xs font-serif tracking-[0.3em] text-[#B89F7A] uppercase mb-2">{t[lang].subtitle}</h2>
-          <h1 className="text-4xl md:text-5xl font-serif text-[#2C3E50] tracking-wide">{t[lang].title}</h1>
-          <div className="mt-4">
+        {/* Hero */}
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          style={{ marginTop: 28, marginBottom: 8, textAlign: 'center' }}
+        >
+          <p style={{ fontSize: '0.58rem', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#8A8078', marginBottom: 10, fontFamily: 'var(--font-sans)', fontWeight: 400 }}>
+            {t[lang].subtitle}
+          </p>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(2.2rem, 8vw, 3.2rem)', fontWeight: 300, color: '#1A1410', lineHeight: 1.1, letterSpacing: '0.05em' }}>
+            {t[lang].title}
+          </h1>
+
+          <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="inline-flex items-center gap-2.5 px-6 py-3 bg-[#B89F7A] text-white text-sm font-semibold tracking-[0.15em] uppercase shadow-md hover:bg-[#A08860] hover:shadow-lg active:scale-95 transition-all duration-200"
+              className="gold-btn"
+              style={{ padding: '12px 28px', display: 'inline-flex', alignItems: 'center', gap: 10 }}
             >
-              <span>✦</span>
-              {t[lang].userGuide}
-              <span>✦</span>
+              <span style={{ fontSize: 9 }}>✦</span>
+              <span>{t[lang].userGuide}</span>
+              <span style={{ fontSize: 9 }}>✦</span>
             </button>
           </div>
         </motion.div>
-        <div className="w-24 h-[1px] bg-[#D4C3A3] mx-auto mt-6" />
+
+        {/* Gold ornament divider */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 20 }}>
+          <div style={{ height: '0.5px', width: 48, background: 'linear-gradient(to right, transparent, #B8923A)' }} />
+          <span style={{ color: '#B8923A', fontSize: 10 }}>✦</span>
+          <div style={{ height: '0.5px', width: 48, background: 'linear-gradient(to left, transparent, #B8923A)' }} />
+        </div>
       </header>
 
-      <main className="flex-grow flex flex-col items-center justify-center p-4 relative">
+      {/* ── MAIN ── */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px 40px' }}>
         <AnimatePresence mode="wait">
+
+          {/* ── UPLOAD PANEL ── */}
           {!result ? (
             <motion.div
               key="upload"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-[#FDFBF7] regency-border p-8 shadow-xl"
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.4 }}
+              className="luxury-card"
+              style={{ width: '100%', maxWidth: 440, padding: '36px 32px' }}
             >
-              <div className="text-center mb-6">
-                <p className="text-xs text-[#B89F7A] leading-relaxed mt-3 px-4 font-bold">
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <p style={{ fontSize: '0.875rem', color: '#8A8078', lineHeight: 1.8, fontFamily: 'var(--font-sans)', fontWeight: 400 }}>
                   {t[lang].description}
                 </p>
               </div>
 
-              {/* Clickable upload zone */}
+              {/* Upload zone */}
               <div
-                className="relative aspect-[5/2] border-2 border-dashed border-[#D4C3A3] rounded-sm overflow-hidden bg-[#FDFBF7] cursor-pointer hover:border-[#B89F7A] hover:bg-[#B89F7A]/5 transition-all"
+                className="upload-zone"
+                style={{ aspectRatio: '5/2', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}
                 onClick={() => fileInputRef.current?.click()}
               >
                 {previewUrl ? (
-                  <img src={previewUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-90" referrerPolicy="no-referrer" />
+                  <img src={previewUrl} alt="Preview" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }} referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-[#B89F7A]">
-                    <Camera size={40} strokeWidth={1} className="mb-3 opacity-50" />
-                    <span className="font-serif text-xs tracking-widest uppercase opacity-60">{t[lang].uploadPhoto}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: 40, height: 40, border: '1px solid #2D5A3D', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                      <Camera size={18} strokeWidth={1} color="#2D5A3D" />
+                    </div>
+                    <span style={{ fontSize: '0.58rem', letterSpacing: '0.22em', textTransform: 'uppercase', fontFamily: 'var(--font-sans)', color: '#8A8078' }}>
+                      {t[lang].uploadPhoto}
+                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Hidden input */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                className="hidden"
-              />
+              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
 
               {previewUrl && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-6 space-y-4"
+                  style={{ marginTop: 24 }}
                 >
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <div className="relative flex items-center justify-center mt-1">
-                      <input
-                        type="checkbox"
-                        checked={consent}
-                        onChange={(e) => setConsent(e.target.checked)}
-                        className="peer appearance-none w-4 h-4 border border-[#B89F7A] rounded-sm checked:bg-[#B89F7A] transition-colors cursor-pointer"
-                      />
-                      <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    </div>
-                    <span className="text-xs text-[#4A4A4A] leading-relaxed group-hover:text-[#2C3E50] transition-colors">
+                  {/* Consent */}
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      className="luxury-check"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                    />
+                    <span style={{ fontSize: '0.875rem', color: '#5A5550', lineHeight: 1.7, fontFamily: 'var(--font-sans)' }}>
                       {t[lang].consent}
                     </span>
                   </label>
-                  <p className="text-[10px] text-[#B89F7A]/80 leading-relaxed -mt-2 pl-7">
+                  <p style={{ fontSize: '0.65rem', color: 'rgba(138,128,120,0.7)', marginBottom: 16, marginLeft: 24, fontFamily: 'var(--font-sans)' }}>
                     {t[lang].consentWithdrawal}
                   </p>
 
                   {error && (
-                    <div className="text-red-800 text-xs bg-red-50 p-3 border border-red-200 rounded-sm flex items-start gap-2">
-                      <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    <div style={{ color: '#991B1B', fontSize: '0.8rem', background: 'rgba(239,68,68,0.06)', border: '0.5px solid rgba(239,68,68,0.2)', padding: '10px 14px', display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 12 }}>
+                      <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
                       <span>{error}</span>
                     </div>
                   )}
@@ -510,57 +520,62 @@ export default function App() {
                   <button
                     onClick={handleAnalyze}
                     disabled={!consent || isAnalyzing}
-                    className="w-full py-4 regency-button disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="luxury-btn"
+                    style={{ width: '100%', padding: 16 }}
                   >
                     {isAnalyzing ? (
-                      <>
-                        <RefreshCw className="animate-spin" size={18} />
-                        <span className="tracking-widest">{t[lang].loading}</span>
-                      </>
+                      <><RefreshCw className="animate-spin" size={14} /><span>{t[lang].loading}</span></>
                     ) : (
-                      <span className="tracking-widest">{t[lang].analyzeProduct}</span>
+                      <span>{t[lang].analyzeProduct}</span>
                     )}
                   </button>
                 </motion.div>
               )}
             </motion.div>
+
           ) : (
+
+            /* ── RESULTS PANEL ── */
             <motion.div
               key="results"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-2xl bg-[#FDFBF7] regency-border p-6 md:p-10 shadow-xl"
+              transition={{ duration: 0.5 }}
+              className="luxury-card"
+              style={{ width: '100%', maxWidth: 680 }}
             >
-              <div className="text-center mb-8 border-b border-[#D4C3A3] pb-6">
-                <h2 className="text-sm font-serif tracking-[0.2em] text-[#B89F7A] uppercase mb-4">
+              {/* Product header */}
+              <div style={{ padding: '32px 32px 24px', textAlign: 'center', borderBottom: '0.5px solid #DDD5C8' }}>
+                <p style={{ fontSize: '0.58rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#8A8078', marginBottom: 16, fontFamily: 'var(--font-sans)' }}>
                   {t[lang].ingredientAnalysis}
-                </h2>
+                </p>
 
-                {/* Medical disclaimer — small text at bottom of every result */}
-                <h3 className="text-2xl font-serif text-[#2C3E50] mb-1">{result.productName}</h3>
-                <p className="text-sm text-[#4A4A4A] italic">{result.brand}</p>
+                <ProductHeroImage name={result.productName} brand={result.brand} userPhoto={scanPhotoUrl} />
+
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 300, color: '#1A1410', marginBottom: 6, letterSpacing: '0.04em' }}>
+                  {result.productName}
+                </h3>
+                <p style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic', letterSpacing: '0.08em', fontFamily: 'var(--font-serif)' }}>
+                  {result.brand}
+                </p>
+
                 {isTranslating && (
-                  <div className="mt-2 flex items-center justify-center gap-2 text-[#B89F7A] text-[10px] uppercase tracking-widest">
-                    <Loader2 size={12} className="animate-spin" />
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#2D5A3D', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                    <Loader2 size={11} className="animate-spin" />
                     {t[lang].translating}
                   </div>
                 )}
               </div>
 
-              <div className="space-y-2">
-
-                <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={20} />} defaultOpen collapseLabel={cl}>
-                  <div className="prose prose-sm prose-stone max-w-none">
-                    <ReactMarkdown>{result.analysis}</ReactMarkdown>
-                  </div>
+              {/* Sections */}
+              <div>
+                <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={15} />} defaultOpen collapseLabel={cl}>
+                  <div className="prose-luxury"><ReactMarkdown>{result.analysis}</ReactMarkdown></div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={20} />} collapseLabel={cl}>
+                <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={15} />} collapseLabel={cl}>
                   <PersonalAnalysis
-                    lang={lang}
-                    result={result}
-                    user={user}
-                    userProfile={userProfile}
+                    lang={lang} result={result} user={user} userProfile={userProfile}
                     canUseNote={subscription.canScan}
                     onLimitReached={() => setPaywallReason('scans')}
                     onUsed={subscription.incrementNoteAnalysis}
@@ -568,26 +583,26 @@ export default function App() {
                   />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={20} />} collapseLabel={cl}>
+                <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={15} />} collapseLabel={cl}>
                   {result.ingredients.length === 0 ? (
-                    <p className="text-xs text-[#B89F7A] italic">
+                    <p style={{ fontSize: '0.875rem', color: '#8A8078', fontStyle: 'italic' }}>
                       {lang === 'ru' ? 'Состав не найден. Сфотографируйте этикетку с INCI-списком крупным планом.' :
                        lang === 'uk' ? 'Склад не знайдено. Сфотографуйте етикетку зі списком INCI великим планом.' :
                        lang === 'de' ? 'Inhaltsstoffe nicht gefunden. Fotografieren Sie bitte das INCI-Etikett in Nahaufnahme.' :
                        lang === 'es' ? 'Ingredientes no encontrados. Fotografíe la etiqueta INCI de cerca.' :
-                       lang === 'fr' ? 'Ingrédients introuvables. Photographiez l\'étiquette INCI en gros plan.' :
-                       lang === 'it' ? 'Ingredienti non trovati. Fotografa l\'etichetta INCI da vicino.' :
+                       lang === 'fr' ? "Ingrédients introuvables. Photographiez l'étiquette INCI en gros plan." :
+                       lang === 'it' ? "Ingredienti non trovati. Fotografa l'etichetta INCI da vicino." :
                        lang === 'tr' ? 'İçerikler bulunamadı. Lütfen INCI etiketini yakından fotoğraflayın.' :
                        'Ingredients not found. Please photograph the INCI label up close.'}
                     </p>
                   ) : (
-                    <ul className="space-y-2">
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                       {result.ingredients.map((ing, idx) => (
-                        <li key={idx} className="flex items-start gap-2 py-1 border-b border-[#D4C3A3]/20 last:border-0">
-                          <span className="text-base shrink-0 mt-0.5">{ing.status}</span>
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-[#2C3E50] text-xs uppercase tracking-wide">{ing.name}</span>
-                            <span className="text-xs text-[#4A4A4A]">{ing.description}</span>
+                        <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: '0.5px solid rgba(221,213,200,0.5)' }}>
+                          <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
+                          <div>
+                            <span style={{ display: 'block', fontSize: '0.875rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2 }}>{ing.name}</span>
+                            <span style={{ fontSize: '0.875rem', color: '#8A8078', lineHeight: 1.6 }}>{ing.description}</span>
                           </div>
                         </li>
                       ))}
@@ -595,104 +610,114 @@ export default function App() {
                   )}
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].usage} icon={<Info size={20} />} collapseLabel={cl}>
+                <CollapsibleSection title={t[lang].usage} icon={<Info size={15} />} collapseLabel={cl}>
                   <UsageSection text={result.usage} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={20} />} collapseLabel={cl}>
+                <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={15} />} collapseLabel={cl}>
                   <BenefitsSection text={result.benefits} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={20} />} collapseLabel={cl}>
+                <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={15} />} collapseLabel={cl}>
                   <BenefitsSection text={result.sideEffects} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={20} />} collapseLabel={cl}>
-                  <div className="prose prose-sm prose-stone max-w-none">
-                    <ReactMarkdown>{result.warnings}</ReactMarkdown>
-                  </div>
+                <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={15} />} collapseLabel={cl}>
+                  <div className="prose-luxury"><ReactMarkdown>{result.warnings}</ReactMarkdown></div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].interactions} icon={<Zap size={20} />} collapseLabel={cl}>
+                <CollapsibleSection title={t[lang].interactions} icon={<Zap size={15} />} collapseLabel={cl}>
                   <BenefitsSection text={result.interactions} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={20} />} collapseLabel={cl}>
-                  <div className="prose prose-sm prose-stone max-w-none">
-                    <ReactMarkdown>{result.shelfLife}</ReactMarkdown>
-                  </div>
+                <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={15} />} collapseLabel={cl}>
+                  <div className="prose-luxury"><ReactMarkdown>{result.shelfLife}</ReactMarkdown></div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={20} />} collapseLabel={cl}>
+                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={15} />} collapseLabel={cl}>
                   <AlternativesSection alternatives={result.alternatives} />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={20} />} collapseLabel={cl}>
+                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={15} />} collapseLabel={cl}>
                   <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} />
                 </CollapsibleSection>
-
               </div>
 
               <AskAI
-                lang={lang}
-                context={result}
+                lang={lang} context={result}
                 isPremium={subscription.isPremium}
                 onLimitReached={() => setPaywallReason('askAi')}
               />
 
-              <div className="mt-8 pt-6 border-t border-[#D4C3A3] space-y-4">
-                <div className="flex items-start gap-1.5 text-[10px] text-[#B89F7A]/70">
-                  <span className="shrink-0 mt-0.5">⚠</span>
+              {/* Footer actions */}
+              <div style={{ padding: '20px 28px 32px', borderTop: '0.5px solid #DDD5C8' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.7rem', color: 'rgba(138,128,120,0.7)', marginBottom: 20, lineHeight: 1.7 }}>
+                  <span style={{ flexShrink: 0 }}>⚠</span>
                   <span>{t[lang].aiDisclaimer}</span>
                 </div>
-
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <button
                     onClick={handleShare}
                     disabled={isSharing}
-                    className="w-full py-4 regency-button tracking-widest flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="luxury-btn"
+                    style={{ width: '100%', padding: 14 }}
                   >
-                    {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-                    <span>
-                      {captionCopied ? t[lang].captionCopied : t[lang].share}
-                    </span>
+                    {isSharing ? <Loader2 size={13} className="animate-spin" /> : <Share2 size={13} />}
+                    <span>{captionCopied ? t[lang].captionCopied : t[lang].share}</span>
                   </button>
-
-
+                  <button
+                    onClick={handleReset}
+                    className="outline-btn"
+                    style={{ width: '100%', padding: 13 }}
+                  >
+                    {t[lang].anotherProduct}
+                  </button>
                 </div>
-
-                <button onClick={handleReset} className="w-full py-4 regency-button tracking-widest">
-                  {t[lang].anotherProduct}
-                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </main>
 
-      <footer className="py-6 text-center text-xs text-[#B89F7A] relative">
-        <p className="mb-2">{t[lang].footerText}</p>
-        <div className="flex justify-center gap-4">
-          <button onClick={() => setIsPrivacyOpen(true)} className="hover:text-[#2C3E50] transition-colors underline decoration-[#B89F7A]/30 underline-offset-4">
-            {t[lang].privacyPolicy}
-          </button>
-          <span>|</span>
-          <button onClick={() => setIsAgbOpen(true)} className="hover:text-[#2C3E50] transition-colors underline decoration-[#B89F7A]/30 underline-offset-4">
-            {t[lang].agb}
-          </button>
-          <span>|</span>
-          <button onClick={() => setIsImpressumOpen(true)} className="hover:text-[#2C3E50] transition-colors underline decoration-[#B89F7A]/30 underline-offset-4">
-            {t[lang].impressum}
-          </button>
+      {/* ── FOOTER ── */}
+      <footer style={{ padding: '20px 16px', textAlign: 'center', borderTop: '0.5px solid #DDD5C8', background: '#FAF7F2' }}>
+        <p style={{ fontSize: '0.6rem', color: '#8A8078', marginBottom: 10, letterSpacing: '0.08em', fontFamily: 'var(--font-sans)' }}>
+          {t[lang].footerText}
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 16, alignItems: 'center' }}>
+          {[
+            { label: t[lang].privacyPolicy, action: () => setIsPrivacyOpen(true) },
+            { label: t[lang].agb, action: () => setIsAgbOpen(true) },
+            { label: t[lang].impressum, action: () => setIsImpressumOpen(true) },
+          ].map((item, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <span style={{ color: '#DDD5C8', fontSize: '0.5rem' }}>◆</span>}
+              <button
+                onClick={item.action}
+                style={{
+                  fontSize: '0.58rem', color: '#8A8078', letterSpacing: '0.1em', textTransform: 'uppercase',
+                  background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                  textDecoration: 'underline', textDecorationColor: 'rgba(45,90,61,0.3)', textUnderlineOffset: 3,
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#1A1410')}
+                onMouseLeave={e => (e.currentTarget.style.color = '#8A8078')}
+              >
+                {item.label}
+              </button>
+            </React.Fragment>
+          ))}
         </div>
       </footer>
 
+      {/* ── MODALS & OVERLAYS ── */}
       <LoadingScreen isVisible={isAnalyzing} lang={lang} />
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
 
       <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent />} />
       <LegalModal isOpen={isAgbOpen} onClose={() => setIsAgbOpen(false)} title={t[lang].agb} content={<AGBContent />} />
       <LegalModal isOpen={isImpressumOpen} onClose={() => setIsImpressumOpen(false)} title={t[lang].impressum} content={<ImpressumContent />} />
+
       <UserGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} lang={lang} />
 
       <PaywallModal
