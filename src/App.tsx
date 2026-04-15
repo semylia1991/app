@@ -233,14 +233,18 @@ export default function App() {
   };
 
   const saveScanToHistory = async (analysis: AnalysisResult) => {
-    if (!user) return;
-    await supabase.from('scan_history').insert({
+    if (!user) {
+      console.warn('[ScanHistory] No user — skipping save');
+      return;
+    }
+    const { error } = await supabase.from('scan_history').insert({
       user_id: user.id,
       product_name: analysis.productName,
       brand: analysis.brand,
       result: analysis,
       lang,
     });
+    if (error) console.error('[ScanHistory] Insert error:', error);
   };
 
   const handleAnalyze = async () => {
@@ -280,7 +284,7 @@ export default function App() {
       setFile(null);
       setPreviewUrl(null);
       await saveScanToHistory(analysis);
-      setScanHistoryKey(k => k + 1);
+      setScanHistoryKey(k => k + 1); // always increment so ScanHistory refetches
       await subscription.incrementScans();
       if (userProfile && analysisWithShops.personalNote) await subscription.incrementNoteAnalysis();
       const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
