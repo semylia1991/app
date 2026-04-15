@@ -74,7 +74,6 @@ const guideContent: Record<Language, {
       { num: '01', title: 'Upload a photo', desc: 'Photograph the back of the packaging with the ingredient list (INCI) or the entire product. Any image works — the app will extract the relevant data. The sharper the photo, the more accurate the analysis.' },
       { num: '02', title: 'Give consent and tap "Analyze"', desc: 'Check the consent box and press the button. Your photo is used only for this analysis and is not stored on servers without your knowledge.' },
       { num: '03', title: 'Receive a full breakdown', desc: 'The AI reads the formula, identifies each ingredient against international databases (EWG, CosDNA, EU CosIng) and returns a structured report with a safety rating, usage guide, warnings, and alternatives.' },
-      { num: '04', title: 'Ask follow-up questions', desc: 'After analysis, an "Ask AI" chat appears. You can ask up to 5 questions about the product — for example, "is it compatible with retinol?" or "is it suitable for sensitive skin?"' },
     ],
 
     reportLabel: 'What you get',
