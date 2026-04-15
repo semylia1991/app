@@ -173,8 +173,8 @@ h1,h2,h3,h4,h5,h6,.font-serif {
 /* ── PROSE ── */
 .prose-luxury {
   color: #5A5550;
-  font-size: 0.8rem;
-  line-height: 1.7;
+  font-size: 0.875rem;
+  line-height: 1.75;
 }
 .prose-luxury strong { color: #1A1410; font-weight: 500; }
 .prose-luxury p { margin-bottom: 0.5rem; }
