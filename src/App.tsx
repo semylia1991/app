@@ -618,7 +618,7 @@ export default function App() {
                           <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
                           <div>
                             <span style={{ display: 'block', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2, fontFamily: 'var(--font-sans)' }}>{ing.name}</span>
-                            <span style={{ fontSize: '0.9rem', color: '#8A8078', lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>{ing.description}</span>
+                            <span style={{ fontSize: '1.05rem', color: '#8A8078', lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>{ing.description}</span>
                           </div>
                         </li>
                       ))}
