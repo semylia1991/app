@@ -52,7 +52,7 @@ export function CollapsibleSection({ title, icon, children, defaultOpen = false,
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ padding: '4px 24px 18px 64px', color: '#5A5550', fontSize: '1rem', lineHeight: 1.75 }}>
+            <div style={{ padding: '4px 20px 18px 20px', color: '#5A5550', fontSize: '1rem', lineHeight: 1.75 }}>
               {children}
             </div>
             <button
