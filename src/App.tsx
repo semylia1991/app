@@ -594,7 +594,7 @@ export default function App() {
 
                 <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={15} />} collapseLabel={cl}>
                   {result.ingredients.length === 0 ? (
-                    <p style={{ fontSize: '0.875rem', color: '#8A8078', fontStyle: 'italic' }}>
+                    <p style={{ fontSize: '0.8rem', color: '#8A8078', fontStyle: 'italic' }}>
                       {lang === 'ru' ? 'Состав не найден. Сфотографируйте этикетку с INCI-списком крупным планом.' :
                        lang === 'uk' ? 'Склад не знайдено. Сфотографуйте етикетку зі списком INCI великим планом.' :
                        lang === 'de' ? 'Inhaltsstoffe nicht gefunden. Fotografieren Sie bitte das INCI-Etikett in Nahaufnahme.' :
@@ -607,11 +607,11 @@ export default function App() {
                   ) : (
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                       {result.ingredients.map((ing, idx) => (
-                        <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: '0.5px solid rgba(221,213,200,0.5)' }}>
+                        <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '0.5px solid rgba(221,213,200,0.5)' }}>
                           <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
                           <div>
-                            <span style={{ display: 'block', fontSize: '0.875rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2 }}>{ing.name}</span>
-                            <span style={{ fontSize: '0.875rem', color: '#8A8078', lineHeight: 1.6 }}>{ing.description}</span>
+                            <span style={{ display: 'block', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2 }}>{ing.name}</span>
+                            <span style={{ fontSize: '0.8rem', color: '#8A8078', lineHeight: 1.65 }}>{ing.description}</span>
                           </div>
                         </li>
                       ))}
