@@ -276,10 +276,44 @@ export default function App() {
             };
           })()
         : undefined;
+
+      // ── Step 1: Run analysis (always fresh — cache check happens after) ──
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang, serializedProfile);
+
+      // ── Step 2: Check cache by brand + productName + lang ──
+      // (after first scan so we have the name — skips cache if profile is set for personalisation)
+      let finalAnalysis = analysis;
+      if (!serializedProfile) {
+        const cacheKey = `${analysis.brand}|${analysis.productName}`.toLowerCase().trim();
+        const { data: cached } = await supabase
+          .from('product_cache')
+          .select('result')
+          .eq('cache_key', cacheKey)
+          .eq('lang', lang)
+          .maybeSingle();
+
+        if (cached?.result) {
+          // Cache hit — use cached result, still count the scan
+          console.log('[Cache] HIT for', cacheKey);
+          finalAnalysis = cached.result as AnalysisResult;
+          posthog.capture('cache_hit', { product: cacheKey, lang });
+        } else {
+          // Cache miss — save result for future users
+          await supabase.from('product_cache').upsert({
+            cache_key: cacheKey,
+            result: analysis,
+            lang,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'cache_key' }).then(({ error }) => {
+            if (error) console.warn('[Cache] save error:', error.message);
+            else console.log('[Cache] MISS — saved for', cacheKey);
+          });
+        }
+      }
+
       const analysisWithShops: AnalysisResult = {
-        ...analysis,
-        shopLinks: buildShopLinks(analysis.productName, analysis.brand),
+        ...finalAnalysis,
+        shopLinks: buildShopLinks(finalAnalysis.productName, finalAnalysis.brand),
       };
       originalResult.current = analysisWithShops;
       translationCache.current = new Map([[lang, analysisWithShops]]);
@@ -287,17 +321,18 @@ export default function App() {
       setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
-      await saveScanToHistory(analysis);
+      await saveScanToHistory(finalAnalysis);
       await subscription.incrementScans();
       if (userProfile && analysisWithShops.personalNote) await subscription.incrementNoteAnalysis();
       const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
       localStorage.setItem('totalScanCount', String(totalScans));
       if (totalScans % 5 === 0) setTimeout(() => setIsSurveyOpen(true), 1500);
-      posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
+      posthog.capture('scan_completed', { product_name: finalAnalysis.productName, brand: finalAnalysis.brand, lang });
     } catch (err) {
       console.error(err);
       setError(t[lang].error);
       posthog.capture('scan_error', { lang });
+
     } finally {
       setScanHistoryKey(k => k + 1);
       setIsAnalyzing(false);
