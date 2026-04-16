@@ -25,7 +25,7 @@ import { UserProfilePanel, UserProfile, translateProfile } from './components/Us
 import { PersonalAnalysis } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
 import { FeedbackSurvey } from './components/FeedbackSurvey';
-import { useSubscription } from './hooks/useSubscription';
+import { enrichIngredients } from './lib/ingredients-db';
 import { SubscriptionPage } from './components/SubscriptionPage';
 
 /* ── helpers ── */
@@ -277,42 +277,41 @@ export default function App() {
           })()
         : undefined;
 
-      // ── Step 1: Run analysis (always fresh — cache check happens after) ──
+      // ── Run AI analysis ──
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang, serializedProfile);
 
-      // ── Step 2: Check cache by brand + productName + lang ──
-      // (after first scan so we have the name — skips cache if profile is set for personalisation)
+      // ── Cache: keyed by "brand|name||lang" — each language stored separately ──
+      // Skipped when user has profile (personalNote makes result unique per user)
       let finalAnalysis = analysis;
       if (!serializedProfile) {
-        const cacheKey = `${analysis.brand}|${analysis.productName}`.toLowerCase().trim();
+        const cacheKey = `${analysis.brand}|${analysis.productName}||${lang}`.toLowerCase().trim();
+
         const { data: cached } = await supabase
           .from('product_cache')
           .select('result')
           .eq('cache_key', cacheKey)
-          .eq('lang', lang)
           .maybeSingle();
 
         if (cached?.result) {
-          // Cache hit — use cached result, still count the scan
-          console.log('[Cache] HIT for', cacheKey);
+          console.log('[Cache] HIT:', cacheKey);
           finalAnalysis = cached.result as AnalysisResult;
           posthog.capture('cache_hit', { product: cacheKey, lang });
         } else {
-          // Cache miss — save result for future users
-          await supabase.from('product_cache').upsert({
+          // Save async — don't block the user
+          supabase.from('product_cache').insert({
             cache_key: cacheKey,
             result: analysis,
             lang,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'cache_key' }).then(({ error }) => {
+          }).then(({ error }) => {
             if (error) console.warn('[Cache] save error:', error.message);
-            else console.log('[Cache] MISS — saved for', cacheKey);
+            else console.log('[Cache] saved:', cacheKey);
           });
         }
       }
 
       const analysisWithShops: AnalysisResult = {
         ...finalAnalysis,
+        ingredients: enrichIngredients(finalAnalysis.ingredients),
         shopLinks: buildShopLinks(finalAnalysis.productName, finalAnalysis.brand),
       };
       originalResult.current = analysisWithShops;
