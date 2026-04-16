@@ -92,7 +92,7 @@ Provide the analysis in ${language}.
 Formatting Rules:
 - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
 - analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
-- alternatives: Return 2–4 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
+- alternatives: Return 3–5 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
@@ -110,6 +110,9 @@ Formatting Rules:
 💧 [translated label for "Amount to Use"]:
 - [Exact amount — drops, pea-size, pump etc.]
 - [How to spread or massage in]
+
+✅ [translated label for "Layering Order"]:
+- [Step number] [product type] — [example]
 
 🌡️ [translated label for "Before and After"]:
 - [What to do before applying — cleanse, tone etc.]
@@ -147,6 +150,7 @@ Ensure the output strictly follows the JSON schema.`.trim();
 
   if (!userProfile) return basePrompt;
 
+  // Main profile — used across all sections EXCEPT climate which is personalNote-only
   const profileLines = [
     userProfile.skinType        ? "Skin type: "         + userProfile.skinType        : null,
     userProfile.skinSensitivity ? "Sensitivities: "     + userProfile.skinSensitivity : null,
@@ -155,9 +159,13 @@ Ensure the output strictly follows the JSON schema.`.trim();
     userProfile.hairType        ? "Hair type: "         + userProfile.hairType         : null,
     userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
     userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
-    userProfile.climate         ? "Climate / environment: " + userProfile.climate        : null,
     userProfile.allergies       ? "⚠️ ALLERGIES / INTOLERANCES (flag any matching ingredients as 🔴 and warn explicitly): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
+
+  // Climate is passed separately — only used inside personalNote
+  const climateLines = userProfile.climate
+    ? "Climate / environment: " + userProfile.climate
+    : "";
 
   const personalNoteSection = `
 
@@ -185,11 +193,12 @@ Ensure the output strictly follows the JSON schema.`.trim();
   - Explicitly tie observations to the selected preferences.
   - Do not refer to personal data or identity.
   - Consider factor combinations (e.g. sensitive skin + alcohol).
+  - PRODUCT TYPE RELEVANCE — CRITICAL: Match preferences to product type. For hair/scalp products (shampoo, conditioner, hair mask, hair oil, dry shampoo, etc.) ONLY use hair-related preferences (hairType, scalpCondition, hairProblems). IGNORE skin conditions like enlarged pores, pigmentation, acne, rosacea — these are irrelevant to hair products and must NOT be mentioned. For face/body skincare (moisturizer, serum, toner, cleanser, sunscreen, etc.) ONLY use skin-related preferences (skinType, skinSensitivity, skinConditions, ageRange). IGNORE hair preferences. For multi-use or ambiguous products, use only the preferences that are directly relevant to the product's intended use area.
   - ALLERGIES: If the user listed any allergies or intolerances, you MUST check every ingredient against that list. Any match or close derivative MUST appear in "What to look out for" with a clear warning. Never omit this even if the rest of the product looks safe.
-  - CLIMATE: If the user specified a climate, you MUST comment on how the product's ingredients perform in that environment (e.g. humectants in dry climate, SPF relevance in sunny climate, occlusive agents in cold/windy climate, lightweight formulas in humid climate). Include this in "Beneficial components" or "What to look out for" as appropriate.
+  - CLIMATE: If the user specified a climate, comment on how the product's ingredients perform in that environment — but only in the context of the product's use area. For hair products: focus on how climate affects the scalp and hair (e.g. humidity causing frizz, dry climate causing scalp dryness). For skincare products: focus on skin effects (e.g. humectants in dry climate, lightweight formulas in humid climate, SPF in sunny climate, occlusives in cold/windy climate). Do NOT apply skin-climate effects to hair products or vice versa.
 
 USER PREFERENCES:
-${profileLines}`;
+${[profileLines, climateLines].filter(Boolean).join("\n")}`;
 
   return basePrompt + personalNoteSection;
 }
@@ -338,8 +347,26 @@ export async function handleGeminiRequest(
       return { status: 400, body: { error: "result, userProfile, and language are required." } };
     }
 
+    // Detect product category from productType
+    const productType = ((result as any).productType ?? "").toLowerCase();
+    const isHairProduct = /shampoo|conditioner|hair mask|hair oil|hair serum|hair spray|dry shampoo|волос|шампун|кондиционер|маска для волос|haarpflege|haarmaske|haarshampoo|haaröl/i.test(productType);
+    const isSkinProduct = /cream|serum|toner|moistur|cleanser|sunscreen|spf|lotion|face|exfoliat|mask|eye|lip|крем|сыворот|тонер|очищ|солнц|увлажн|Creme|Serum|Reiniger|Toner/i.test(productType);
+
+    // Skin-related keys
+    const skinKeys = ["skinType", "skinSensitivity", "skinConditions", "ageRange"];
+    // Hair-related keys
+    const hairKeys = ["hairType", "scalpCondition", "hairProblems"];
+    // Always relevant
+    const universalKeys = ["climate", "allergies"];
+
+    const relevantKeys = isHairProduct
+      ? [...hairKeys, ...universalKeys]
+      : isSkinProduct
+        ? [...skinKeys, ...universalKeys]
+        : [...skinKeys, ...hairKeys, ...universalKeys]; // ambiguous — include all
+
     const profileLines = Object.entries(userProfile as Record<string, string>)
-      .filter(([, v]) => v)
+      .filter(([k, v]) => v && relevantKeys.includes(k))
       .map(([k, v]) => `${k}: ${v}`)
       .join("\n");
 
@@ -357,6 +384,7 @@ USER PREFERENCES:
 ${profileLines}
 
 PRODUCT: ${(result as any).productName ?? ""} by ${(result as any).brand ?? ""}
+PRODUCT TYPE: ${(result as any).productType ?? ""}
 INGREDIENTS:
 ${ingredients}
 
@@ -375,6 +403,8 @@ Structure (translate all headings to ${language}):
 ⚠️ *[Automated analysis based on selected preferences. Not medical advice.]*
 
 Rules: no medical advice, mild phrasing (may cause / worth noting), tie every observation to the preferences.
+PRODUCT TYPE RELEVANCE — CRITICAL: For hair/scalp products (shampoo, conditioner, hair mask, hair oil, etc.) ONLY use hair-related preferences (hairType, scalpCondition, hairProblems). Do NOT mention skin conditions like enlarged pores, pigmentation, acne — they are irrelevant to hair products. For skincare products ONLY use skin-related preferences. Ignore hair preferences for face/body products.
+CLIMATE: If climate is specified, apply it only in the context of the product's use area — for hair products comment on scalp/hair effects only, for skincare comment on skin effects only.
 If allergies listed — flag any matching ingredient in "What to look out for".`;
 
     const response = await generateWithRetry(ai, {
