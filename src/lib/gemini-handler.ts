@@ -96,7 +96,7 @@ Formatting Rules:
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
-- [Skin type] — [why and how product behaves on this skin type]
+- [Skin type] — [why, how product behaves on this skin type]
 
 📋 [translated label for "How to Apply"]:
 - [Step 1]
@@ -234,24 +234,23 @@ function isTransient(err: any): boolean {
 
 async function generateWithRetry(
   ai: GoogleGenAI,
-  params: Parameters<GoogleGenAI["models"]["generateContent"]>[0],
+  params: Omit<Parameters<GoogleGenAI["models"]["generateContent"]>[0], "model">,
 ) {
   let lastError: unknown;
   for (const model of MODELS) {
-    const p = { ...params, model };
+    const p = { ...params, model } as Parameters<GoogleGenAI["models"]["generateContent"]>[0];
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
         return await ai.models.generateContent(p);
       } catch (err: any) {
         lastError = err;
         if (!isTransient(err)) {
-        if (String(err?.status ?? "").includes("404") || String(err?.message ?? "").includes("404")) break;
-        throw err;
-      } // non-transient — fail immediately
+          if (String(err?.status ?? "").includes("404") || String(err?.message ?? "").includes("404")) break;
+          throw err;
+        }
         if (attempt < 2) await new Promise(r => setTimeout(r, 600));
       }
     }
-    // Both attempts on this model failed — try next model
   }
   throw lastError;
 }
@@ -273,7 +272,7 @@ export async function handleGeminiRequest(
     if (!message || typeof message !== "string") {
       return { status: 400, body: { error: "message is required and must be a string." } };
     }
-    const response = await generateWithRetry(ai, { contents: message });
+    const response = await generateWithRetry(ai, { contents: [{ parts: [{ text: message }] }] });
     return { status: 200, body: { response: response.text } };
   }
 
@@ -318,7 +317,7 @@ export async function handleGeminiRequest(
       return { status: 400, body: { error: "result and targetLanguage are required." } };
     }
     const response = await generateWithRetry(ai, {
-      contents: buildTranslatePrompt(result, targetLanguage),
+      contents: [{ parts: [{ text: buildTranslatePrompt(result, targetLanguage) }] }],
       config: { responseMimeType: "application/json" },
     });
     return { status: 200, rawText: response.text ?? "" };
@@ -333,7 +332,7 @@ export async function handleGeminiRequest(
       return { status: 400, body: { error: "question, context, and language are required." } };
     }
     const response = await generateWithRetry(ai, {
-      contents: buildAskPrompt(question, context, language),
+      contents: [{ parts: [{ text: buildAskPrompt(question, context, language) }] }],
     });
     return { status: 200, body: { answer: response.text ?? "" } };
   }
@@ -408,7 +407,7 @@ CLIMATE: If climate is specified, apply it only in the context of the product's 
 If allergies listed — flag any matching ingredient in "What to look out for".`;
 
     const response = await generateWithRetry(ai, {
-      contents: prompt,
+      contents: [{ parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
