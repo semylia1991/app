@@ -25,7 +25,7 @@ import { UserProfilePanel, UserProfile, translateProfile } from './components/Us
 import { PersonalAnalysis } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
 import { FeedbackSurvey } from './components/FeedbackSurvey';
-import { enrichIngredients } from './lib/ingredients-db';
+import { useSubscription } from './hooks/useSubscription';
 import { SubscriptionPage } from './components/SubscriptionPage';
 
 /* ── helpers ── */
@@ -276,43 +276,10 @@ export default function App() {
             };
           })()
         : undefined;
-
-      // ── Run AI analysis ──
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang, serializedProfile);
-
-      // ── Cache: keyed by "brand|name||lang" — each language stored separately ──
-      // Skipped when user has profile (personalNote makes result unique per user)
-      let finalAnalysis = analysis;
-      if (!serializedProfile) {
-        const cacheKey = `${analysis.brand}|${analysis.productName}||${lang}`.toLowerCase().trim();
-
-        const { data: cached } = await supabase
-          .from('product_cache')
-          .select('result')
-          .eq('cache_key', cacheKey)
-          .maybeSingle();
-
-        if (cached?.result) {
-          console.log('[Cache] HIT:', cacheKey);
-          finalAnalysis = cached.result as AnalysisResult;
-          posthog.capture('cache_hit', { product: cacheKey, lang });
-        } else {
-          // Save async — don't block the user
-          supabase.from('product_cache').insert({
-            cache_key: cacheKey,
-            result: analysis,
-            lang,
-          }).then(({ error }) => {
-            if (error) console.warn('[Cache] save error:', error.message);
-            else console.log('[Cache] saved:', cacheKey);
-          });
-        }
-      }
-
       const analysisWithShops: AnalysisResult = {
-        ...finalAnalysis,
-        ingredients: enrichIngredients(finalAnalysis.ingredients),
-        shopLinks: buildShopLinks(finalAnalysis.productName, finalAnalysis.brand),
+        ...analysis,
+        shopLinks: buildShopLinks(analysis.productName, analysis.brand),
       };
       originalResult.current = analysisWithShops;
       translationCache.current = new Map([[lang, analysisWithShops]]);
@@ -320,18 +287,17 @@ export default function App() {
       setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
-      await saveScanToHistory(finalAnalysis);
+      await saveScanToHistory(analysis);
       await subscription.incrementScans();
       if (userProfile && analysisWithShops.personalNote) await subscription.incrementNoteAnalysis();
       const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
       localStorage.setItem('totalScanCount', String(totalScans));
       if (totalScans % 5 === 0) setTimeout(() => setIsSurveyOpen(true), 1500);
-      posthog.capture('scan_completed', { product_name: finalAnalysis.productName, brand: finalAnalysis.brand, lang });
+      posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
     } catch (err) {
       console.error(err);
       setError(t[lang].error);
       posthog.capture('scan_error', { lang });
-
     } finally {
       setScanHistoryKey(k => k + 1);
       setIsAnalyzing(false);
