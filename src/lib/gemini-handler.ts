@@ -96,7 +96,7 @@ Formatting Rules:
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
-- [Skin type] — [why, how product behaves on this skin type]
+- [Skin type] — [why]
 
 📋 [translated label for "How to Apply"]:
 - [Step 1]
@@ -136,6 +136,9 @@ Formatting Rules:
 
 ⚗️ [translated label for "Actives Compatibility"]:
 - [Active ingredient] — [can/cannot combine, why]
+
+🧴 [translated label for "Skin Type Compatibility"]:
+- [Skin type] — [how product behaves on this skin type]
 
 🔗 [translated label for "Ingredient Synergy"]:
 - [Ingredient pair] — [how they enhance or conflict with each other]
@@ -235,13 +238,14 @@ function isTransient(err: any): boolean {
 async function generateWithRetry(
   ai: GoogleGenAI,
   params: Omit<Parameters<GoogleGenAI["models"]["generateContent"]>[0], "model">,
-) {
+): Promise<Awaited<ReturnType<GoogleGenAI["models"]["generateContent"]>>> {
   let lastError: unknown;
   for (const model of MODELS) {
     const p = { ...params, model } as Parameters<GoogleGenAI["models"]["generateContent"]>[0];
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        return await ai.models.generateContent(p);
+        const result = await ai.models.generateContent(p);
+        return result;
       } catch (err: any) {
         lastError = err;
         if (!isTransient(err)) {
@@ -252,7 +256,7 @@ async function generateWithRetry(
       }
     }
   }
-  throw lastError;
+  throw lastError ?? new Error("All models failed");
 }
 
 export async function handleGeminiRequest(
