@@ -161,7 +161,6 @@ export const INGREDIENTS_DB: Record<string, IngredientEntry> = {
   // ── pH adjusters ─────────────────────────────────────────────────────────────
   'sodium hydroxide':               { status: '🟢', description: 'pH adjuster, alkali' },
   'citric acid':                    { status: '🟢', description: 'pH adjuster, mild AHA' },
-  'lactic acid':                    { status: '🟡', description: 'pH adjuster, gentle AHA exfoliant' },
   'triethanolamine':                { status: '🟡', description: 'pH adjuster, nitrosamine concerns' },
   'tromethamine':                   { status: '🟢', description: 'pH adjuster, alternative to TEA' },
   'aminomethyl propanol':           { status: '🟢', description: 'pH adjuster, buffering agent' },
