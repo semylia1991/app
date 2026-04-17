@@ -14,7 +14,7 @@ const MODELS = [
 
 export interface HandlerResult {
   status: number;
-  body: unknown;
+  body?: unknown;
   rawText?: string;
 }
 
