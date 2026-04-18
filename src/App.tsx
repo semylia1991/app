@@ -313,6 +313,7 @@ export default function App() {
     setError(null);
     originalResult.current = null;
     translationCache.current = new Map();
+    window.history.replaceState({}, '', window.location.pathname);
   };
 
   const handleShare = async () => {
