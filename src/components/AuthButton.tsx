@@ -44,7 +44,7 @@ export function AuthButton({ lang, onUserChange }: Props) {
   }
 
   return (
-    <button onClick={signIn} disabled={loading} style={{
+    <button onClick={signIn} disabled={loading} data-auth-button style={{
       display: 'flex', alignItems: 'center', gap: 6,
       padding: '5px 10px', background: '#1A1410', color: '#FAF7F2',
       border: 'none', fontSize: '0.55rem', fontWeight: 500,
