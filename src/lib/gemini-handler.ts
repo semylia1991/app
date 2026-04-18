@@ -87,11 +87,11 @@ For each ingredient in the "ingredients" array you MUST always provide a "descri
 - Note any safety concerns, common reactions, or special properties
 - Be 1–7 words. Never leave it empty.
 
-Provide the analysis in ${language}.
+Provide the ENTIRE analysis in ${language}. Every single field — analysis, usage, benefits, sideEffects, warnings, interactions, shelfLife — MUST be written in ${language}. Do NOT use English for any field unless ${language} is English.
 
 Formatting Rules:
 - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
-- analysis: Strictly 1-2 sentences. START by stating what the product is (e.g., "This is a [productType]. It features...").
+- analysis: Strictly 1-2 sentences in ${language}. START by stating what the product is. NEVER use English if ${language} is not English.
 - alternatives: Return 3–5 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
@@ -130,23 +130,22 @@ Formatting Rules:
 • [Ingredient] [description of potential reaction]
 
 - interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names AND block titles into ${language}. The section MUST be split into TWO clearly labeled blocks separated by a divider line (---). Use DOUBLE NEWLINES between categories:
- 
+
 ## ✅ [translated title for "Best Combinations"]
- 
+
 ⚗️ [translated label for "Actives Compatibility"]:
 - [Active ingredient] — [can combine, why it works well]
- 
+
 🔗 [translated label for "Ingredient Synergy"]:
 - [Ingredient pair] — [how they enhance each other]
- 
+
 ---
- 
+
 ## ⚠️ [translated title for "Caution: Conflicts!"]
- 
+
 🚫 [translated label for "Avoid Combining With"]:
 - [Ingredient/product type] — [reason to avoid]
- 
- 
+
 Ensure the output strictly follows the JSON schema.`.trim();
 
   if (!userProfile) return basePrompt;
