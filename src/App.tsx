@@ -243,6 +243,7 @@ export default function App() {
       product_name: analysis.productName,
       brand: analysis.brand,
       result: analysis,
+      scan_lang: lang,
     }).select();
     if (error) {
       console.error('[ScanHistory] INSERT error:', error.message, '| code:', error.code, '| details:', error.details, '| hint:', error.hint);
@@ -378,6 +379,7 @@ export default function App() {
                     const sourceLang = (scanLang ?? lang) as Language;
                     translationCache.current = new Map([[sourceLang, r]]);
                     setResult(r);
+                    if (scanLang && scanLang !== lang) setLang(scanLang as Language);
                   }}
                 />
                 <UserProfilePanel
