@@ -149,7 +149,7 @@ export function ScanHistory({ user, lang, refreshKey, onSelect }: Props) {
               {!loading && scans.map(scan => (
                 <motion.div key={scan.id}
                   initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                  onClick={() => { onSelect(scan.result as AnalysisResult); setIsOpen(false); }}
+                  onClick={() => { onSelect(scan.result as AnalysisResult, scan.scan_lang ?? undefined); setIsOpen(false); }}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, background: '#FFFFFF', border: '0.5px solid #DDD5C8', cursor: 'pointer', transition: 'border-color 0.2s' }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = '#2D5A3D')}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = '#DDD5C8')}
