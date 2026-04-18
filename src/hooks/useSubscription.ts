@@ -122,7 +122,7 @@ export function useSubscription(user: User | null): SubscriptionState {
         .from('subscriptions')
         .select('status, expires_at')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       const isPremiumActive =
         sub?.status === 'active' &&
@@ -138,7 +138,7 @@ export function useSubscription(user: User | null): SubscriptionState {
         .select('scans, note_analysis, ask_ai')
         .eq('user_id', user.id)
         .eq('date', today)
-        .single();
+        .maybeSingle();
 
       setUsage({
         scans: usageRow?.scans ?? 0,
