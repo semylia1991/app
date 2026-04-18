@@ -187,7 +187,7 @@ export default function App() {
     if (!shareId) return;
     setSharedLoading(true);
     supabase
-      .from('shared_results').select('result').eq('id', shareId).single()
+      .from('shared_results').select('result').eq('id', shareId).maybeSingle()
       .then(({ data }) => {
         if (data?.result) {
           const r = data.result as AnalysisResult;
@@ -408,7 +408,7 @@ export default function App() {
               setUser(u);
               if (u) {
                 posthog.identify(u.id, { email: u.email });
-                supabase.from('user_profiles').select('profile').eq('user_id', u.id).single()
+                supabase.from('user_profiles').select('profile').eq('user_id', u.id).maybeSingle()
                   .then(({ data }) => { if (data?.profile) setUserProfile(data.profile as UserProfile); });
               } else {
                 posthog.reset();
