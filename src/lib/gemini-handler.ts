@@ -111,9 +111,6 @@ Formatting Rules:
 - [Exact amount — drops, pea-size, pump etc.]
 - [How to spread or massage in]
 
-✅ [translated label for "Layering Order"]:
-- [Step number] [product type] — [example]
-
 🌡️ [translated label for "Before and After"]:
 - [What to do before applying — cleanse, tone etc.]
 - [What to apply after — serum, moisturizer, SPF etc.]
@@ -132,23 +129,24 @@ Formatting Rules:
 🔴 [translated side effect category name]:
 • [Ingredient] [description of potential reaction]
 
-- interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
-
+- interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names AND block titles into ${language}. The section MUST be split into TWO clearly labeled blocks separated by a divider line (---). Use DOUBLE NEWLINES between categories:
+ 
+## ✅ [translated title for "Best Combinations"]
+ 
 ⚗️ [translated label for "Actives Compatibility"]:
-- [Active ingredient] — [can/cannot combine, why]
-
-🧴 [translated label for "Skin Type Compatibility"]:
-- [Skin type] — [how product behaves on this skin type]
-
+- [Active ingredient] — [can combine, why it works well]
+ 
 🔗 [translated label for "Ingredient Synergy"]:
-- [Ingredient pair] — [how they enhance or conflict with each other]
-
+- [Ingredient pair] — [how they enhance each other]
+ 
+---
+ 
+## ⚠️ [translated title for "Caution: Conflicts!"]
+ 
 🚫 [translated label for "Avoid Combining With"]:
 - [Ingredient/product type] — [reason to avoid]
-
-✅ [translated label for "Best Combinations"]:
-- [Product/ingredient] — [why it works well together]
-
+ 
+ 
 Ensure the output strictly follows the JSON schema.`.trim();
 
   if (!userProfile) return basePrompt;
