@@ -664,8 +664,17 @@ export default function App() {
                   <AskAI
                     lang={lang}
                     context={result}
+                    user={user}
                     isPremium={subscription.isPremium}
+                    canAskAi={subscription.canAskAi}
+                    usageAskAi={subscription.usage.askAi}
+                    maxAskAi={subscription.limits.askAiPerDay}
                     onLimitReached={() => setPaywallReason('askAi')}
+                    onIncrementAskAi={subscription.incrementAskAi}
+                    onRegister={() => {
+                      const btn = document.querySelector('[data-auth-button]') as HTMLElement;
+                      btn?.click();
+                    }}
                   />
                 </CollapsibleSection>
               </div>
