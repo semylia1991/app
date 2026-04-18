@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
-import { Send, Loader2, Crown } from 'lucide-react';
+import { Send, Loader2, Crown, UserPlus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { t, Language } from '../i18n';
 import { AnalysisResult } from '../services/ai';
+import type { User } from '@supabase/supabase-js';
 
 interface Props {
   lang: Language;
   context: AnalysisResult;
+  user: User | null;
   isPremium: boolean;
+  canAskAi: boolean;
+  usageAskAi: number;
+  maxAskAi: number;
   onLimitReached: () => void;
+  onIncrementAskAi: () => Promise<void>;
+  onRegister: () => void;
 }
 
 function buildAskPrompt(question: string, context: AnalysisResult, language: string): string {
@@ -23,6 +30,7 @@ function buildAskPrompt(question: string, context: AnalysisResult, language: str
   `Question: ${question}`,
   `Product composition (INCI): ${inci}`,
   `Product: ${context.productName} by ${context.brand} (${context.productType})`,
+  `Usage instructions (already analysed): ${context.usage}`,
   '',
   'RULES:',
   '- First line = final answer. No intro.',
@@ -37,6 +45,8 @@ function buildAskPrompt(question: string, context: AnalysisResult, language: str
   '- Use neutral phrasing: worth noting, may cause, is sometimes associated with.',
   '- Do not address the reader directly (no "you", "your", etc.).',
   '- Write in an impersonal, analytical tone.',
+  '- If the question is about PRICE → state clearly that price information is not available here, and suggest checking the brand website or retailers.',
+  '- If the question is about HOW TO APPLY → answer based on the product type and ingredients. Reference the usage section data if relevant. Do NOT invent application steps not supported by the product type.',
   '',
   `ANSWER FORMAT (translate all headings to ${language}):`,
   '',
@@ -44,29 +54,25 @@ function buildAskPrompt(question: string, context: AnalysisResult, language: str
   return lines.join('\n');
 }
 
-export function AskAI({ lang, context, isPremium, onLimitReached }: Props) {
+export function AskAI({ lang, context, user, isPremium, canAskAi, usageAskAi, maxAskAi, onLimitReached, onIncrementAskAi, onRegister }: Props) {
   const [question, setQuestion] = useState('');
   const [chat, setChat] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  // Per-scan limit: 1 for free, 3 for premium — resets on every new scan
-  const MAX_QUESTIONS = isPremium ? 3 : 1;
-  const [count, setCount] = useState(0);
-  const limitReached = count >= MAX_QUESTIONS;
+
+  const limitReached = !canAskAi;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || isLoading) return;
 
-    if (limitReached) {
-      onLimitReached();
-      return;
-    }
+    if (!user) { onRegister(); return; }
+    if (limitReached) { onLimitReached(); return; }
 
     const q = question;
     setQuestion('');
     setChat(prev => [...prev, { role: 'user', text: q }]);
     setIsLoading(true);
-    setCount(prev => prev + 1);
+    await onIncrementAskAi();
 
     try {
       const res = await fetch('/api/gemini', {
@@ -88,6 +94,26 @@ export function AskAI({ lang, context, isPremium, onLimitReached }: Props) {
     }
   };
 
+  // Незарегистрированный пользователь
+  if (!user) {
+    return (
+      <div style={{ textAlign: 'center', padding: '20px 12px' }}>
+        <UserPlus size={22} style={{ color: '#B8923A', margin: '0 auto 10px' }} />
+        <p style={{ fontSize: '0.8rem', color: '#5A5550', marginBottom: 14, lineHeight: 1.6 }}>
+          {(t[lang] as any).askAiRegister}
+        </p>
+        <button
+          onClick={onRegister}
+          className="luxury-btn"
+          style={{ padding: '10px 24px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+        >
+          <UserPlus size={13} />
+          <span>{(t[lang] as any).askAiRegisterBtn}</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-8 border border-[#D4C3A3] rounded-sm bg-white/50 p-4 shadow-sm">
       <div className="flex justify-between items-center mb-4 border-b border-[#D4C3A3]/30 pb-2">
@@ -101,7 +127,7 @@ export function AskAI({ lang, context, isPremium, onLimitReached }: Props) {
             </span>
           )}
           <span className="text-[10px] uppercase tracking-widest text-[#B89F7A]">
-            {count} / {MAX_QUESTIONS} {t[lang].questions}
+            {usageAskAi} / {maxAskAi} {t[lang].questions}
           </span>
         </div>
       </div>
@@ -147,7 +173,7 @@ export function AskAI({ lang, context, isPremium, onLimitReached }: Props) {
           >
             <Crown size={12} className="inline-block text-[#B89F7A] mr-1" />
             <p className="text-[10px] uppercase tracking-tighter text-[#B89F7A] inline">
-              {t[lang].limitReached} — Upgrade to Premium
+              {isPremium ? (t[lang] as any).askAiLimitPremium : (t[lang] as any).askAiLimitFree}
             </p>
           </div>
         )}
@@ -171,6 +197,33 @@ export function AskAI({ lang, context, isPremium, onLimitReached }: Props) {
           <Send size={18} />
         </button>
       </form>
+
+      {!limitReached && chat.length === 0 && (
+        <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {(t[lang].askAiHints as string[]).map((hint, i) => (
+            <button
+              key={i}
+              onClick={() => setQuestion(hint)}
+              style={{
+                fontSize: '0.62rem',
+                padding: '4px 10px',
+                border: '0.5px solid #D4C3A3',
+                background: 'transparent',
+                color: '#8A8078',
+                borderRadius: 2,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                letterSpacing: '0.03em',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#B89F7A'; e.currentTarget.style.color = '#2C3E50'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#D4C3A3'; e.currentTarget.style.color = '#8A8078'; }}
+            >
+              {hint}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
