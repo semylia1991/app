@@ -659,6 +659,15 @@ export default function App() {
                 <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={15} />} collapseLabel={cl}>
                   <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
                 </CollapsibleSection>
+
+                <CollapsibleSection title={t[lang].askAi} icon={<Sparkles size={15} />} collapseLabel={cl}>
+                  <AskAI
+                    lang={lang}
+                    context={result}
+                    isPremium={subscription.isPremium}
+                    onLimitReached={() => setPaywallReason('askAi')}
+                  />
+                </CollapsibleSection>
               </div>
 
 
