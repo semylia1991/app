@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, UserPlus, AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 import { supabase, ScanRecord } from '../lib/supabase';
 import { t, Language } from '../i18n';
@@ -220,63 +219,48 @@ export function CompareSection({ lang, current, user, onRegister }: Props) {
               <span>{tt.back ?? tt.compareClose}</span>
             </button>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem', tableLayout: 'fixed' }}>
-                <colgroup>
-                  <col style={{ width: '110px' }} />
-                  <col />
-                  <col />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th style={thStyle}></th>
-                    <th style={{ ...thStyle, background: '#E8F2EB' }}>
-                      <div style={{ fontSize: '0.58rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#2D5A3D', marginBottom: 4 }}>{tt.compareCurrent}</div>
-                      <div style={{ fontWeight: 500, color: '#1A1410', wordBreak: 'break-word' }}>{current.productName}</div>
-                      <div style={{ fontStyle: 'italic', color: '#2D5A3D', fontSize: '0.7rem' }}>{current.brand}</div>
-                    </th>
-                    <th style={thStyle}>
-                      <div style={{ fontWeight: 500, color: '#1A1410', wordBreak: 'break-word' }}>{picked.productName}</div>
-                      <div style={{ fontStyle: 'italic', color: '#2D5A3D', fontSize: '0.7rem' }}>{picked.brand}</div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Analysis */}
-                  <tr>
-                    <td style={rowLabelStyle}>{tt.compareColumnAnalysis}</td>
-                    <td style={cellStyle}>{truncate(current.analysis)}</td>
-                    <td style={cellStyle}>{truncate(picked.analysis)}</td>
-                  </tr>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 10, rowGap: 6 }}>
+              {/* ─── Product headers (row 1) ─── */}
+              <div style={{ background: '#E8F2EB', border: '0.5px solid #DDD5C8', padding: 10 }}>
+                <div style={{ fontSize: '0.56rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#2D5A3D', marginBottom: 4 }}>{tt.compareCurrent}</div>
+                <div style={{ fontWeight: 500, color: '#1A1410', wordBreak: 'break-word', fontSize: '0.85rem' }}>{current.productName}</div>
+                <div style={{ fontStyle: 'italic', color: '#2D5A3D', fontSize: '0.72rem' }}>{current.brand}</div>
+              </div>
+              <div style={{ background: '#FFFFFF', border: '0.5px solid #DDD5C8', padding: 10 }}>
+                <div style={{ fontSize: '0.56rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8A8078', marginBottom: 4 }}>&nbsp;</div>
+                <div style={{ fontWeight: 500, color: '#1A1410', wordBreak: 'break-word', fontSize: '0.85rem' }}>{picked.productName}</div>
+                <div style={{ fontStyle: 'italic', color: '#2D5A3D', fontSize: '0.72rem' }}>{picked.brand}</div>
+              </div>
 
-                  {/* Preference bullets — label + marker only, no explanation */}
-                  <tr>
-                    <td style={rowLabelStyle}>{tt.compareColumnPreferences}</td>
-                    <td style={cellStyle}>
-                      {currentParsed.bullets.length ? (
-                        <ul style={bulletListStyle}>
-                          {currentParsed.bullets.map((b, i) => (
-                            <li key={i} style={bulletItemStyle}>{stripBulletExplanation(b)}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.7rem' }}>{tt.compareNoPersonalNote}</span>
-                      )}
-                    </td>
-                    <td style={cellStyle}>
-                      {pickedParsed.bullets.length ? (
-                        <ul style={bulletListStyle}>
-                          {pickedParsed.bullets.map((b, i) => (
-                            <li key={i} style={bulletItemStyle}>{stripBulletExplanation(b)}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.7rem' }}>{tt.compareNoPersonalNote}</span>
-                      )}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              {/* ─── Analysis — shared label spans both columns ─── */}
+              <div style={sharedLabelStyle}>📋 {tt.compareColumnAnalysis}</div>
+              <div style={sectionBodyStyle}>{truncate(current.analysis)}</div>
+              <div style={sectionBodyStyle}>{truncate(picked.analysis)}</div>
+
+              {/* ─── Preferences — shared label spans both columns ─── */}
+              <div style={sharedLabelStyle}>✅ {tt.compareColumnPreferences}</div>
+              <div style={sectionBodyStyle}>
+                {currentParsed.bullets.length ? (
+                  <ul style={bulletListStyle}>
+                    {currentParsed.bullets.map((b, i) => (
+                      <li key={i} style={bulletItemStyle}>{stripBulletExplanation(b)}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.72rem' }}>{tt.compareNoPersonalNote}</span>
+                )}
+              </div>
+              <div style={sectionBodyStyle}>
+                {pickedParsed.bullets.length ? (
+                  <ul style={bulletListStyle}>
+                    {pickedParsed.bullets.map((b, i) => (
+                      <li key={i} style={bulletItemStyle}>{stripBulletExplanation(b)}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.72rem' }}>{tt.compareNoPersonalNote}</span>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -285,37 +269,27 @@ export function CompareSection({ lang, current, user, onRegister }: Props) {
   );
 }
 
-const thStyle: React.CSSProperties = {
-  padding: '10px 10px',
-  textAlign: 'left',
-  verticalAlign: 'top',
-  borderBottom: '1px solid #DDD5C8',
-  background: '#FFFFFF',
-  fontFamily: 'var(--font-sans)',
-  fontWeight: 400,
-};
-
-const rowLabelStyle: React.CSSProperties = {
-  padding: '10px 10px',
-  verticalAlign: 'top',
-  borderBottom: '0.5px solid rgba(221,213,200,0.6)',
-  color: '#2D5A3D',
-  fontSize: '0.6rem',
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  fontWeight: 500,
-  background: '#F5F1E8',
-  wordBreak: 'break-word',
-};
-
-const cellStyle: React.CSSProperties = {
-  padding: '10px 10px',
-  verticalAlign: 'top',
-  borderBottom: '0.5px solid rgba(221,213,200,0.6)',
+const sharedLabelStyle: React.CSSProperties = {
+  gridColumn: '1 / -1',
+  fontSize: '0.75rem',
+  letterSpacing: '0.04em',
   color: '#1A1410',
+  fontWeight: 600,
+  fontFamily: 'var(--font-sans)',
+  textAlign: 'center',
+  marginTop: 10,
+  marginBottom: 2,
+  paddingTop: 8,
+  borderTop: '0.5px solid rgba(221,213,200,0.7)',
+};
+
+const sectionBodyStyle: React.CSSProperties = {
+  fontSize: '0.76rem',
   lineHeight: 1.55,
+  color: '#1A1410',
   wordBreak: 'break-word',
   overflowWrap: 'anywhere',
+  padding: '4px 8px',
 };
 
 const bulletListStyle: React.CSSProperties = {
