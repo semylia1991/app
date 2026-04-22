@@ -133,11 +133,8 @@ Formatting Rules:
 
 ## ✅ [translated title for "Best Combinations"]
 
-⚗️ [translated label for "Actives Compatibility"]:
-- [Active ingredient] — [can combine, why it works well]
-
-🔗 [translated label for "Ingredient Synergy"]:
-- [Ingredient pair] — [how they enhance each other]
+🔗 [translated label for "Actives Compatibility"]:
+- [can combine, why it works well]
 
 ---
 
