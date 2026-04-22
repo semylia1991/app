@@ -14,7 +14,7 @@ interface Props {
 }
 
 // Extract sections from a personalNote:
-// - Brief summary   : the first 1-2 sentences before the "By preferences" heading
+// - Brief summary   : the first 1 sentence before the "By preferences" heading
 // - Preference bullets: every bullet that contains a 🟢 / 🟡 / 🔴 marker
 // - rawNote         : the whole note (used as fallback when format is legacy/unknown)
 function parsePersonalNote(note?: string): { summary: string; bullets: string[]; rawNote: string } {
