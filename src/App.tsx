@@ -21,7 +21,7 @@ import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
 import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
-import { CompareModal } from './components/CompareModal';
+import { CompareSection } from './components/CompareSection';
 import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
 import { PersonalAnalysis } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
@@ -178,7 +178,6 @@ export default function App() {
   const [isSurveyOpen, setIsSurveyOpen]       = useState(false);
   const [isGuideOpen, setIsGuideOpen]         = useState(false);
   const [isProfileOpen, setIsProfileOpen]     = useState(false);
-  const [isCompareOpen, setIsCompareOpen]     = useState(false);
   const [copied, setCopied]                   = useState(false);
   const [captionCopied, setCaptionCopied]     = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
@@ -669,6 +668,18 @@ export default function App() {
                   <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
                 </CollapsibleSection>
 
+                <CollapsibleSection title={t[lang].compareWith} icon={<GitCompareArrows size={15} />} collapseLabel={cl}>
+                  <CompareSection
+                    lang={lang}
+                    current={result}
+                    user={user}
+                    onRegister={() => {
+                      const btn = document.querySelector('[data-auth-button]') as HTMLElement;
+                      btn?.click();
+                    }}
+                  />
+                </CollapsibleSection>
+
                 <CollapsibleSection title={t[lang].askAi} icon={<Sparkles size={15} />} collapseLabel={cl}>
                   <AskAI
                     lang={lang}
@@ -705,14 +716,6 @@ export default function App() {
                   >
                     {isSharing ? <Loader2 size={13} className="animate-spin" /> : <Share2 size={13} />}
                     <span>{captionCopied ? t[lang].captionCopied : t[lang].share}</span>
-                  </button>
-                  <button
-                    onClick={() => setIsCompareOpen(true)}
-                    className="outline-btn"
-                    style={{ width: '100%', padding: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                  >
-                    <GitCompareArrows size={13} />
-                    <span>{t[lang].compareWith}</span>
                   </button>
                   <button
                     onClick={handleReset}
@@ -768,20 +771,6 @@ export default function App() {
       <LegalModal isOpen={isImpressumOpen} onClose={() => setIsImpressumOpen(false)} title={t[lang].impressum} content={<ImpressumContent />} />
 
       <UserGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} lang={lang} />
-
-      {result && (
-        <CompareModal
-          isOpen={isCompareOpen}
-          onClose={() => setIsCompareOpen(false)}
-          lang={lang}
-          current={result}
-          user={user}
-          onRegister={() => {
-            const btn = document.querySelector('[data-auth-button]') as HTMLElement;
-            btn?.click();
-          }}
-        />
-      )}
 
       <PaywallModal
         isOpen={paywallReason !== null}
