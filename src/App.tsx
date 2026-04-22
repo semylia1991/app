@@ -2,7 +2,7 @@ import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart } from 'lucide-react';
+import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart, GitCompareArrows } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
@@ -21,6 +21,7 @@ import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
 import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
+import { CompareModal } from './components/CompareModal';
 import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
 import { PersonalAnalysis } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
@@ -177,6 +178,7 @@ export default function App() {
   const [isSurveyOpen, setIsSurveyOpen]       = useState(false);
   const [isGuideOpen, setIsGuideOpen]         = useState(false);
   const [isProfileOpen, setIsProfileOpen]     = useState(false);
+  const [isCompareOpen, setIsCompareOpen]     = useState(false);
   const [copied, setCopied]                   = useState(false);
   const [captionCopied, setCaptionCopied]     = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
@@ -651,6 +653,34 @@ export default function App() {
                   <BenefitsSection text={result.sideEffects} />
                 </CollapsibleSection>
 
+                {/* Compare-with button */}
+                <div style={{ padding: '6px 0 14px', display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    onClick={() => setIsCompareOpen(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 16px',
+                      border: '1px solid #DDD5C8',
+                      background: 'transparent',
+                      color: '#2D5A3D',
+                      fontSize: '0.65rem',
+                      fontWeight: 500,
+                      fontFamily: 'var(--font-sans)',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#2D5A3D'; e.currentTarget.style.background = '#E8F2EB'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#DDD5C8'; e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <GitCompareArrows size={13} />
+                    <span>{t[lang].compareWith}</span>
+                  </button>
+                </div>
+
                 <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={15} />} collapseLabel={cl}>
                   <div className="prose-luxury"><ReactMarkdown>{result.warnings}</ReactMarkdown></div>
                 </CollapsibleSection>
@@ -758,6 +788,20 @@ export default function App() {
       <LegalModal isOpen={isImpressumOpen} onClose={() => setIsImpressumOpen(false)} title={t[lang].impressum} content={<ImpressumContent />} />
 
       <UserGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} lang={lang} />
+
+      {result && (
+        <CompareModal
+          isOpen={isCompareOpen}
+          onClose={() => setIsCompareOpen(false)}
+          lang={lang}
+          current={result}
+          user={user}
+          onRegister={() => {
+            const btn = document.querySelector('[data-auth-button]') as HTMLElement;
+            btn?.click();
+          }}
+        />
+      )}
 
       <PaywallModal
         isOpen={paywallReason !== null}
