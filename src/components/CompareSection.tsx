@@ -65,6 +65,15 @@ function truncate(text: string, max = 260): string {
   return s.length > max ? s.slice(0, max - 1).trimEnd() + '…' : s;
 }
 
+// Strip the "— explanation" part after the color marker, leaving only "Label 🟢/🟡/🔴"
+function stripBulletExplanation(bullet: string): string {
+  const markerMatch = bullet.match(/[🟢🟡🔴]/);
+  if (!markerMatch) return bullet.trim();
+  const markerIdx = bullet.indexOf(markerMatch[0]);
+  // Cut at the marker + 1 emoji character
+  return bullet.slice(0, markerIdx + markerMatch[0].length).trim();
+}
+
 export function CompareSection({ lang, current, user, onRegister }: Props) {
   const [scans, setScans] = useState<ScanRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -240,14 +249,14 @@ export function CompareSection({ lang, current, user, onRegister }: Props) {
                     <td style={cellStyle}>{truncate(picked.analysis)}</td>
                   </tr>
 
-                  {/* Preference bullets */}
+                  {/* Preference bullets — label + marker only, no explanation */}
                   <tr>
                     <td style={rowLabelStyle}>{tt.compareColumnPreferences}</td>
                     <td style={cellStyle}>
                       {currentParsed.bullets.length ? (
                         <ul style={bulletListStyle}>
                           {currentParsed.bullets.map((b, i) => (
-                            <li key={i} style={bulletItemStyle}><ReactMarkdown>{b}</ReactMarkdown></li>
+                            <li key={i} style={bulletItemStyle}>{stripBulletExplanation(b)}</li>
                           ))}
                         </ul>
                       ) : (
@@ -258,34 +267,11 @@ export function CompareSection({ lang, current, user, onRegister }: Props) {
                       {pickedParsed.bullets.length ? (
                         <ul style={bulletListStyle}>
                           {pickedParsed.bullets.map((b, i) => (
-                            <li key={i} style={bulletItemStyle}><ReactMarkdown>{b}</ReactMarkdown></li>
+                            <li key={i} style={bulletItemStyle}>{stripBulletExplanation(b)}</li>
                           ))}
                         </ul>
                       ) : (
                         <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.7rem' }}>{tt.compareNoPersonalNote}</span>
-                      )}
-                    </td>
-                  </tr>
-
-                  {/* Brief summary */}
-                  <tr>
-                    <td style={rowLabelStyle}>{tt.compareColumnSummary}</td>
-                    <td style={cellStyle}>
-                      {currentParsed.summary ? (
-                        <div style={{ fontSize: '0.76rem' }}><ReactMarkdown>{currentParsed.summary}</ReactMarkdown></div>
-                      ) : currentParsed.rawNote ? (
-                        <div style={{ fontSize: '0.76rem' }}><ReactMarkdown>{truncate(currentParsed.rawNote, 220)}</ReactMarkdown></div>
-                      ) : (
-                        <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.7rem' }}>—</span>
-                      )}
-                    </td>
-                    <td style={cellStyle}>
-                      {pickedParsed.summary ? (
-                        <div style={{ fontSize: '0.76rem' }}><ReactMarkdown>{pickedParsed.summary}</ReactMarkdown></div>
-                      ) : pickedParsed.rawNote ? (
-                        <div style={{ fontSize: '0.76rem' }}><ReactMarkdown>{truncate(pickedParsed.rawNote, 220)}</ReactMarkdown></div>
-                      ) : (
-                        <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.7rem' }}>—</span>
                       )}
                     </td>
                   </tr>
