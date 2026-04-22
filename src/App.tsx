@@ -2,7 +2,7 @@ import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, Clock, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart } from 'lucide-react';
+import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
@@ -33,7 +33,7 @@ function splitParagraphs(text: string): string[] {
   return text.split('\n\n').map(s => s.trim()).filter(Boolean);
 }
 
-function UsageSection({ text }: { text: string }) {
+function UsageSection({ text, shelfLife, shelfLifeLabel }: { text: string; shelfLife?: string; shelfLifeLabel?: string }) {
   const blocks = splitParagraphs(text);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} className="prose-luxury">
@@ -54,6 +54,17 @@ function UsageSection({ text }: { text: string }) {
         }
         return <p key={i}>{block}</p>;
       })}
+      {shelfLife && shelfLife.trim() && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(26, 20, 16, 0.08)' }}>
+          {shelfLifeLabel && (
+            <p style={{ marginBottom: 4 }}>
+              <span style={{ marginRight: 4 }}>🕐</span>
+              <strong style={{ color: '#1A1410' }}>{shelfLifeLabel}</strong>
+            </p>
+          )}
+          <ReactMarkdown>{shelfLife}</ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 }
@@ -629,7 +640,7 @@ export default function App() {
                 </CollapsibleSection>
 
                 <CollapsibleSection title={t[lang].usage} icon={<Info size={15} />} collapseLabel={cl}>
-                  <UsageSection text={result.usage} />
+                  <UsageSection text={result.usage} shelfLife={result.shelfLife} shelfLifeLabel={t[lang].shelfLife} />
                 </CollapsibleSection>
 
                 <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={15} />} collapseLabel={cl}>
@@ -646,10 +657,6 @@ export default function App() {
 
                 <CollapsibleSection title={t[lang].interactions} icon={<Zap size={15} />} collapseLabel={cl}>
                   <BenefitsSection text={result.interactions} />
-                </CollapsibleSection>
-
-                <CollapsibleSection title={t[lang].shelfLife} icon={<Clock size={15} />} collapseLabel={cl}>
-                  <div className="prose-luxury"><ReactMarkdown>{result.shelfLife}</ReactMarkdown></div>
                 </CollapsibleSection>
 
                 <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={15} />} collapseLabel={cl}>
