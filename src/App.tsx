@@ -653,34 +653,6 @@ export default function App() {
                   <BenefitsSection text={result.sideEffects} />
                 </CollapsibleSection>
 
-                {/* Compare-with button */}
-                <div style={{ padding: '6px 0 14px', display: 'flex', justifyContent: 'center' }}>
-                  <button
-                    onClick={() => setIsCompareOpen(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '8px 16px',
-                      border: '1px solid #DDD5C8',
-                      background: 'transparent',
-                      color: '#2D5A3D',
-                      fontSize: '0.65rem',
-                      fontWeight: 500,
-                      fontFamily: 'var(--font-sans)',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#2D5A3D'; e.currentTarget.style.background = '#E8F2EB'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#DDD5C8'; e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <GitCompareArrows size={13} />
-                    <span>{t[lang].compareWith}</span>
-                  </button>
-                </div>
-
                 <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={15} />} collapseLabel={cl}>
                   <div className="prose-luxury"><ReactMarkdown>{result.warnings}</ReactMarkdown></div>
                 </CollapsibleSection>
@@ -733,6 +705,14 @@ export default function App() {
                   >
                     {isSharing ? <Loader2 size={13} className="animate-spin" /> : <Share2 size={13} />}
                     <span>{captionCopied ? t[lang].captionCopied : t[lang].share}</span>
+                  </button>
+                  <button
+                    onClick={() => setIsCompareOpen(true)}
+                    className="outline-btn"
+                    style={{ width: '100%', padding: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  >
+                    <GitCompareArrows size={13} />
+                    <span>{t[lang].compareWith}</span>
                   </button>
                   <button
                     onClick={handleReset}
