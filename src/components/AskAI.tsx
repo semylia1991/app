@@ -197,33 +197,6 @@ export function AskAI({ lang, context, user, isPremium, canAskAi, usageAskAi, ma
           <Send size={18} />
         </button>
       </form>
-
-      {!limitReached && chat.length === 0 && (
-        <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {(t[lang].askAiHints as string[]).map((hint, i) => (
-            <button
-              key={i}
-              onClick={() => setQuestion(hint)}
-              style={{
-                fontSize: '0.62rem',
-                padding: '4px 10px',
-                border: '0.5px solid #D4C3A3',
-                background: 'transparent',
-                color: '#8A8078',
-                borderRadius: 2,
-                cursor: 'pointer',
-                fontFamily: 'var(--font-sans)',
-                letterSpacing: '0.03em',
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#B89F7A'; e.currentTarget.style.color = '#2C3E50'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#D4C3A3'; e.currentTarget.style.color = '#8A8078'; }}
-            >
-              {hint}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
