@@ -75,6 +75,7 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Give consent and tap "Analyze"', desc: 'Check the consent box and press the button. Your photo is used only for this analysis and is not stored on servers without your knowledge.' },
       { num: '03', title: 'Receive a full breakdown', desc: 'The AI reads the formula, identifies each ingredient against international databases (EWG, CosDNA, EU CosIng) and returns a structured report with a safety rating, usage guide, warnings, and alternatives.' },
       { num: '04', title: 'Ask follow-up questions', desc: 'After the analysis, an "Ask AI" chat appears. You can ask up to 10 questions about the product — for example, "is it compatible with retinol?" or "is it suitable for sensitive skin?"' },
+      { num: '05', title: 'Compare with past scans', desc: 'Saved products can be compared side-by-side. Open the "Compare with..." section, pick a product from your history, and you will see both analyses and how each one matches your preferences — useful when choosing between two options.' },
     ],
 
     reportLabel: 'What you get',
@@ -90,6 +91,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Compatibility', desc: 'Which actives and products work well together, and what should definitely not be used at the same time.' },
       { icon: '🔄', title: 'Alternatives', desc: '3–5 real products with a similar formula — in case something in the composition didn\'t suit you or the product is unavailable.' },
       { icon: '📝', title: 'Pay Attention', desc: 'An analysis based on specified skin and hair characteristics. The system takes individual preferences into account when generating recommendations.' },
+      { icon: '⚖️', title: 'Compare With', desc: 'A side-by-side comparison with any product from your scan history. Shows both analyses and how each product matches your preferences — useful for making a choice between alternatives.' },
     ],
 
     badgesLabel: 'Colour markers',
@@ -158,6 +160,7 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Дайте согласие и нажмите «Анализ»', desc: 'Отметьте галочку согласия на обработку изображения и нажмите кнопку. Ваше фото будет использовано только для этого анализа и не сохраняется на серверах без вашего ведома.' },
       { num: '03', title: 'Получите полный разбор', desc: 'ИИ прочитает состав, идентифицирует каждый ингредиент по международным базам данных (EWG, CosDNA, EU CosIng) и вернёт структурированный отчёт с оценкой безопасности, инструкцией, предупреждениями и альтернативами.' },
       { num: '04', title: 'Задайте уточняющие вопросы', desc: 'После анализа появится чат «Спросить ИИ». Вы можете задать до 10 вопросов о продукте — например, «совместим ли он с ретинолом?» или «подходит ли для чувствительной кожи?»' },
+      { num: '05', title: 'Сравните с предыдущими сканированиями', desc: 'Сохранённые продукты можно сравнить бок о бок. Откройте раздел «Сравнить с...», выберите продукт из истории — и увидите оба анализа и то, как каждый подходит под ваши предпочтения. Удобно, когда нужно выбрать между двумя вариантами.' },
     ],
 
     reportLabel: 'Что вы получаете',
@@ -173,6 +176,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Совместимость', desc: 'С какими активами и продуктами сочетается, а что категорически не стоит использовать одновременно.' },
       { icon: '🔄', title: 'Альтернативы', desc: '3–5 реальных продуктов со схожим составом — на случай, если что-то в составе вас не устроило или продукт недоступен.' },
       { icon: '📝', title: 'Обрати внимание', desc: 'Анализ на основе указанных характеристик кожи и волос. Система учитывает индивидуальные предпочтения при формировании рекомендаций.' },
+      { icon: '⚖️', title: 'Сравнить с', desc: 'Сравнение бок о бок с любым продуктом из истории сканирований. Показывает оба анализа и как каждый продукт соответствует вашим предпочтениям — удобно при выборе между альтернативами.' },
     ],
 
     badgesLabel: 'Цветовые маркеры',
@@ -241,6 +245,7 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Einwilligung geben und „Analysieren" tippen', desc: 'Aktivieren Sie das Einwilligungskästchen und drücken Sie die Schaltfläche. Ihr Foto wird nur für diese Analyse verwendet und ohne Ihr Wissen nicht auf Servern gespeichert.' },
       { num: '03', title: 'Vollständige Auswertung erhalten', desc: 'Die KI liest die Formel, identifiziert jeden Inhaltsstoff anhand internationaler Datenbanken (EWG, CosDNA, EU CosIng) und liefert einen strukturierten Bericht mit Sicherheitsbewertung, Anleitung, Warnungen und Alternativen.' },
       { num: '04', title: 'Rückfragen stellen', desc: 'Nach der Analyse erscheint ein „KI fragen"-Chat. Sie können bis zu 10 Fragen zum Produkt stellen — z. B. „Ist es mit Retinol verträglich?" oder „Ist es für empfindliche Haut geeignet?"' },
+      { num: '05', title: 'Mit früheren Scans vergleichen', desc: 'Gespeicherte Produkte können direkt gegenübergestellt werden. Öffnen Sie den Bereich „Vergleichen mit…", wählen Sie ein Produkt aus dem Verlauf — und Sie sehen beide Analysen sowie wie jedes zu Ihren Vorlieben passt. Hilfreich, wenn Sie zwischen zwei Optionen wählen.' },
     ],
 
     reportLabel: 'Was Sie erhalten',
@@ -256,6 +261,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Verträglichkeit', desc: 'Welche Wirkstoffe und Produkte gut kombinierbar sind und was auf keinen Fall gleichzeitig verwendet werden sollte.' },
       { icon: '🔄', title: 'Alternativen', desc: '3–5 reale Produkte mit ähnlicher Formel — falls etwas in der Zusammensetzung nicht zusagt oder das Produkt nicht verfügbar ist.' },
       { icon: '📝', title: 'Bitte beachten Sie', desc: 'Analyse auf Basis der angegebenen Haut- und Haarmerkmale. Das System berücksichtigt individuelle Präferenzen bei der Erstellung von Empfehlungen.' },
+      { icon: '⚖️', title: 'Vergleichen mit', desc: 'Ein direkter Vergleich mit jedem Produkt aus Ihrem Scan-Verlauf. Zeigt beide Analysen und wie jedes Produkt zu Ihren Vorlieben passt — hilfreich bei der Entscheidung zwischen Alternativen.' },
     ],
 
     badgesLabel: 'Farbmarkierungen',
@@ -324,6 +330,7 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Надайте згоду і натисніть «Аналіз»', desc: 'Відмітьте галочку згоди на обробку зображення і натисніть кнопку. Ваше фото використовуватиметься лише для цього аналізу і не зберігається на серверах без вашого відома.' },
       { num: '03', title: 'Отримайте повний розбір', desc: 'ШІ прочитає склад, ідентифікує кожен інгредієнт за міжнародними базами даних (EWG, CosDNA, EU CosIng) і поверне структурований звіт з оцінкою безпеки, інструкцією, попередженнями та альтернативами.' },
       { num: '04', title: 'Поставте уточнювальні запитання', desc: 'Після аналізу з\'явиться чат «Запитати ШІ». Ви можете поставити до 10 запитань про продукт — наприклад, «сумісний із ретинолом?» або «підходить для чутливої шкіри?»' },
+      { num: '05', title: 'Порівняйте з минулими скануваннями', desc: 'Збережені продукти можна порівняти поруч. Відкрийте розділ «Порівняти з...», оберіть продукт з історії — і побачите обидва аналізи та як кожен відповідає вашим уподобанням. Зручно, коли треба обрати між двома варіантами.' },
     ],
 
     reportLabel: 'Що ви отримуєте',
@@ -339,6 +346,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Сумісність', desc: 'З якими активами і продуктами поєднується, а що категорично не варто використовувати одночасно.' },
       { icon: '🔄', title: 'Альтернативи', desc: '3–5 реальних продуктів зі схожим складом — на випадок, якщо щось у складі вас не влаштувало або продукт недоступний.' },
       { icon: '📝', title: 'Зверніть увагу', desc: 'Аналіз на основі вказаних характеристик шкіри та волосся. Система враховує індивідуальні вподобання при формуванні рекомендацій.' },
+      { icon: '⚖️', title: 'Порівняти з', desc: 'Порівняння поруч з будь-яким продуктом з історії сканувань. Показує обидва аналізи і як кожен продукт відповідає вашим уподобанням — зручно при виборі між альтернативами.' },
     ],
 
     badgesLabel: 'Кольорові маркери',
@@ -407,6 +415,7 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Da tu consentimiento y pulsa "Analizar"', desc: 'Marca la casilla de consentimiento y pulsa el botón. Tu foto se usa solo para este análisis y no se almacena en servidores sin tu conocimiento.' },
       { num: '03', title: 'Recibe el desglose completo', desc: 'La IA lee la fórmula, identifica cada ingrediente con bases de datos internacionales (EWG, CosDNA, EU CosIng) y devuelve un informe estructurado con calificación de seguridad, guía de uso, advertencias y alternativas.' },
       { num: '04', title: 'Haz preguntas de seguimiento', desc: 'Tras el análisis aparece un chat "Preguntar a la IA". Puedes hacer hasta 10 preguntas sobre el producto — por ejemplo, "¿es compatible con el retinol?" o "¿es apto para piel sensible?"' },
+      { num: '05', title: 'Compara con escaneos anteriores', desc: 'Los productos guardados se pueden comparar uno al lado del otro. Abre la sección "Comparar con...", elige un producto del historial y verás ambos análisis y cómo cada uno se ajusta a tus preferencias. Útil cuando hay que elegir entre dos opciones.' },
     ],
 
     reportLabel: 'Lo que obtienes',
@@ -422,6 +431,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Compatibilidad', desc: 'Qué activos y productos combinan bien, y qué definitivamente no debe usarse al mismo tiempo.' },
       { icon: '🔄', title: 'Alternativas', desc: '3–5 productos reales con una fórmula similar — en caso de que algo en la composición no te haya convencido o el producto no esté disponible.' },
       { icon: '📝', title: 'Nota personal', desc: 'Análisis basado en las características de piel y cabello especificadas. El sistema tiene en cuenta las preferencias individuales al generar recomendaciones.' },
+      { icon: '⚖️', title: 'Comparar con', desc: 'Una comparación lado a lado con cualquier producto de tu historial de escaneos. Muestra ambos análisis y cómo cada producto se ajusta a tus preferencias — útil para elegir entre alternativas.' },
     ],
 
     badgesLabel: 'Marcadores de color',
@@ -490,6 +500,7 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Donne ton consentement et appuie sur « Analyser »', desc: 'Coche la case de consentement et appuie sur le bouton. Ta photo est utilisée uniquement pour cette analyse et n\'est pas stockée sur les serveurs à ton insu.' },
       { num: '03', title: 'Reçois l\'analyse complète', desc: 'L\'IA lit la formule, identifie chaque ingrédient via des bases de données internationales (EWG, CosDNA, EU CosIng) et renvoie un rapport structuré avec note de sécurité, guide d\'utilisation, avertissements et alternatives.' },
       { num: '04', title: 'Pose des questions complémentaires', desc: 'Après l\'analyse, un chat « Demander à l\'IA » apparaît. Tu peux poser jusqu\'à 10 questions sur le produit — par exemple, « est-il compatible avec le rétinol ? » ou « convient-il aux peaux sensibles ? »' },
+      { num: '05', title: 'Compare avec les scans précédents', desc: 'Les produits enregistrés peuvent être comparés côte à côte. Ouvre la section « Comparer avec… », choisis un produit de l\'historique — tu verras les deux analyses et comment chacun correspond à tes préférences. Pratique quand il faut choisir entre deux options.' },
     ],
 
     reportLabel: 'Ce que tu obtiens',
@@ -505,6 +516,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Compatibilité', desc: 'Quels actifs et produits se combinent bien, et ce qui ne doit définitivement pas être utilisé en même temps.' },
       { icon: '🔄', title: 'Alternatives', desc: '3 à 5 produits réels avec une formule similaire — au cas où quelque chose dans la composition ne te convient pas ou si le produit est indisponible.' },
       { icon: '📝', title: 'Note personnelle', desc: 'Analyse basée sur les caractéristiques de peau et de cheveux renseignées. Le système prend en compte les préférences individuelles lors de la génération des recommandations.' },
+      { icon: '⚖️', title: 'Comparer avec', desc: 'Une comparaison côte à côte avec n\'importe quel produit de ton historique de scans. Affiche les deux analyses et comment chaque produit correspond à tes préférences — pratique pour choisir entre des alternatives.' },
     ],
 
     badgesLabel: 'Marqueurs de couleur',
@@ -573,6 +585,7 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Dai il consenso e premi "Analizza"', desc: 'Spunta la casella di consenso e premi il pulsante. La tua foto viene usata solo per questa analisi e non viene archiviata sui server a tua insaputa.' },
       { num: '03', title: 'Ricevi l\'analisi completa', desc: 'L\'IA legge la formula, identifica ogni ingrediente tramite database internazionali (EWG, CosDNA, EU CosIng) e restituisce un report strutturato con valutazione della sicurezza, guida all\'uso, avvertenze e alternative.' },
       { num: '04', title: 'Fai domande di approfondimento', desc: 'Dopo l\'analisi appare una chat "Chiedi all\'IA". Puoi fare fino a 10 domande sul prodotto — per esempio, "è compatibile con il retinolo?" o "è adatto alle pelli sensibili?"' },
+      { num: '05', title: 'Confronta con scansioni precedenti', desc: 'I prodotti salvati possono essere confrontati fianco a fianco. Apri la sezione "Confronta con...", scegli un prodotto dalla cronologia — vedrai entrambe le analisi e come ciascuno si adatta alle tue preferenze. Utile quando devi scegliere tra due opzioni.' },
     ],
 
     reportLabel: 'Cosa ottieni',
@@ -588,6 +601,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Compatibilità', desc: 'Quali attivi e prodotti si combinano bene e cosa non dovrebbe assolutamente essere usato contemporaneamente.' },
       { icon: '🔄', title: 'Alternative', desc: '3–5 prodotti reali con una formula simile — nel caso in cui qualcosa nella composizione non ti abbia convinto o il prodotto non sia disponibile.' },
       { icon: '📝', title: 'Nota personale', desc: 'Analisi basata sulle caratteristiche di pelle e capelli specificate. Il sistema tiene conto delle preferenze individuali nella generazione dei consigli.' },
+      { icon: '⚖️', title: 'Confronta con', desc: 'Un confronto fianco a fianco con qualsiasi prodotto della tua cronologia di scansioni. Mostra entrambe le analisi e come ogni prodotto si adatta alle tue preferenze — utile per scegliere tra alternative.' },
     ],
 
     badgesLabel: 'Marcatori di colore',
@@ -656,6 +670,7 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Onay ver ve "Analiz Et"e bas', desc: 'Onay kutusunu işaretleyin ve düğmeye basın. Fotoğrafınız yalnızca bu analiz için kullanılır ve bilginiz olmadan sunucularda depolanmaz.' },
       { num: '03', title: 'Tam sonucu al', desc: 'Yapay zeka formülü okur, her içeriği uluslararası veritabanlarına (EWG, CosDNA, EU CosIng) göre tanımlar ve güvenlik değerlendirmesi, kullanım kılavuzu, uyarılar ve alternatifler içeren yapılandırılmış bir rapor döndürür.' },
       { num: '04', title: 'Takip soruları sor', desc: 'Analizden sonra bir "YZ\'ye Sor" sohbeti belirir. Ürün hakkında 10\'a kadar soru sorabilirsiniz — örneğin "retinol ile uyumlu mu?" veya "hassas cilt için uygun mu?"' },
+      { num: '05', title: 'Önceki taramalarla karşılaştır', desc: 'Kaydedilen ürünler yan yana karşılaştırılabilir. "Karşılaştır..." bölümünü açın, geçmişten bir ürün seçin — iki analizi ve her birinin tercihlerinize nasıl uyduğunu göreceksiniz. İki seçenek arasında karar verirken faydalıdır.' },
     ],
 
     reportLabel: 'Ne elde edersiniz',
@@ -671,6 +686,7 @@ const guideContent: Record<Language, {
       { icon: '⚡', title: 'Uyumluluk', desc: 'Hangi aktifler ve ürünler birlikte kullanılabilir, hangilerinin kesinlikle aynı anda kullanılmaması gerektiği.' },
       { icon: '🔄', title: 'Alternatifler', desc: 'Benzer formüle sahip 3–5 gerçek ürün — bileşimdeki bir şey sizi tatmin etmediyse veya ürün mevcut değilse.' },
       { icon: '📝', title: 'Kişisel Not', desc: 'Belirtilen cilt ve saç özelliklerine dayalı analiz. Sistem, öneriler oluştururken bireysel tercihleri dikkate alır.' },
+      { icon: '⚖️', title: 'Karşılaştır', desc: 'Tarama geçmişinizdeki herhangi bir ürünle yan yana karşılaştırma. Her iki analizi ve her bir ürünün tercihlerinize nasıl uyduğunu gösterir — alternatifler arasında seçim yaparken faydalıdır.' },
     ],
 
     badgesLabel: 'Renk işaretçileri',
