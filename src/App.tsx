@@ -160,6 +160,7 @@ function buildShopLinks(productName: string, brand: string): ShopLink[] {
 export default function App() {
   const [lang, setLang]               = useState<Language>('en');
   const [file, setFile]               = useState<File | null>(null);
+  const [inputKey, setInputKey]       = useState(0);
   const [previewUrl, setPreviewUrl]   = useState<string | null>(null);
   const [scanPhotoUrl, setScanPhotoUrl] = useState<string | null>(null);
   const [consent, setConsent]         = useState(false);
@@ -357,6 +358,8 @@ export default function App() {
     setIsSharedView(false);
     originalResult.current = null;
     translationCache.current = new Map();
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    setInputKey(k => k + 1);
     window.history.replaceState({}, '', window.location.pathname);
   };
 
@@ -568,7 +571,7 @@ export default function App() {
                 )}
               </div>
 
-              <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
+              <input key={inputKey} type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
 
               {/* Share-app button — only shown in the empty state so the card height doesn't shift */}
               {!previewUrl && (
@@ -884,4 +887,5 @@ export default function App() {
       />
     </div>
   );
+}
 }
