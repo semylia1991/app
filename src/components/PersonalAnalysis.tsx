@@ -30,6 +30,7 @@ function serializeProfile(profile: UserProfile, lang: Language): SerializedProfi
     hairType:        p.hairType.join(', ')         || undefined,
     scalpCondition:  p.scalpCondition.join(', ')  || undefined,
     hairProblems:    p.hairProblems.join(', ')     || undefined,
+    bodySkinType:    p.bodySkinType.join(', ')     || undefined,
     climate:         p.climate.join(', ')          || undefined,
     allergies:       (profile as any).allergies    || undefined,
   };
@@ -126,6 +127,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
     userProfile.hairType.length > 0 ||
     userProfile.scalpCondition.length > 0 ||
     userProfile.hairProblems.length > 0 ||
+    (userProfile.bodySkinType ?? []).length > 0 ||
     (userProfile.climate ?? []).length > 0 ||
     !!userProfile.ageRange
   );
