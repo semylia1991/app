@@ -221,8 +221,8 @@ STEP 4 — Format for "personalNote" (translate all headings to ${language}):
   "based on the selected preferences" or equivalent in ${language}.
 
   **[By preferences:]**
-  - <preference value in ${language}> <color emoji>
-  - <preference value in ${language}> <color emoji>
+  - <preference value in ${language}> <color emoji> — <one short sentence explanation>
+  - <preference value in ${language}> <color emoji> — <one short sentence explanation>
   ...
 
   Color emoji: 🟢 suitable, 🟡 unclear / depends on individual reaction
