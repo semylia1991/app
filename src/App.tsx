@@ -195,23 +195,48 @@ export default function App() {
   const originalResult   = useRef<AnalysisResult | null>(null);
   const translationCache = useRef<Map<Language, AnalysisResult>>(new Map());
 
-  /* share link load */
+  /* share link load — also handles URL changes (e.g. user navigates back/forward) */
+  const isSharedViewRef = useRef(false);
+  useEffect(() => { isSharedViewRef.current = isSharedView; }, [isSharedView]);
+
   useEffect(() => {
-    const shareId = new URLSearchParams(window.location.search).get('share');
-    if (!shareId) return;
-    setSharedLoading(true);
-    supabase
-      .from('shared_results').select('result').eq('id', shareId).maybeSingle()
-      .then(({ data }) => {
-        if (data?.result) {
-          const r = data.result as AnalysisResult;
-          originalResult.current = r;
-          translationCache.current = new Map([[lang, r]]);
-          setResult(r);
-          setIsSharedView(true);
+    const loadFromUrl = () => {
+      const shareId = new URLSearchParams(window.location.search).get('share');
+
+      // No ?share in URL — ensure we are on the clean upload page
+      if (!shareId) {
+        // If we were previously viewing a shared result, reset to upload panel.
+        // This covers the case where the user navigates to the plain origin URL
+        // (e.g. via "Share the app" link) without a full page reload.
+        if (isSharedViewRef.current) {
+          setResult(null);
+          setIsSharedView(false);
+          originalResult.current = null;
+          translationCache.current = new Map();
         }
-        setSharedLoading(false);
-      });
+        return;
+      }
+
+      // Has ?share — fetch and display
+      setSharedLoading(true);
+      supabase
+        .from('shared_results').select('result').eq('id', shareId).maybeSingle()
+        .then(({ data }) => {
+          if (data?.result) {
+            const r = data.result as AnalysisResult;
+            originalResult.current = r;
+            translationCache.current = new Map([[lang, r]]);
+            setResult(r);
+            setIsSharedView(true);
+          }
+          setSharedLoading(false);
+        });
+    };
+
+    loadFromUrl();
+    window.addEventListener('popstate', loadFromUrl);
+    return () => window.removeEventListener('popstate', loadFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* translation on lang change */
@@ -312,9 +337,10 @@ export default function App() {
       if (totalScans % 5 === 0) setTimeout(() => setIsSurveyOpen(true), 1500);
       posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
     } catch (err) {
-      console.error(err);
-      setError(t[lang].error);
-      posthog.capture('scan_error', { lang });
+      console.error('[handleAnalyze] error:', err);
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`${t[lang].error}${message ? ` — ${message}` : ''}`);
+      posthog.capture('scan_error', { lang, message });
     } finally {
       setScanHistoryKey(k => k + 1);
       setIsAnalyzing(false);
