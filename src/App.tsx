@@ -613,61 +613,6 @@ export default function App() {
                   />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={15} />} collapseLabel={cl}>
-                  {result.ingredients.length === 0 ? (
-                    <p style={{ fontSize: '0.8rem', color: '#8A8078', fontStyle: 'italic' }}>
-                      {lang === 'ru' ? 'Состав не найден. Сфотографируйте этикетку с INCI-списком крупным планом.' :
-                       lang === 'uk' ? 'Склад не знайдено. Сфотографуйте етикетку зі списком INCI великим планом.' :
-                       lang === 'de' ? 'Inhaltsstoffe nicht gefunden. Fotografieren Sie bitte das INCI-Etikett in Nahaufnahme.' :
-                       lang === 'es' ? 'Ingredientes no encontrados. Fotografíe la etiqueta INCI de cerca.' :
-                       lang === 'fr' ? "Ingrédients introuvables. Photographiez l'étiquette INCI en gros plan." :
-                       lang === 'it' ? "Ingredienti non trovati. Fotografa l'etichetta INCI da vicino." :
-                       lang === 'tr' ? 'İçerikler bulunamadı. Lütfen INCI etiketini yakından fotoğraflayın.' :
-                       'Ingredients not found. Please photograph the INCI label up close.'}
-                    </p>
-                  ) : (
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                      {result.ingredients.map((ing, idx) => (
-                        <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '0.5px solid rgba(221,213,200,0.5)' }}>
-                          <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
-                          <div>
-                            <span style={{ display: 'block', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2, fontFamily: 'var(--font-sans)' }}>{ing.name}</span>
-                            <span style={{ fontSize: '1.05rem', color: '#8A8078', lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>{ing.description}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </CollapsibleSection>
-
-                <CollapsibleSection title={t[lang].usage} icon={<Info size={15} />} collapseLabel={cl}>
-                  <UsageSection text={result.usage} shelfLife={result.shelfLife} shelfLifeLabel={t[lang].shelfLife} />
-                </CollapsibleSection>
-
-                <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={15} />} collapseLabel={cl}>
-                  <BenefitsSection text={result.benefits} />
-                </CollapsibleSection>
-
-                <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={15} />} collapseLabel={cl}>
-                  <BenefitsSection text={result.sideEffects} />
-                </CollapsibleSection>
-
-                <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={15} />} collapseLabel={cl}>
-                  <div className="prose-luxury"><ReactMarkdown>{result.warnings}</ReactMarkdown></div>
-                </CollapsibleSection>
-
-                <CollapsibleSection title={t[lang].interactions} icon={<Zap size={15} />} collapseLabel={cl}>
-                  <BenefitsSection text={result.interactions} />
-                </CollapsibleSection>
-
-                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={15} />} collapseLabel={cl}>
-                  <AlternativesSection alternatives={result.alternatives} />
-                </CollapsibleSection>
-
-                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={15} />} collapseLabel={cl}>
-                  <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
-                </CollapsibleSection>
-
                 <CollapsibleSection title={t[lang].compareWith} icon={<GitCompareArrows size={15} />} collapseLabel={cl}>
                   <CompareSection
                     lang={lang}
@@ -680,22 +625,82 @@ export default function App() {
                   />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].askAi} icon={<Sparkles size={15} />} collapseLabel={cl}>
-                  <AskAI
-                    lang={lang}
-                    context={result}
-                    user={user}
-                    isPremium={subscription.isPremium}
-                    canAskAi={subscription.canAskAi}
-                    usageAskAi={subscription.usage.askAi}
-                    maxAskAi={subscription.limits.askAiPerDay}
-                    onLimitReached={() => setPaywallReason('askAi')}
-                    onIncrementAskAi={subscription.incrementAskAi}
-                    onRegister={() => {
-                      const btn = document.querySelector('[data-auth-button]') as HTMLElement;
-                      btn?.click();
-                    }}
-                  />
+                {/* ─── Product information — wrapper containing 7 sub-sections ─── */}
+                <CollapsibleSection title={t[lang].productInfo} icon={<Info size={15} />} collapseLabel={cl}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={15} />} collapseLabel={cl}>
+                      {result.ingredients.length === 0 ? (
+                        <p style={{ fontSize: '0.8rem', color: '#8A8078', fontStyle: 'italic' }}>
+                          {lang === 'ru' ? 'Состав не найден. Сфотографируйте этикетку с INCI-списком крупным планом.' :
+                           lang === 'uk' ? 'Склад не знайдено. Сфотографуйте етикетку зі списком INCI великим планом.' :
+                           lang === 'de' ? 'Inhaltsstoffe nicht gefunden. Fotografieren Sie bitte das INCI-Etikett in Nahaufnahme.' :
+                           lang === 'es' ? 'Ingredientes no encontrados. Fotografíe la etiqueta INCI de cerca.' :
+                           lang === 'fr' ? "Ingrédients introuvables. Photographiez l'étiquette INCI en gros plan." :
+                           lang === 'it' ? "Ingredienti non trovati. Fotografa l'etichetta INCI da vicino." :
+                           lang === 'tr' ? 'İçerikler bulunamadı. Lütfen INCI etiketini yakından fotoğraflayın.' :
+                           'Ingredients not found. Please photograph the INCI label up close.'}
+                        </p>
+                      ) : (
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                          {result.ingredients.map((ing, idx) => (
+                            <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '0.5px solid rgba(221,213,200,0.5)' }}>
+                              <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
+                              <div>
+                                <span style={{ display: 'block', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2, fontFamily: 'var(--font-sans)' }}>{ing.name}</span>
+                                <span style={{ fontSize: '1.05rem', color: '#8A8078', lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>{ing.description}</span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title={t[lang].usage} icon={<Info size={15} />} collapseLabel={cl}>
+                      <UsageSection text={result.usage} shelfLife={result.shelfLife} shelfLifeLabel={t[lang].shelfLife} />
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={15} />} collapseLabel={cl}>
+                      <BenefitsSection text={result.benefits} />
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={15} />} collapseLabel={cl}>
+                      <BenefitsSection text={result.sideEffects} />
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={15} />} collapseLabel={cl}>
+                      <div className="prose-luxury"><ReactMarkdown>{result.warnings}</ReactMarkdown></div>
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title={t[lang].interactions} icon={<Zap size={15} />} collapseLabel={cl}>
+                      <BenefitsSection text={result.interactions} />
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title={t[lang].askAi} icon={<Sparkles size={15} />} collapseLabel={cl}>
+                      <AskAI
+                        lang={lang}
+                        context={result}
+                        user={user}
+                        isPremium={subscription.isPremium}
+                        canAskAi={subscription.canAskAi}
+                        usageAskAi={subscription.usage.askAi}
+                        maxAskAi={subscription.limits.askAiPerDay}
+                        onLimitReached={() => setPaywallReason('askAi')}
+                        onIncrementAskAi={subscription.incrementAskAi}
+                        onRegister={() => {
+                          const btn = document.querySelector('[data-auth-button]') as HTMLElement;
+                          btn?.click();
+                        }}
+                      />
+                    </CollapsibleSection>
+                  </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={15} />} collapseLabel={cl}>
+                  <AlternativesSection alternatives={result.alternatives} />
+                </CollapsibleSection>
+
+                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={15} />} collapseLabel={cl}>
+                  <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
                 </CollapsibleSection>
               </div>
 
