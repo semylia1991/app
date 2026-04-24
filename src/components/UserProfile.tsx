@@ -23,7 +23,6 @@ const EMPTY_PROFILE: UserProfile = {
   ageRange: '', hairType: [], scalpCondition: [], hairProblems: [],
   bodySkinType: [],
   climate: [],
-  allergies: '',
   consentGiven: false,
 };
 
@@ -343,3 +342,4 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
     </>
   );
 }
+    
