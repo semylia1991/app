@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
 import { t, Language } from './i18n';
-import { analyzeProductImage, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile } from './services/ai';
+import { analyzeProductImage, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, generatePersonalNote } from './services/ai';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -291,6 +291,19 @@ export default function App() {
           })()
         : undefined;
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang, serializedProfile);
+
+      // If user has a profile, generate a personalNote via the filtered endpoint.
+      // The first prompt does NOT produce personalNote anymore — this is where it
+      // gets generated, with server-side filtering by productType (hair / face / body / lips).
+      if (serializedProfile && subscription.canUseNote) {
+        try {
+          const personalNote = await generatePersonalNote(analysis, serializedProfile, lang);
+          if (personalNote) analysis.personalNote = personalNote;
+        } catch (e) {
+          console.warn('[personalNote] generation failed, continuing without it:', e);
+        }
+      }
+
       const analysisWithShops: AnalysisResult = {
         ...analysis,
         shopLinks: buildShopLinks(analysis.productName, analysis.brand),
