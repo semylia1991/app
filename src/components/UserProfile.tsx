@@ -13,6 +13,7 @@ export interface UserProfile {
   hairType: string[];
   scalpCondition: string[];
   hairProblems: string[];
+  bodySkinType: string[];
   climate: string[];
   consentGiven: boolean;
 }
@@ -20,6 +21,7 @@ export interface UserProfile {
 const EMPTY_PROFILE: UserProfile = {
   skinType: [], skinSensitivity: [], skinConditions: [],
   ageRange: '', hairType: [], scalpCondition: [], hairProblems: [],
+  bodySkinType: [],
   climate: [],
   allergies: '',
   consentGiven: false,
@@ -32,6 +34,7 @@ const AGE_RANGE_KEYS      = ['ageUnder25', 'age2535', 'age3545', 'age4550', 'age
 const HAIR_TYPE_KEYS      = ['hairStraight', 'hairWavy', 'hairCurly', 'hairCoily', 'hairBrittle', 'hairUnknown'] as const;
 const SCALP_COND_KEYS     = ['scalpDry', 'scalpOily', 'scalpNormal', 'scalpUnknown'] as const;
 const HAIR_PROBLEM_KEYS   = ['hairDandruff', 'hairItching', 'hairLoss', 'hairNone'] as const;
+const BODY_SKIN_TYPE_KEYS = ['bodySkinDry', 'bodySkinSensitive', 'bodySkinOily', 'bodySkinNormal'] as const;
 const CLIMATE_KEYS        = ['climateDry', 'climateWindy', 'climateSunny', 'climateCold', 'climateHumid', 'climateAny'] as const;
 
 const tr = (lang: Language, key: string): string =>
@@ -46,6 +49,7 @@ export function translateProfile(profile: UserProfile, lang: Language) {
     hairType:        profile.hairType.map(k => tr(lang, k)),
     scalpCondition:  profile.scalpCondition.map(k => tr(lang, k)),
     hairProblems:    profile.hairProblems.map(k => tr(lang, k)),
+    bodySkinType:    (profile.bodySkinType ?? []).map(k => tr(lang, k)),
     climate:         (profile.climate ?? []).map(k => tr(lang, k)),
   };
 }
@@ -260,6 +264,12 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
 
                   <SectionTitle emoji="🌵" label={T.profileHairProblems} />
                   <MultiChip keys={HAIR_PROBLEM_KEYS} selected={profile.hairProblems} onChange={v => update('hairProblems', v)} lang={lang} />
+
+                  {/* Divider */}
+                  <div style={{ margin: '20px 0', height: '0.5px', background: 'linear-gradient(to right, transparent, #DDD5C8, transparent)' }} />
+
+                  <SectionTitle emoji="🫧" label={T.profileBodySkinType} />
+                  <MultiChip keys={BODY_SKIN_TYPE_KEYS} selected={profile.bodySkinType ?? []} onChange={v => update('bodySkinType', v)} lang={lang} />
 
                   <SectionTitle emoji="🌍" label={T.profileClimate} />
                   <MultiChip keys={CLIMATE_KEYS} selected={profile.climate ?? []} onChange={v => update('climate', v)} lang={lang} />
