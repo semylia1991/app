@@ -14,7 +14,7 @@ interface Props {
 }
 
 // Extract sections from a personalNote:
-// - Brief summary   : the first 1 sentence before the "By preferences" heading
+// - Brief summary   : the first 1-2 sentences before the "By preferences" heading
 // - Preference bullets: every bullet that contains a 🟢 / 🟡 / 🔴 marker
 // - rawNote         : the whole note (used as fallback when format is legacy/unknown)
 function parsePersonalNote(note?: string): { summary: string; bullets: string[]; rawNote: string } {
@@ -64,14 +64,29 @@ function truncate(text: string, max = 260): string {
   return s.length > max ? s.slice(0, max - 1).trimEnd() + '…' : s;
 }
 
-// Strip the "— explanation" part after the color marker, leaving only "Label 🟢/🟡/🔴"
-function stripBulletExplanation(bullet: string): string {
-  const markerMatch = bullet.match(/[🟢🟡🔴]/);
-  if (!markerMatch) return bullet.trim();
-  const markerIdx = bullet.indexOf(markerMatch[0]);
-  // Cut at the marker + 1 emoji character
-  return bullet.slice(0, markerIdx + markerMatch[0].length).trim();
+// Parse a bullet line "Label 🟢 — explanation" into its label and color.
+// Returns { label, color } where color is one of 'green' | 'yellow' | 'red' | null.
+function parseBullet(bullet: string): { label: string; color: 'green' | 'yellow' | 'red' | null } {
+  const text = bullet.trim();
+  let color: 'green' | 'yellow' | 'red' | null = null;
+  if (text.includes('🟢')) color = 'green';
+  else if (text.includes('🟡')) color = 'yellow';
+  else if (text.includes('🔴')) color = 'red';
+
+  // Remove all color emojis and trailing "— explanation" from the label
+  let label = text
+    .replace(/[🟢🟡🔴]/g, '')
+    .replace(/\s*[—–-]\s*.*$/s, '')
+    .trim();
+
+  return { label, color };
 }
+
+const DOT_COLORS: Record<'green' | 'yellow' | 'red', string> = {
+  green: '#2D8A4E',
+  yellow: '#E5B143',
+  red: '#D14343',
+};
 
 export function CompareSection({ lang, current, user, onRegister }: Props) {
   const [scans, setScans] = useState<ScanRecord[]>([]);
@@ -242,9 +257,28 @@ export function CompareSection({ lang, current, user, onRegister }: Props) {
               <div style={sectionBodyStyle}>
                 {currentParsed.bullets.length ? (
                   <ul style={bulletListStyle}>
-                    {currentParsed.bullets.map((b, i) => (
-                      <li key={i} style={bulletItemStyle}>{stripBulletExplanation(b)}</li>
-                    ))}
+                    {currentParsed.bullets.map((b, i) => {
+                      const { label, color } = parseBullet(b);
+                      return (
+                        <li key={i} style={bulletItemStyle}>
+                          <span
+                            aria-hidden
+                            style={{
+                              display: 'inline-block',
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              background: color ? DOT_COLORS[color] : 'transparent',
+                              border: color ? 'none' : '1px solid #B8AA94',
+                              flexShrink: 0,
+                              marginRight: 6,
+                              verticalAlign: 'middle',
+                            }}
+                          />
+                          <span style={{ verticalAlign: 'middle' }}>{label}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.72rem' }}>{tt.compareNoPersonalNote}</span>
@@ -253,9 +287,28 @@ export function CompareSection({ lang, current, user, onRegister }: Props) {
               <div style={sectionBodyStyle}>
                 {pickedParsed.bullets.length ? (
                   <ul style={bulletListStyle}>
-                    {pickedParsed.bullets.map((b, i) => (
-                      <li key={i} style={bulletItemStyle}>{stripBulletExplanation(b)}</li>
-                    ))}
+                    {pickedParsed.bullets.map((b, i) => {
+                      const { label, color } = parseBullet(b);
+                      return (
+                        <li key={i} style={bulletItemStyle}>
+                          <span
+                            aria-hidden
+                            style={{
+                              display: 'inline-block',
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              background: color ? DOT_COLORS[color] : 'transparent',
+                              border: color ? 'none' : '1px solid #B8AA94',
+                              flexShrink: 0,
+                              marginRight: 6,
+                              verticalAlign: 'middle',
+                            }}
+                          />
+                          <span style={{ verticalAlign: 'middle' }}>{label}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.72rem' }}>{tt.compareNoPersonalNote}</span>
