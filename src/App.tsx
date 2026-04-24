@@ -181,6 +181,7 @@ export default function App() {
   const [copied, setCopied]                   = useState(false);
   const [captionCopied, setCaptionCopied]     = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
+  const [shareAppCopied, setShareAppCopied]   = useState(false);
 
   const subscription = useSubscription(user);
   const [paywallReason, setPaywallReason] = useState<'scans' | 'note' | 'askAi' | null>(null);
@@ -352,6 +353,27 @@ export default function App() {
     }
   };
 
+  const handleShareApp = async () => {
+    const url = window.location.origin;
+    const shareText = `${t[lang].shareAppMessage} ${url}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: t[lang].title, text: t[lang].shareAppMessage, url });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        setShareAppCopied(true);
+        setTimeout(() => setShareAppCopied(false), 2000);
+      }
+    } catch (_) {
+      // user cancelled or share failed — fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(shareText);
+        setShareAppCopied(true);
+        setTimeout(() => setShareAppCopied(false), 2000);
+      } catch {}
+    }
+  };
+
   const cl = t[lang].collapse;
 
   /* Subscription page */
@@ -518,6 +540,20 @@ export default function App() {
               </div>
 
               <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
+
+              {/* Share-app button — only shown in the empty state so the card height doesn't shift */}
+              {!previewUrl && (
+                <div style={{ marginTop: 14 }}>
+                  <button
+                    onClick={handleShareApp}
+                    className="luxury-btn"
+                    style={{ width: '100%', padding: 14 }}
+                  >
+                    <Share2 size={13} />
+                    <span>{shareAppCopied ? t[lang].shareAppCopied : t[lang].shareApp}</span>
+                  </button>
+                </div>
+              )}
 
               {previewUrl && (
                 <motion.div
