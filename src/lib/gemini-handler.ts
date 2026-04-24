@@ -91,8 +91,8 @@ Provide the ENTIRE analysis in ${language}. Every single field — analysis, usa
 
 Formatting Rules:
 - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
-- analysis: Strictly 1 sentences in ${language}. START by stating what the product is. NEVER use English if ${language} is not English.
-- alternatives: Return 1-3 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
+- analysis: Strictly 1-2 sentences in ${language}. START by stating what the product is. NEVER use English if ${language} is not English.
+- alternatives: Return 3–5 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
@@ -133,8 +133,11 @@ Formatting Rules:
 
 ## ✅ [translated title for "Best Combinations"]
 
-🔗 [translated label for "Actives Compatibility"]:
-- [can combine, why it works well]
+⚗️ [translated label for "Actives Compatibility"]:
+- [Active ingredient] — [can combine, why it works well]
+
+🔗 [translated label for "Ingredient Synergy"]:
+- [Ingredient pair] — [how they enhance each other]
 
 ---
 
@@ -149,13 +152,14 @@ Ensure the output strictly follows the JSON schema.`.trim();
 
   // Main profile — used across all sections EXCEPT climate which is personalNote-only
   const profileLines = [
-    userProfile.skinType        ? "Skin type: "         + userProfile.skinType        : null,
+    userProfile.skinType        ? "Skin type (face): "   + userProfile.skinType        : null,
     userProfile.skinSensitivity ? "Sensitivities: "     + userProfile.skinSensitivity : null,
     userProfile.skinConditions  ? "Skin conditions: "   + userProfile.skinConditions  : null,
     userProfile.ageRange        ? "Age group: "         + userProfile.ageRange         : null,
     userProfile.hairType        ? "Hair type: "         + userProfile.hairType         : null,
     userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
     userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
+    userProfile.bodySkinType    ? "Body skin type: "    + userProfile.bodySkinType     : null,
     userProfile.allergies       ? "⚠️ ALLERGIES / INTOLERANCES (flag any matching ingredients as 🔴 and warn explicitly): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
 
@@ -185,12 +189,13 @@ Ensure the output strictly follows the JSON schema.`.trim();
   - 🔴 problematic / unsuitable for this preference
 
   RELEVANCE FILTER — ONLY show preferences that matter for this specific product:
-  - For hair/scalp products (shampoo, conditioner, hair mask, hair oil, etc.) → include only hair-related preferences (hairType, scalpCondition, hairProblems), plus allergies and climate. OMIT skin preferences entirely.
-  - For face/body skincare (cream, serum, toner, cleanser, sunscreen, etc.) → include only skin-related preferences (skinType, skinSensitivity, skinConditions, ageRange), plus allergies and climate. OMIT hair preferences entirely.
-  - For lip products → include only skinSensitivity, allergies, climate. Omit hair and general skin preferences.
-  - For nail products → include only allergies.
+  - HAIR / SCALP products (shampoo, conditioner, hair mask, hair oil, dry shampoo, leave-in, scalp treatment, etc.) → include only hair-related preferences (hairType, scalpCondition, hairProblems) + climate. OMIT face skin, body skin, ageRange entirely.
+  - FACE SKINCARE (face cream, face serum, toner, cleanser, sunscreen, face mask, eye cream, essence, micellar water, face peel, etc.) → include only face skin preferences (skinType, skinSensitivity, skinConditions, ageRange) + climate. OMIT hair, body skin entirely.
+  - BODY SKINCARE (body lotion, body butter, body oil, body scrub, hand cream, foot cream, body mist, body wash, etc.) → include only bodySkinType + climate. OMIT face skin, hair, ageRange entirely.
+  - LIP products (lip balm, lipstick, lip gloss, lip mask, lip oil) → include only skinSensitivity + climate. OMIT hair, face skin conditions, body skin entirely.
+  - NAIL products (nail polish, cuticle oil, nail strengthener) → no skin/hair preferences are relevant.
+  - Allergies are handled by a separate "⚠️ ALLERGIES" check in the system prompt and have their own section — DO NOT put allergy bullets into the "By preferences" list here.
   - If a preference is not relevant, simply do not output a bullet for it. Do not write "N/A" or "not applicable" — just omit the bullet entirely.
-  - Allergies: always include each as its own bullet — 🔴 if any matching ingredient or close derivative is found, 🟢 otherwise.
 
   FORMAT RULES:
   - Use the user's preference value as the label (e.g. "Combination skin", "Curly hair", "Fragrance allergy", "Humid climate").
@@ -351,20 +356,32 @@ export async function handleGeminiRequest(
     // Detect product category from productType
     const productType = ((result as any).productType ?? "").toLowerCase();
     const isHairProduct = /shampoo|conditioner|hair mask|hair oil|hair serum|hair spray|dry shampoo|волос|шампун|кондиционер|маска для волос|haarpflege|haarmaske|haarshampoo|haaröl/i.test(productType);
-    const isSkinProduct = /cream|serum|toner|moistur|cleanser|sunscreen|spf|lotion|face|exfoliat|mask|eye|lip|крем|сыворот|тонер|очищ|солнц|увлажн|Creme|Serum|Reiniger|Toner/i.test(productType);
+    const isLipProduct = /lip balm|lipstick|lip gloss|lip mask|lip oil|бальзам для губ|помада|блеск для губ|lippenbalsam|lippenstift|baume à lèvres|rouge à lèvres/i.test(productType);
+    const isBodyProduct = /body lotion|body butter|body oil|body scrub|body mist|body wash|body cream|hand cream|foot cream|лосьон для тела|масло для тела|скраб для тела|крем для рук|крем для ног|körperlotion|körpercreme|körperöl|handcreme|loción corporal|crème corps/i.test(productType);
+    const isFaceProduct = /face|facial|eye cream|serum|toner|cleanser|sunscreen|spf|moistur|exfoliat|face mask|micellar|essence|для лица|сыворот|тонер|очищ|солнц|увлажн|крем для лица|маска для лица|gesicht|gesichtscreme|reiniger|toner|sérum|tonique/i.test(productType);
 
-    // Skin-related keys
-    const skinKeys = ["skinType", "skinSensitivity", "skinConditions", "ageRange"];
-    // Hair-related keys
+    // Face skin keys
+    const faceSkinKeys = ["skinType", "skinSensitivity", "skinConditions", "ageRange"];
+    // Body skin keys
+    const bodySkinKeys = ["bodySkinType"];
+    // Hair keys
     const hairKeys = ["hairType", "scalpCondition", "hairProblems"];
     // Always relevant
     const universalKeys = ["climate", "allergies"];
 
-    const relevantKeys = isHairProduct
-      ? [...hairKeys, ...universalKeys]
-      : isSkinProduct
-        ? [...skinKeys, ...universalKeys]
-        : [...skinKeys, ...hairKeys, ...universalKeys]; // ambiguous — include all
+    let relevantKeys: string[];
+    if (isHairProduct) {
+      relevantKeys = [...hairKeys, ...universalKeys];
+    } else if (isLipProduct) {
+      relevantKeys = ["skinSensitivity", ...universalKeys];
+    } else if (isBodyProduct) {
+      relevantKeys = [...bodySkinKeys, ...universalKeys];
+    } else if (isFaceProduct) {
+      relevantKeys = [...faceSkinKeys, ...universalKeys];
+    } else {
+      // ambiguous — include everything
+      relevantKeys = [...faceSkinKeys, ...bodySkinKeys, ...hairKeys, ...universalKeys];
+    }
 
     const profileLines = Object.entries(userProfile as Record<string, string>)
       .filter(([k, v]) => v && relevantKeys.includes(k))
