@@ -148,6 +148,8 @@ Formatting Rules:
 
 Ensure the output strictly follows the JSON schema.`.trim();
 
+  if (!userProfile) return basePrompt;
+
   // Main profile — used in warnings/sideEffects AND inside personalNote (with filtering)
   const profileLines = [
     userProfile.skinType        ? "skinType (FACE): "        + userProfile.skinType        : null,
@@ -221,8 +223,8 @@ STEP 4 — Format for "personalNote" (translate all headings to ${language}):
   "based on the selected preferences" or equivalent in ${language}.
 
   **[By preferences:]**
-  - <preference value in ${language}> <color emoji> — <one short sentence explanation>
-  - <preference value in ${language}> <color emoji> — <one short sentence explanation>
+  - <preference value in ${language}> <color emoji>
+  - <preference value in ${language}> <color emoji>
   ...
 
   Color emoji: 🟢 suitable, 🟡 unclear / depends on individual reaction
