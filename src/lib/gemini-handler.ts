@@ -148,9 +148,10 @@ Formatting Rules:
 
 Ensure the output strictly follows the JSON schema.`.trim();
 
-  if (!userProfile) return basePrompt;
-
-  // Main profile — used across all sections EXCEPT climate which is personalNote-only
+  // Main profile — passed to the model so that sections like "warnings" / "sideEffects"
+  // can reference user-relevant ingredients (allergies, sensitivities, skin conditions).
+  // The personalNote itself is NOT generated here — it is built separately via
+  // action="personalNote" which has server-side filtering based on productType.
   const profileLines = [
     userProfile.skinType        ? "Skin type (face): "   + userProfile.skinType        : null,
     userProfile.skinSensitivity ? "Sensitivities: "     + userProfile.skinSensitivity : null,
@@ -160,53 +161,16 @@ Ensure the output strictly follows the JSON schema.`.trim();
     userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
     userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
     userProfile.bodySkinType    ? "Body skin type: "    + userProfile.bodySkinType     : null,
-    userProfile.allergies       ? "⚠️ ALLERGIES / INTOLERANCES (flag any matching ingredients as 🔴 and warn explicitly): " + userProfile.allergies : null,
+    userProfile.climate         ? "Climate: "           + userProfile.climate          : null,
+    userProfile.allergies       ? "⚠️ ALLERGIES / INTOLERANCES (flag any matching ingredients as 🔴 and warn explicitly in the 'warnings' section): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
 
-  // Climate is passed separately — only used inside personalNote
-  const climateLines = userProfile.climate
-    ? "Climate / environment: " + userProfile.climate
-    : "";
+  if (!profileLines) return basePrompt;
 
-  const personalNoteSection = `
+  return basePrompt + `
 
-- Please note: Based on the user preferences below and the product ingredients, generate an analysis note IN ${language}.
-  The text MUST explicitly include phrasing such as: "based on the selected preferences", "considering these preferences" or equivalent in ${language}.
-
-  Follow this EXACT structure (translate all headings to ${language}):
-
-  🧴 **[translate: Brief summary]**
-  (1-2 sentences, explicitly referencing the selected preferences)
-
-  **[translate: By preferences:]**
-  - <preference value> <color emoji> — <short 1-line explanation>
-  - <preference value> <color emoji> — <short 1-line explanation>
-  ...
-
-  COLOR MARKERS — use EXACTLY these emojis:
-  - 🟢 suitable / beneficial for this preference
-  - 🟡 effect is unclear or depends on individual reaction (default when uncertain)
-  - 🔴 problematic / unsuitable for this preference
-
-  RELEVANCE FILTER — ONLY show preferences that matter for this specific product:
-  - HAIR / SCALP products (shampoo, conditioner, hair mask, hair oil, dry shampoo, leave-in, scalp treatment, etc.) → include only hair-related preferences (hairType, scalpCondition, hairProblems) + climate. OMIT face skin, body skin, ageRange entirely.
-  - FACE SKINCARE (face cream, face serum, toner, cleanser, sunscreen, face mask, eye cream, essence, micellar water, face peel, etc.) → include only face skin preferences (skinType, skinSensitivity, skinConditions, ageRange) + climate. OMIT hair, body skin entirely.
-  - BODY SKINCARE (body lotion, body butter, body oil, body scrub, hand cream, foot cream, body mist, body wash, etc.) → include only bodySkinType + climate. OMIT face skin, hair, ageRange entirely.
-  - LIP products (lip balm, lipstick, lip gloss, lip mask, lip oil) → include only skinSensitivity + climate. OMIT hair, face skin conditions, body skin entirely.
-  - NAIL products (nail polish, cuticle oil, nail strengthener) → no skin/hair preferences are relevant.
-  - Allergies are handled by a separate "⚠️ ALLERGIES" check in the system prompt and have their own section — DO NOT put allergy bullets into the "By preferences" list here.
-  - If a preference is not relevant, simply do not output a bullet for it. Do not write "N/A" or "not applicable" — just omit the bullet entirely.
-
-  FORMAT RULES:
-  - Use the user's preference value as the label (e.g. "Combination skin", "Curly hair", "Fragrance allergy", "Humid climate").
-  - Keep each explanation to ONE short sentence (max ~12 words).
-  - Do not give medical advice. Use mild phrasing (may, can, tends to). Do not state directly that a product is suitable or unsuitable.
-  - Do not mention irrelevant preferences anywhere — not in the bullets, not in the Brief summary.
-
-USER PREFERENCES:
-${[profileLines, climateLines].filter(Boolean).join("\n")}`;
-
-  return basePrompt + personalNoteSection;
+USER PROFILE (use when writing 'warnings' and 'sideEffects' — but do NOT produce a personalNote field):
+${profileLines}`;
 }
 
 function buildTranslatePrompt(result: unknown, targetLanguage: string): string {
@@ -297,7 +261,11 @@ export async function handleGeminiRequest(
     }
 
     const imageData = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
-    const withNote  = !!userProfile;
+    // personalNote is NEVER generated in the first prompt because the product type
+    // is not yet known and the model cannot reliably filter user preferences.
+    // It is generated separately via action="personalNote" which has server-side
+    // filtering based on the detected productType.
+    const withNote  = false;
 
     const response = await generateWithRetry(ai, {
       contents: [{
