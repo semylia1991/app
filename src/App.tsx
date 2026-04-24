@@ -169,6 +169,7 @@ export default function App() {
   const [error, setError]             = useState<string | null>(null);
   const [user, setUser]               = useState<User | null>(null);
   const [sharedLoading, setSharedLoading] = useState(false);
+  const [isSharedView, setIsSharedView]   = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [scanHistoryKey, setScanHistoryKey] = useState(0);
 
@@ -207,6 +208,7 @@ export default function App() {
           originalResult.current = r;
           translationCache.current = new Map([[lang, r]]);
           setResult(r);
+          setIsSharedView(true);
         }
         setSharedLoading(false);
       });
@@ -326,6 +328,7 @@ export default function App() {
     setResult(null);
     setConsent(false);
     setError(null);
+    setIsSharedView(false);
     originalResult.current = null;
     translationCache.current = new Map();
     window.history.replaceState({}, '', window.location.pathname);
@@ -613,6 +616,31 @@ export default function App() {
             >
               {/* Product header */}
               <div style={{ padding: '32px 32px 24px', textAlign: 'center', borderBottom: '0.5px solid #DDD5C8' }}>
+                {isSharedView && (
+                  <div style={{
+                    marginBottom: 20,
+                    padding: '12px 14px',
+                    background: '#E8F2EB',
+                    border: '0.5px solid #2D5A3D',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}>
+                    <p style={{ fontSize: '0.72rem', color: '#2D5A3D', lineHeight: 1.5, margin: 0, fontFamily: 'var(--font-sans)' }}>
+                      {t[lang].sharedViewBanner}
+                    </p>
+                    <button
+                      onClick={handleReset}
+                      className="luxury-btn"
+                      style={{ padding: '9px 18px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                    >
+                      <Camera size={13} strokeWidth={1.5} />
+                      <span>{t[lang].sharedViewScan}</span>
+                    </button>
+                  </div>
+                )}
+
                 <p style={{ fontSize: '0.58rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#8A8078', marginBottom: 16, fontFamily: 'var(--font-sans)' }}>
                   {t[lang].ingredientAnalysis}
                 </p>
