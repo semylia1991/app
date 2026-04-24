@@ -148,29 +148,94 @@ Formatting Rules:
 
 Ensure the output strictly follows the JSON schema.`.trim();
 
-  // Main profile — passed to the model so that sections like "warnings" / "sideEffects"
-  // can reference user-relevant ingredients (allergies, sensitivities, skin conditions).
-  // The personalNote itself is NOT generated here — it is built separately via
-  // action="personalNote" which has server-side filtering based on productType.
+  // Main profile — used in warnings/sideEffects AND inside personalNote (with filtering)
   const profileLines = [
-    userProfile.skinType        ? "Skin type (face): "   + userProfile.skinType        : null,
-    userProfile.skinSensitivity ? "Sensitivities: "     + userProfile.skinSensitivity : null,
-    userProfile.skinConditions  ? "Skin conditions: "   + userProfile.skinConditions  : null,
-    userProfile.ageRange        ? "Age group: "         + userProfile.ageRange         : null,
-    userProfile.hairType        ? "Hair type: "         + userProfile.hairType         : null,
-    userProfile.scalpCondition  ? "Scalp condition: "   + userProfile.scalpCondition  : null,
-    userProfile.hairProblems    ? "Hair problems: "     + userProfile.hairProblems     : null,
-    userProfile.bodySkinType    ? "Body skin type: "    + userProfile.bodySkinType     : null,
-    userProfile.climate         ? "Climate: "           + userProfile.climate          : null,
-    userProfile.allergies       ? "⚠️ ALLERGIES / INTOLERANCES (flag any matching ingredients as 🔴 and warn explicitly in the 'warnings' section): " + userProfile.allergies : null,
+    userProfile.skinType        ? "skinType (FACE): "        + userProfile.skinType        : null,
+    userProfile.skinSensitivity ? "skinSensitivity (FACE): " + userProfile.skinSensitivity : null,
+    userProfile.skinConditions  ? "skinConditions (FACE): "  + userProfile.skinConditions  : null,
+    userProfile.ageRange        ? "ageRange (FACE): "        + userProfile.ageRange         : null,
+    userProfile.hairType        ? "hairType (HAIR): "        + userProfile.hairType         : null,
+    userProfile.scalpCondition  ? "scalpCondition (HAIR): "  + userProfile.scalpCondition  : null,
+    userProfile.hairProblems    ? "hairProblems (HAIR): "    + userProfile.hairProblems     : null,
+    userProfile.bodySkinType    ? "bodySkinType (BODY): "    + userProfile.bodySkinType     : null,
+    userProfile.climate         ? "climate (UNIVERSAL): "    + userProfile.climate          : null,
+    userProfile.allergies       ? "⚠️ allergies (UNIVERSAL — always flag in warnings): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
 
   if (!profileLines) return basePrompt;
 
-  return basePrompt + `
+  const personalNoteSection = `
 
-USER PROFILE (use when writing 'warnings' and 'sideEffects' — but do NOT produce a personalNote field):
-${profileLines}`;
+═══════════════════════════════════════════════════════════════════════
+PERSONAL NOTE — READ CAREFULLY, FOLLOW THE ALGORITHM EXACTLY
+═══════════════════════════════════════════════════════════════════════
+
+You MUST produce a "personalNote" field in ${language}. Before writing it,
+follow this algorithm STRICTLY:
+
+STEP 1 — You already wrote "productType" earlier in the JSON. Read it.
+         Classify it into exactly ONE category:
+
+           • HAIR        — shampoo, conditioner, hair mask, hair oil,
+                           dry shampoo, leave-in, scalp treatment, hair serum.
+           • FACE        — face cream, face serum, toner, cleanser, sunscreen,
+                           face mask, eye cream, essence, micellar water,
+                           face peel, anything applied to the face.
+           • BODY        — body lotion, body butter, body oil, body scrub,
+                           body mist, body wash, hand cream, foot cream.
+           • LIPS        — lip balm, lipstick, lip gloss, lip mask, lip oil.
+           • NAILS       — nail polish, cuticle oil, nail strengthener.
+           • OTHER       — decorative cosmetics, perfume, etc.
+
+STEP 2 — Use this LOOKUP TABLE to decide which user preference fields
+         are RELEVANT for this category. Only these fields may appear
+         as bullets:
+
+           HAIR  → hairType, scalpCondition, hairProblems, climate
+           FACE  → skinType, skinSensitivity, skinConditions, ageRange, climate
+           BODY  → bodySkinType, climate
+           LIPS  → skinSensitivity, climate
+           NAILS → (none)
+           OTHER → skinSensitivity, climate
+
+         The user's profile below is annotated with its category tag
+         — (FACE), (HAIR), (BODY), (UNIVERSAL). Use the tag and the
+         lookup table to decide what to include.
+
+STEP 3 — HARD RULES (violating these is a critical error):
+
+  ❌ If the product is HAIR → NEVER mention (FACE), (BODY), ageRange.
+     No bullets about skin type, pores, acne, pigmentation, body skin, etc.
+     Even if the user has them in their profile — IGNORE these fields completely.
+  ❌ If the product is FACE → NEVER mention (HAIR), (BODY).
+     No bullets about hair type, dandruff, body skin, etc.
+  ❌ If the product is BODY → NEVER mention (FACE), (HAIR), ageRange.
+     No bullets about face skin, hair, etc.
+  ❌ Never write "N/A", "not applicable", "doesn't apply" — just omit the bullet.
+  ❌ Allergies stay in "warnings" section — DO NOT put them in the preference list.
+
+STEP 4 — Format for "personalNote" (translate all headings to ${language}):
+
+  🧴 **[Brief summary]**
+  1-2 sentences, referencing the relevant preferences using phrases like
+  "based on the selected preferences" or equivalent in ${language}.
+
+  **[By preferences:]**
+  - <preference value in ${language}> <color emoji>
+  - <preference value in ${language}> <color emoji>
+  ...
+
+  Color emoji: 🟢 suitable, 🟡 unclear / depends on individual reaction
+  (default when uncertain), 🔴 problematic.
+
+  No explanations after the emoji. Just "<label> <emoji>".
+
+═══════════════════════════════════════════════════════════════════════
+USER PROFILE (each line is tagged with its category):
+${profileLines}
+═══════════════════════════════════════════════════════════════════════`;
+
+  return basePrompt + personalNoteSection;
 }
 
 function buildTranslatePrompt(result: unknown, targetLanguage: string): string {
@@ -261,11 +326,7 @@ export async function handleGeminiRequest(
     }
 
     const imageData = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
-    // personalNote is NEVER generated in the first prompt because the product type
-    // is not yet known and the model cannot reliably filter user preferences.
-    // It is generated separately via action="personalNote" which has server-side
-    // filtering based on the detected productType.
-    const withNote  = false;
+    const withNote  = !!userProfile;
 
     const response = await generateWithRetry(ai, {
       contents: [{
