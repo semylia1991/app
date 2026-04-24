@@ -142,3 +142,17 @@ export async function askFollowUpQuestion(
   });
   return data.answer;
 }
+
+export async function generatePersonalNote(
+  result: AnalysisResult,
+  serializedProfile: SerializedProfile,
+  language: string,
+): Promise<string> {
+  const data = await callFunction<{ personalNote: string }>({
+    action: "personalNote",
+    result,
+    userProfile: serializedProfile,
+    language: LANGUAGE_NAMES[language] || language,
+  });
+  return data.personalNote ?? "";
+}
