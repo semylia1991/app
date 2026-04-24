@@ -49,6 +49,7 @@ export interface SerializedProfile {
   hairType?: string;
   scalpCondition?: string;
   hairProblems?: string;
+  bodySkinType?: string;
   climate?: string;
   allergies?: string;
 }
