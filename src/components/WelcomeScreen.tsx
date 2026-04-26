@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
+import logo from '../logo.png';
 import type { Language } from '../i18n';
 
 // ── Localisation ───────────────────────────────────────────────────────────
@@ -18,7 +19,7 @@ const COPY: Record<
     sub: 'Photo → answer.\nNo chemistry degree needed.',
     btn: 'Scan your first product',
     footnote: 'No registration. Free to start.',
-    malteser: 'Made by a Malteser volunteer ·',
+    malteser: 'Made by a Malteser volunteer · ',
   },
   de: {
     headline: 'Was steckt wirklich\nin deiner Kosmetik?',
@@ -32,7 +33,7 @@ const COPY: Record<
     sub: 'Фото → ответ.\nБез химического образования.',
     btn: 'Сканировать первый продукт',
     footnote: 'Без регистрации. Бесплатно.',
-    malteser: 'Создано волонтёром Malteser ·',
+    malteser: 'Создано волонтёром Malteser · ',
   },
   uk: {
     headline: 'Що насправді\nу твоїй косметиці?',
@@ -209,10 +210,9 @@ export function WelcomeScreen({ lang: langProp, onScan, onClose }: Props) {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <img
-                src="/logo.png"
+                src={logo}
                 alt="GlowKey AI"
                 style={{ width: 26, height: 26, objectFit: 'contain' }}
-                onError={e => { (e.currentTarget as HTMLImageElement).style.opacity = '0'; }}
               />
             </div>
             <p style={{
