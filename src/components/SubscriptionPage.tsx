@@ -200,25 +200,28 @@ export function SubscriptionPage({ user, subscription, lang, onBack }: Props) {
             </p>
 
             {/* Photo + author */}
-            <div className="flex flex-col items-center text-center mb-5">
-              <img
-                src="/yuliia.jpg"
-                alt="Yuliia Parkina"
-                className="w-24 h-24 rounded-full object-cover border-2 border-[#E8DCC8] mb-3"
-                onError={(e) => {
-                  // Fallback if image is missing — hide silently
-                  (e.currentTarget as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <p className="text-[10px] uppercase tracking-wider text-[#B89F7A] mb-2">
-                {T.tierPhotoCredit}
-              </p>
-              <p className="text-sm text-[#2C3E50] font-serif leading-relaxed">
-                {T.tierAuthorIntro}
-              </p>
-              <p className="text-xs text-[#6A6A6A] mt-2 leading-relaxed">
-                {T.tierAuthorReason}
-              </p>
+            <div className="flex items-start gap-3 mb-5">
+              <div className="flex flex-col items-center shrink-0">
+                <img
+                  src="/yuliia.jpg"
+                  alt="Yuliia Parkina"
+                  className="w-14 h-14 rounded-full object-cover border-2 border-[#E8DCC8]"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                <p className="text-[9px] uppercase tracking-wide text-[#B89F7A] mt-1 text-center leading-tight max-w-[56px]">
+                  {T.tierPhotoCredit}
+                </p>
+              </div>
+              <div className="flex-1 pt-0.5">
+                <p className="text-sm text-[#2C3E50] font-serif leading-snug mb-1">
+                  {T.tierAuthorIntro}
+                </p>
+                <p className="text-xs text-[#6A6A6A] leading-relaxed">
+                  {T.tierAuthorReason}
+                </p>
+              </div>
             </div>
 
             {/* Donation note */}
