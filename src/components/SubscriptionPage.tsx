@@ -232,32 +232,39 @@ export function SubscriptionPage({ user, subscription, lang, onBack }: Props) {
               </p>
             </div>
 
-            {/* Premium benefits — beige card with green border */}
-            <div className="bg-[#F5F9F0] border border-[#7BAE5A] rounded-lg p-4 mb-5">
-              <p className="text-[10px] uppercase tracking-widest text-[#4A7A28] mb-3 font-medium">
-                {T.tierBenefitsLabel}
-              </p>
-              <div className="space-y-2.5">
-                {[T.tierBenefit1, T.tierBenefit2, T.tierBenefit3].map((text) => {
-                  // Bold the leading number, regular the rest
-                  const match = text.match(/^(\d+)(.*)$/);
-                  return (
-                    <div key={text} className="flex items-baseline gap-1.5">
-                      <span className="text-[#3B6D11]">·</span>
-                      {match ? (
-                        <span className="text-sm text-[#2C3E50] leading-snug">
-                          <strong className="font-bold">{match[1]}</strong>{match[2]}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-[#2C3E50] leading-snug">{text}</span>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* Premium benefits */}
+            <div className="mb-5 rounded-lg overflow-hidden border border-[#E8DCC8]">
+              {/* Header */}
+              <div className="bg-[#F5F1EB] px-4 py-2.5 border-b border-[#E8DCC8]">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-[#B89F7A] font-medium">
+                  {T.tierBenefitsLabel}
+                </p>
               </div>
-              <p className="text-[10px] text-[#6A8A55] mt-3 border-t border-[#B8D4A0] pt-2.5">
-                {T.tierCancelEasy}
-              </p>
+              {/* Rows */}
+              {[T.tierBenefit1, T.tierBenefit2, T.tierBenefit3].map((text, i, arr) => {
+                const match = text.match(/^(\d+)(.*)$/);
+                return (
+                  <div
+                    key={text}
+                    className={`flex items-center justify-between px-4 py-3 bg-white ${
+                      i < arr.length - 1 ? 'border-b border-[#F0EAE0]' : ''
+                    }`}
+                  >
+                    {match ? (
+                      <>
+                        <span className="text-xs text-[#8A8A8A] leading-snug flex-1">{match[2].trim()}</span>
+                        <span className="text-lg font-serif font-bold text-[#2C3E50] ml-3 tabular-nums">{match[1]}</span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-[#4A4A4A]">{text}</span>
+                    )}
+                  </div>
+                );
+              })}
+              {/* Footer */}
+              <div className="bg-[#F5F1EB] px-4 py-2 border-t border-[#E8DCC8]">
+                <p className="text-[10px] text-[#B89F7A] tracking-wide">{T.tierCancelEasy}</p>
+              </div>
             </div>
 
             {/* Tier picker */}
