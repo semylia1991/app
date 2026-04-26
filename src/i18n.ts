@@ -218,7 +218,7 @@ export const t = {
   ru: {
     title: "GlowKey AI",
     subtitle: "Найдите свой ключ к сиянию!",
-    description: "Сканируйте косметические продукты или списки ингредиентов, чтобы понять формулу и состав.",
+    description: "Сфотографируй состав — GlowKey за секунды покажет, какие ингредиенты соответствуют твоим предпочтениям. Для тебя.",
     uploadPhoto: "Загрузить фото",
     takePhoto: "Сделать фото",
     chooseFromGallery: "Выбрать из галереи",
@@ -425,7 +425,7 @@ export const t = {
   de: {
     title: "GlowKey AI",
     subtitle: "Finden Sie Ihren Schlüssel zum Strahlen!",
-    description: "Scannen Sie Kosmetikprodukte oder Inhaltsstofflisten, um die Formel und die Inhaltsstoffe zu verstehen. Treffen Sie fundiertere Entscheidungen und pflegen Sie Ihre Haut besser.",
+    description: "Fotografiere die Inhaltsstoffe – GlowKey zeigt dir in Sekunden, welche Inhaltsstoffe zu deinen Vorlieben passen. Für dich.",
     uploadPhoto: "Foto hochladen",
     takePhoto: "Foto aufnehmen",
     chooseFromGallery: "Aus Galerie wählen",
@@ -632,7 +632,7 @@ export const t = {
   uk: {
     title: "GlowKey AI",
     subtitle: "Знайдіть свій ключ до сяяння!",
-    description: "Скануйте косметичні продукти або списки інгредієнтів, щоб зрозуміти формулу та склад. Робіть більш усвідомлений вибір і краще дбайте про свою шкіру.",
+    description: "Сфотографуй склад — GlowKey за секунди покаже, які інгредієнти відповідають твоїм уподобанням. Для тебе.",
     uploadPhoto: "Завантажити фото",
     takePhoto: "Зробити фото",
     chooseFromGallery: "Вибрати з галереї",
@@ -839,7 +839,7 @@ export const t = {
   es: {
     title: "GlowKey AI",
     subtitle: "¡Encuentra tu clave para brillar!",
-    description: "Escanea productos cosméticos o listas de ingredientes para entender la fórmula. Toma decisiones más informadas y cuida mejor tu piel.",
+    description: "Fotografía la lista de ingredientes: GlowKey te mostrará en segundos qué ingredientes se ajustan a tus preferencias. Para ti.",
     uploadPhoto: "Subir foto",
     takePhoto: "Tomar foto",
     chooseFromGallery: "Elegir de galería",
@@ -1046,7 +1046,7 @@ export const t = {
   fr: {
     title: "GlowKey AI",
     subtitle: "Trouvez votre clé pour rayonner !",
-    description: "Scannez des produits cosmétiques ou des listes d'ingrédients pour comprendre la formule. Faites des choix plus éclairés et prenez mieux soin de votre peau.",
+    description: "Photographie la liste des ingrédients : GlowKey te montrera en quelques secondes quels ingrédients correspondent à tes préférences. Pour toi.",
     uploadPhoto: "Télécharger une photo",
     takePhoto: "Prendre une photo",
     chooseFromGallery: "Choisir dans la galerie",
@@ -1253,7 +1253,7 @@ export const t = {
   it: {
     title: "GlowKey AI",
     subtitle: "Trova la tua chiave per brillare!",
-    description: "Scansiona prodotti cosmetici o liste di ingredienti per capire la formula. Fai scelte più consapevoli e prenditi cura della tua pelle.",
+    description: "Fotografa l’elenco degli ingredienti: GlowKey ti mostrerà in pochi secondi quali ingredienti corrispondono alle tue preferenze. Per te.",
     uploadPhoto: "Carica foto",
     takePhoto: "Scatta foto",
     chooseFromGallery: "Scegli dalla galleria",
@@ -1460,7 +1460,7 @@ export const t = {
   tr: {
     title: "GlowKey AI",
     subtitle: "Parlamanın anahtarını bul!",
-    description: "Kozmetik ürünleri veya içerik listelerini tarayarak formülü ve bileşenleri anlayın. Daha bilinçli seçimler yapın ve cildinize daha iyi bakın.",
+    description: "İçerik listesinin fotoğrafını çek — GlowKey saniyeler içinde hangi içeriklerin tercihlerine uygun olduğunu gösterir. Senin için.",
     uploadPhoto: "Fotoğraf yükle",
     takePhoto: "Fotoğraf çek",
     chooseFromGallery: "Galeriden seç",
