@@ -1,9 +1,6 @@
 /**
- * api/stripe-portal.mjs — Vercel/Netlify Serverless Function
- * Создаёт Stripe Billing Portal сессию и возвращает URL редиректа.
- *
- * Перед использованием активировать Customer Portal в Stripe Dashboard:
- *   Stripe → Settings → Billing → Customer portal → Activate
+ * api/stripe-portal.mjs — Vercel Serverless Function
+ * Создаёт Stripe Billing Portal сессию через fetch (без stripe SDK).
  *
  * Required env vars:
  *   STRIPE_SECRET_KEY          — sk_live_... / sk_test_...
@@ -18,10 +15,8 @@ export default async function handler(req, res) {
   const origin = req.headers['origin'] || '';
 
   if (!ALLOWED_ORIGIN) {
-    console.error('VITE_APP_URL is not configured');
     return res.status(500).json({ error: 'Server misconfiguration' });
   }
-
   if (origin !== ALLOWED_ORIGIN) {
     return res.status(403).json({ error: 'Origin not allowed' });
   }
@@ -34,12 +29,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Верифицируем пользователя через JWT — не доверяем body
   const authHeader = req.headers['authorization'] || '';
   const token = authHeader.replace('Bearer ', '').trim();
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -50,7 +42,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Env vars not configured' });
   }
 
-  // Получаем user из JWT через Supabase
+  // ── 1. Verify JWT → get userId ───────────────────────────────
   let userId;
   try {
     const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
@@ -59,9 +51,7 @@ export default async function handler(req, res) {
         'apikey': serviceKey,
       },
     });
-    if (!userRes.ok) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
+    if (!userRes.ok) return res.status(401).json({ error: 'Invalid token' });
     const userData = await userRes.json();
     userId = userData.id;
   } catch (err) {
@@ -69,33 +59,52 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Token verification failed' });
   }
 
-  if (!userId) {
-    return res.status(401).json({ error: 'User not found' });
+  if (!userId) return res.status(401).json({ error: 'User not found' });
+
+  // ── 2. Get stripe_customer_id from Supabase ──────────────────
+  const subRes = await fetch(
+    `${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}&select=stripe_customer_id,status`,
+    {
+      headers: {
+        'Authorization': `Bearer ${serviceKey}`,
+        'apikey': serviceKey,
+      },
+    }
+  );
+
+  if (!subRes.ok) {
+    return res.status(500).json({ error: 'Failed to fetch subscription' });
   }
 
-  // Получаем stripe_customer_id из нашей БД
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(supabaseUrl, serviceKey);
+  const subs = await subRes.json();
+  const sub = subs?.[0];
 
-  const { data: sub, error: subError } = await supabase
-    .from('subscriptions')
-    .select('stripe_customer_id, status')
-    .eq('user_id', userId)
-    .single();
-
-  if (subError || !sub?.stripe_customer_id) {
+  if (!sub?.stripe_customer_id) {
     return res.status(404).json({ error: 'No subscription found. Please contact support.' });
   }
 
-  // Создаём Stripe Billing Portal сессию
+  // ── 3. Create Stripe Billing Portal session via fetch (no SDK) ─
   try {
-    const { default: Stripe } = await import('stripe');
-    const stripe = new Stripe(secretKey);
-
-    const session = await stripe.billingPortal.sessions.create({
+    const params = new URLSearchParams({
       customer: sub.stripe_customer_id,
       return_url: `${appUrl}?portal=return`,
     });
+
+    const portalRes = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${secretKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params,
+    });
+
+    const session = await portalRes.json();
+
+    if (!portalRes.ok) {
+      console.error('Stripe portal error:', session);
+      return res.status(500).json({ error: session?.error?.message ?? 'Stripe error' });
+    }
 
     return res.status(200).json({ url: session.url });
   } catch (err) {
