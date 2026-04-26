@@ -233,38 +233,29 @@ export function SubscriptionPage({ user, subscription, lang, onBack }: Props) {
             </div>
 
             {/* Premium benefits */}
-            <div className="mb-5 rounded-lg overflow-hidden border border-[#E8DCC8]">
-              {/* Header */}
-              <div className="bg-[#F5F1EB] px-4 py-2.5 border-b border-[#E8DCC8]">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-[#B89F7A] font-medium">
+            <div className="mb-4 rounded-lg overflow-hidden border border-[#E8DCC8]">
+              <div className="bg-[#F5F1EB] px-3 py-1.5 border-b border-[#E8DCC8] flex items-center justify-between">
+                <p className="text-[9px] uppercase tracking-[0.15em] text-[#B89F7A] font-medium">
                   {T.tierBenefitsLabel}
                 </p>
+                <p className="text-[9px] text-[#C8B090]">{T.tierCancelEasy}</p>
               </div>
-              {/* Rows */}
               {[T.tierBenefit1, T.tierBenefit2, T.tierBenefit3].map((text, i, arr) => {
                 const match = text.match(/^(\d+)(.*)$/);
                 return (
                   <div
                     key={text}
-                    className={`flex items-center justify-between px-4 py-3 bg-white ${
-                      i < arr.length - 1 ? 'border-b border-[#F0EAE0]' : ''
+                    className={`flex items-center justify-between px-3 py-1.5 bg-white ${
+                      i < arr.length - 1 ? 'border-b border-[#F5F1EB]' : ''
                     }`}
                   >
-                    {match ? (
-                      <>
-                        <span className="text-xs text-[#8A8A8A] leading-snug flex-1">{match[2].trim()}</span>
-                        <span className="text-lg font-serif font-bold text-[#2C3E50] ml-3 tabular-nums">{match[1]}</span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-[#4A4A4A]">{text}</span>
+                    <span className="text-[11px] text-[#6A6A6A]">{match ? match[2].trim() : text}</span>
+                    {match && (
+                      <span className="text-sm font-bold text-[#2C3E50] tabular-nums ml-2">{match[1]}</span>
                     )}
                   </div>
                 );
               })}
-              {/* Footer */}
-              <div className="bg-[#F5F1EB] px-4 py-2 border-t border-[#E8DCC8]">
-                <p className="text-[10px] text-[#B89F7A] tracking-wide">{T.tierCancelEasy}</p>
-              </div>
             </div>
 
             {/* Tier picker */}
