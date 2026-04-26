@@ -29,6 +29,7 @@ import { FeedbackSurvey } from './components/FeedbackSurvey';
 import { useSubscription } from './hooks/useSubscription';
 import { SubscriptionPage } from './components/SubscriptionPage';
 import { WelcomeScreen, useShowWelcome } from './components/WelcomeScreen';
+import { FirstScanModal, useFirstScanModal } from './components/FirstScanModal';
 
 /* ── helpers ── */
 function splitParagraphs(text: string): string[] {
@@ -194,6 +195,9 @@ export default function App() {
   // ── Welcome screen — shown once to unauthenticated first-time visitors ──
   const [showWelcome, dismissWelcome] = useShowWelcome(user);
 
+  // ── First-scan modal — shown once after first scan on reset ──
+  const [showFirstScan, triggerFirstScan, dismissFirstScan] = useFirstScanModal();
+
   const fileInputRef     = useRef<HTMLInputElement>(null);
   const isFirstRender    = useRef(true);
   const originalResult   = useRef<AnalysisResult | null>(null);
@@ -357,6 +361,7 @@ export default function App() {
     if (fileInputRef.current) fileInputRef.current.value = '';
     setInputKey(k => k + 1);
     window.history.replaceState({}, '', window.location.pathname);
+    triggerFirstScan();
   };
 
   const handleShare = async () => {
@@ -885,6 +890,11 @@ export default function App() {
           onScan={() => fileInputRef.current?.click()}
           onClose={dismissWelcome}
         />
+      )}
+
+      {/* ── FIRST SCAN MODAL — shown once after first scan on reset ── */}
+      {showFirstScan && (
+        <FirstScanModal lang={lang} onClose={dismissFirstScan} />
       )}
     </div>
   );
