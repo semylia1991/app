@@ -159,7 +159,21 @@ function buildShopLinks(productName: string, brand: string): ShopLink[] {
 
 /* ── Main component ── */
 export default function App() {
-  const [lang, setLang]               = useState<Language>('en');
+  const SUPPORTED_LANGS: Language[] = ['en', 'ru', 'de', 'uk', 'es', 'fr', 'it', 'tr'];
+
+  function getInitialLang(): Language {
+    const saved = localStorage.getItem('lang') as Language | null;
+    if (saved && SUPPORTED_LANGS.includes(saved)) return saved;
+    const browser = navigator.language.slice(0, 2).toLowerCase() as Language;
+    return SUPPORTED_LANGS.includes(browser) ? browser : 'en';
+  }
+
+  const [lang, setLangState] = useState<Language>(getInitialLang);
+
+  function setLang(l: Language) {
+    localStorage.setItem('lang', l);
+    setLangState(l);
+  }
   const [file, setFile]               = useState<File | null>(null);
   const [inputKey, setInputKey]       = useState(0);
   const [previewUrl, setPreviewUrl]   = useState<string | null>(null);
