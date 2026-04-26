@@ -28,6 +28,7 @@ import { PaywallModal } from './components/PaywallModal';
 import { FeedbackSurvey } from './components/FeedbackSurvey';
 import { useSubscription } from './hooks/useSubscription';
 import { SubscriptionPage } from './components/SubscriptionPage';
+import { WelcomeScreen, useShowWelcome } from './components/WelcomeScreen';
 
 /* ── helpers ── */
 function splitParagraphs(text: string): string[] {
@@ -149,7 +150,6 @@ const SHOP_CONFIGS: ShopConfig[] = [
 function buildShopLinks(productName: string, brand: string): ShopLink[] {
   const combined = [brand, productName].filter(Boolean).join(' ').trim();
   if (!combined) return [];
-  // Wrap in quotes for exact phrase match → much more precise results
   const q = encodeURIComponent(`"${combined}"`);
   return SHOP_CONFIGS.map(({ platform, favicon, buildUrl }) => ({
     platform, favicon, url: buildUrl(q),
@@ -191,12 +191,14 @@ export default function App() {
     () => window.location.search.includes('portal=return')
   );
 
+  // ── Welcome screen — shown once to unauthenticated first-time visitors ──
+  const [showWelcome, dismissWelcome] = useShowWelcome(user);
+
   const fileInputRef     = useRef<HTMLInputElement>(null);
   const isFirstRender    = useRef(true);
   const originalResult   = useRef<AnalysisResult | null>(null);
   const translationCache = useRef<Map<Language, AnalysisResult>>(new Map());
 
-  /* share link load — also handles URL changes (e.g. user navigates back/forward) */
   const isSharedViewRef = useRef(false);
   useEffect(() => { isSharedViewRef.current = isSharedView; }, [isSharedView]);
 
@@ -204,11 +206,7 @@ export default function App() {
     const loadFromUrl = () => {
       const shareId = new URLSearchParams(window.location.search).get('share');
 
-      // No ?share in URL — ensure we are on the clean upload page
       if (!shareId) {
-        // If we were previously viewing a shared result, reset to upload panel.
-        // This covers the case where the user navigates to the plain origin URL
-        // (e.g. via "Share the app" link) without a full page reload.
         if (isSharedViewRef.current) {
           setResult(null);
           setIsSharedView(false);
@@ -218,7 +216,6 @@ export default function App() {
         return;
       }
 
-      // Has ?share — fetch and display
       setSharedLoading(true);
       supabase
         .from('shared_results').select('result').eq('id', shareId).maybeSingle()
@@ -240,7 +237,6 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* translation on lang change */
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (!originalResult.current || isAnalyzing) return;
@@ -397,7 +393,6 @@ export default function App() {
         setTimeout(() => setShareAppCopied(false), 2000);
       }
     } catch (_) {
-      // user cancelled or share failed — fallback to clipboard
       try {
         await navigator.clipboard.writeText(shareText);
         setShareAppCopied(true);
@@ -573,7 +568,6 @@ export default function App() {
 
               <input key={inputKey} type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
 
-              {/* Share-app button — only shown in the empty state so the card height doesn't shift */}
               {!previewUrl && (
                 <div style={{ marginTop: 14 }}>
                   <button
@@ -719,7 +713,7 @@ export default function App() {
                   />
                 </CollapsibleSection>
 
-                {/* ─── Product information — wrapper containing 7 sub-sections ─── */}
+                {/* Product information */}
                 <CollapsibleSection title={t[lang].productInfo} icon={<Info size={15} />} collapseLabel={cl}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={15} />} collapseLabel={cl}>
@@ -797,8 +791,6 @@ export default function App() {
                   <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
                 </CollapsibleSection>
               </div>
-
-
 
               {/* Footer actions */}
               <div style={{ padding: '20px 28px 32px', borderTop: '0.5px solid #DDD5C8' }}>
@@ -885,6 +877,15 @@ export default function App() {
         lang={lang}
         userId={user?.id}
       />
+
+      {/* ── WELCOME SCREEN — first visit, unauthenticated only ── */}
+      {showWelcome && (
+        <WelcomeScreen
+          lang={lang}
+          onScan={() => fileInputRef.current?.click()}
+          onClose={dismissWelcome}
+        />
+      )}
     </div>
   );
 }
