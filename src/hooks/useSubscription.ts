@@ -135,14 +135,14 @@ export function useSubscription(user: User | null): SubscriptionState {
       const today = todayKey();
       const { data: usageRow } = await supabase
         .from('usage_tracking')
-        .select('scans, note_analysis, ask_ai')
+        .select('scans, pay_attention, ask_ai')
         .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle();
 
       setUsage({
         scans: usageRow?.scans ?? 0,
-        noteAnalysis: usageRow?.note_analysis ?? 0,
+        noteAnalysis: usageRow?.pay_attention ?? 0,
         askAi: usageRow?.ask_ai ?? 0,
       });
     } finally {
@@ -156,7 +156,7 @@ export function useSubscription(user: User | null): SubscriptionState {
 
   const incrementField = useCallback(
     async (field: 'scans' | 'noteAnalysis' | 'askAi') => {
-      const dbField = field === 'noteAnalysis' ? 'note_analysis' : field === 'askAi' ? 'ask_ai' : 'scans';
+      const dbField = field === 'noteAnalysis' ? 'pay_attention' : field === 'askAi' ? 'ask_ai' : 'scans';
       const today = todayKey();
 
       setUsage(prev => ({ ...prev, [field]: prev[field] + 1 }));
