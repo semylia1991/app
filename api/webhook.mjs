@@ -8,6 +8,13 @@
  *   STRIPE_WEBHOOK_SECRET    — whsec_...
  *   VITE_SUPABASE_URL        — https://xxx.supabase.co
  *   SUPABASE_SERVICE_ROLE_KEY — service role key (never expose to client)
+ *
+ * Required Stripe events to enable in Dashboard:
+ *   - customer.subscription.created
+ *   - customer.subscription.updated
+ *   - customer.subscription.deleted
+ *   - invoice.payment_succeeded
+ *   - invoice.payment_failed
  */
 
 export const config = {
@@ -39,11 +46,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Stripe env vars not configured' });
   }
 
-  // Read raw body for signature verification
   const rawBody = await getRawBody(req);
   const sig = req.headers['stripe-signature'];
 
-  // Verify webhook signature using Web Crypto (no stripe npm needed)
   let event;
   try {
     const { default: Stripe } = await import('stripe');
@@ -54,7 +59,6 @@ export default async function handler(req, res) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Update Supabase based on event type
   const { createClient } = await import('@supabase/supabase-js');
   const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -67,12 +71,19 @@ export default async function handler(req, res) {
         const userId = sub.metadata?.userId;
         if (!userId) break;
 
+        // Pull tier + amount from metadata (set in checkout)
+        const tier = sub.metadata?.tier || 'withyou';
+        const weeklyAmountEur = parseFloat(sub.metadata?.weekly_amount_eur || '0') || null;
+
         await supabase.from('subscriptions').upsert({
           user_id: userId,
           stripe_subscription_id: sub.id,
           stripe_customer_id: sub.customer,
           status: sub.status === 'active' ? 'active' : 'canceled',
           plan: 'premium',
+          tier,                                  // basic | withyou | generous | custom
+          weekly_amount_eur: weeklyAmountEur,
+          currency: 'eur',
           expires_at: new Date(sub.current_period_end * 1000).toISOString(),
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
@@ -87,6 +98,30 @@ export default async function handler(req, res) {
         await supabase.from('subscriptions')
           .update({ status: 'canceled', updated_at: new Date().toISOString() })
           .eq('user_id', userId);
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        // Log every weekly payment to a separate table (used for donation reporting).
+        const invoice = event.data.object;
+        const subId = invoice.subscription;
+        const userId = invoice.subscription_details?.metadata?.userId
+                    || invoice.metadata?.userId;
+        const amountPaidEur = (invoice.amount_paid ?? 0) / 100;
+        const currency = invoice.currency || 'eur';
+        if (!userId || !subId) break;
+
+        await supabase.from('payments').upsert({
+          user_id: userId,
+          stripe_invoice_id: invoice.id,
+          stripe_subscription_id: subId,
+          amount_eur: amountPaidEur,
+          currency,
+          tier: invoice.subscription_details?.metadata?.tier
+             || invoice.metadata?.tier
+             || null,
+          paid_at: new Date((invoice.status_transitions?.paid_at ?? invoice.created) * 1000).toISOString(),
+        }, { onConflict: 'stripe_invoice_id' });
         break;
       }
 
