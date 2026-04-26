@@ -235,7 +235,7 @@ export const t = {
     tierPremiumDesc: "100 scans per day + Up to 10 AI questions per day + 100 'Pay Attention' analyses per day.",
     tierCancelEasy: "Cancel at any time in 2 taps.",
     tierBenefitsLabel: "With Premium",
-    tierBenefit1: "100 scans per day",
+    tierBenefit1: "100 Scans per day",
     tierBenefit2: "100 'Pay Attention' analyses per day",
     tierBenefit3: "10 AI questions per day",
     tierSupportBtn: "Support",
