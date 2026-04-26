@@ -232,24 +232,32 @@ export function SubscriptionPage({ user, subscription, lang, onBack }: Props) {
               </p>
             </div>
 
-            {/* Premium benefits — shown right after Malteser note */}
-            <div className="bg-[#2C3E50] rounded-lg p-4 mb-5">
-              <p className="text-[10px] uppercase tracking-widest text-[#B89F7A] mb-3">
+            {/* Premium benefits — beige card with green border */}
+            <div className="bg-[#F5F9F0] border border-[#7BAE5A] rounded-lg p-4 mb-5">
+              <p className="text-[10px] uppercase tracking-widest text-[#4A7A28] mb-3 font-medium">
                 {T.tierBenefitsLabel}
               </p>
-              <div className="space-y-2">
-                {[
-                  { icon: '🔍', text: T.tierBenefit1 },
-                  { icon: '⚠️', text: T.tierBenefit2 },
-                  { icon: '🤖', text: T.tierBenefit3 },
-                ].map(({ icon, text }) => (
-                  <div key={text} className="flex items-center gap-3">
-                    <span className="text-base leading-none">{icon}</span>
-                    <span className="text-sm font-semibold text-white leading-tight">{text}</span>
-                  </div>
-                ))}
+              <div className="space-y-2.5">
+                {[T.tierBenefit1, T.tierBenefit2, T.tierBenefit3].map((text) => {
+                  // Bold the leading number, regular the rest
+                  const match = text.match(/^(\d+)(.*)$/);
+                  return (
+                    <div key={text} className="flex items-baseline gap-1.5">
+                      <span className="text-[#3B6D11]">·</span>
+                      {match ? (
+                        <span className="text-sm text-[#2C3E50] leading-snug">
+                          <strong className="font-bold">{match[1]}</strong>{match[2]}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-[#2C3E50] leading-snug">{text}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-[10px] text-[#B89F7A]/70 mt-3">{T.tierCancelEasy}</p>
+              <p className="text-[10px] text-[#6A8A55] mt-3 border-t border-[#B8D4A0] pt-2.5">
+                {T.tierCancelEasy}
+              </p>
             </div>
 
             {/* Tier picker */}
