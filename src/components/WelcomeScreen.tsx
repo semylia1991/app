@@ -18,56 +18,56 @@ const COPY: Record<
     sub: 'Photo → answer.\nNo chemistry degree needed.',
     btn: 'Scan your first product',
     footnote: 'No registration. Free to start.',
-    malteser: 'Made by a Malteser volunteer · 3% →',
+    malteser: 'Made by a Malteser volunteer ·',
   },
   de: {
     headline: 'Was steckt wirklich\nin deiner Kosmetik?',
     sub: 'Foto → Antwort.\nKein Chemiestudium nötig.',
     btn: 'Erstes Produkt scannen',
     footnote: 'Keine Registrierung. Kostenlos starten.',
-    malteser: 'Von einer Malteser-Ehrenamtlichen · 3% →',
+    malteser: 'Von einer Malteser-Ehrenamtlichen · ',
   },
   ru: {
     headline: 'Что на самом деле\nв твоей косметике?',
     sub: 'Фото → ответ.\nБез химического образования.',
     btn: 'Сканировать первый продукт',
     footnote: 'Без регистрации. Бесплатно.',
-    malteser: 'Создано волонтёром Malteser · 3% →',
+    malteser: 'Создано волонтёром Malteser ·',
   },
   uk: {
     headline: 'Що насправді\nу твоїй косметиці?',
     sub: 'Фото → відповідь.\nБез хімічної освіти.',
     btn: 'Сканувати перший продукт',
     footnote: 'Без реєстрації. Безкоштовно.',
-    malteser: 'Створено волонтером Malteser · 3% →',
+    malteser: 'Створено волонтером Malteser · ',
   },
   es: {
     headline: '¿Qué hay realmente\nen tu cosmético?',
     sub: 'Foto → respuesta.\nSin título en química.',
     btn: 'Escanear mi primer producto',
     footnote: 'Sin registro. Gratis para empezar.',
-    malteser: 'Hecho por voluntaria de Malteser · 3% →',
+    malteser: 'Hecho por voluntaria de Malteser · ',
   },
   fr: {
     headline: 'Que contient vraiment\nvotre cosmétique?',
     sub: 'Photo → réponse.\nSans diplôme en chimie.',
     btn: 'Scanner mon premier produit',
     footnote: 'Sans inscription. Gratuit pour commencer.',
-    malteser: 'Créé par une bénévole Malteser · 3% →',
+    malteser: 'Créé par une bénévole Malteser · ',
   },
   it: {
     headline: "Cosa c'è davvero\nnella tua cosmesi?",
     sub: 'Foto → risposta.\nSenza laurea in chimica.',
     btn: 'Scansiona il primo prodotto',
     footnote: 'Senza registrazione. Gratis per iniziare.',
-    malteser: 'Creato da volontaria Malteser · 3% →',
+    malteser: 'Creato da volontaria Malteser · ',
   },
   tr: {
     headline: 'Kozmetiğinde\ngerçekten ne var?',
     sub: 'Fotoğraf → cevap.\nKimya diploması gerekmez.',
     btn: 'İlk ürünümü tara',
     footnote: 'Kayıt yok. Başlamak ücretsiz.',
-    malteser: 'Malteser gönüllüsü tarafından · 3% →',
+    malteser: 'Malteser gönüllüsü tarafından · ',
   },
 };
 
@@ -97,7 +97,6 @@ export function WelcomeScreen({ lang: langProp, onScan, onClose }: Props) {
   }, []);
 
   function dismiss(openCamera: boolean) {
-    localStorage.setItem('hasVisited', 'true');
     if (openCamera) onScan();
     onClose();
   }
@@ -318,6 +317,8 @@ export function useShowWelcome(user: { id: string } | null): [boolean, () => voi
   useEffect(() => {
     // Only show to non-authenticated users who haven't visited before
     if (!user && !localStorage.getItem('hasVisited')) {
+      // Set the flag immediately on show — so a page reload won't show it again
+      localStorage.setItem('hasVisited', 'true');
       setShow(true);
     }
   }, [user]);
