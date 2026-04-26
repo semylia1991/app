@@ -222,11 +222,31 @@ export function SubscriptionPage({ user, subscription, lang, onBack }: Props) {
             </div>
 
             {/* Donation note */}
-            <div className="bg-[#F5F1EB] rounded-lg p-3 mb-5 flex items-start gap-2">
+            <div className="bg-[#F5F1EB] rounded-lg p-3 mb-4 flex items-start gap-2">
               <Heart size={14} className="text-[#B89F7A] mt-0.5 shrink-0" />
               <p className="text-xs text-[#4A4A4A] leading-relaxed">
                 {T.tierMalteserNote}
               </p>
+            </div>
+
+            {/* Premium benefits — shown right after Malteser note */}
+            <div className="bg-[#2C3E50] rounded-lg p-4 mb-5">
+              <p className="text-[10px] uppercase tracking-widest text-[#B89F7A] mb-3">
+                {T.tierBenefitsLabel}
+              </p>
+              <div className="space-y-2">
+                {[
+                  { icon: '🔍', text: T.tierBenefit1 },
+                  { icon: '⚠️', text: T.tierBenefit2 },
+                  { icon: '🤖', text: T.tierBenefit3 },
+                ].map(({ icon, text }) => (
+                  <div key={text} className="flex items-center gap-3">
+                    <span className="text-base leading-none">{icon}</span>
+                    <span className="text-sm font-semibold text-white leading-tight">{text}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-[#B89F7A]/70 mt-3">{T.tierCancelEasy}</p>
             </div>
 
             {/* Tier picker */}
@@ -305,15 +325,6 @@ export function SubscriptionPage({ user, subscription, lang, onBack }: Props) {
             <p className="text-[11px] text-[#8A8A8A] text-center mb-4">
               {T.tierDonationOf} €{donationAmount} {T.tierDonationGoes}
             </p>
-
-            <div className="border-t border-[#E8DCC8] pt-4 mb-4">
-              <p className="text-xs text-[#4A4A4A] leading-relaxed mb-2">
-                <strong className="text-[#2C3E50]">Premium</strong> = {T.tierPremiumDesc}
-              </p>
-              <p className="text-[11px] text-[#8A8A8A]">
-                {T.tierCancelEasy}
-              </p>
-            </div>
 
             {/* CTA */}
             <button
