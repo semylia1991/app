@@ -216,21 +216,31 @@ STEP 3 — HARD RULES (violating these is a critical error):
   ❌ Never write "N/A", "not applicable", "doesn't apply" — just omit the bullet.
   ❌ Allergies stay in "warnings" section — DO NOT put them in the preference list.
 
-STEP 4 — Format for "personalNote" (translate all headings to ${language}):
+STEP 4 — Format for "personalNote" (translate ALL text to ${language}):
 
   🧴 **[Brief summary]**
   1-2 sentences, referencing the relevant preferences using phrases like
   "based on the selected preferences" or equivalent in ${language}.
 
   **[By preferences:]**
-  - <preference value in ${language}> <color emoji>
-  - <preference value in ${language}> <color emoji>
+  - <preference label in ${language}> <color emoji> — <one short explanation, max ~12 words, tie to specific ingredients>
+  - <preference label in ${language}> <color emoji> — <one short explanation, max ~12 words, tie to specific ingredients>
   ...
 
-  Color emoji: 🟢 suitable, 🟡 unclear / depends on individual reaction
-  (default when uncertain), 🔴 problematic.
+  Color emoji: 🟢 suitable/beneficial, 🟡 unclear/depends on individual reaction
+  (default when uncertain), 🔴 problematic/unsuitable.
 
-  No explanations after the emoji. Just "<label> <emoji>".
+  CRITICAL — LABEL RULES:
+  ❌ NEVER output raw camelCase keys like "condPigmentation", "oilySkin", "skinType".
+  ✅ Always translate preference keys and values into human-readable ${language} text.
+     Examples: condPigmentation → "Uneven skin tone" / "Неровный тон кожи" / "Ungleichmäßiger Hautton"
+               oilySkin → "Oily skin" / "Жирная кожа"
+               dryness → "Dryness" / "Сухость"
+  ✅ Use the preference VALUE as the bullet label (e.g. "Oily skin 🟢 — ..."),
+     not the field name ("skinType").
+  ✅ Each explanation must mention WHY — name the responsible ingredient(s)
+     (e.g. "soothes redness (centella + panthenol)", "may clog pores (caprylic triglyceride)").
+  ✅ Use mild phrasing: may cause, can be, tends to — no medical advice.
 
 ═══════════════════════════════════════════════════════════════════════
 USER PROFILE (each line is tagged with its category):
@@ -457,10 +467,15 @@ COLOR MARKERS — use EXACTLY these emojis:
 
 FORMAT RULES:
 - List EVERY user preference relevant to this product type as its own bullet.
-- Each bullet: "<preference name/value in ${language}> <color emoji> — <one short sentence, max ~12 words>"
+- Each bullet: "<preference name/value in ${language}> <color emoji> — <one short sentence, max ~12 words, name responsible ingredient(s)>"
+- NEVER output raw camelCase keys like "condPigmentation", "oilySkin", "skinType".
+  Always translate to human-readable ${language} text:
+  condPigmentation → "Uneven skin tone" / "Неровный тон кожи" / "Ungleichmäßiger Hautton"
+  Use the preference VALUE as the label, not the field key.
 - Use the user's preference value as the label (e.g. "Oily skin 🟢 — …", "Nut allergy 🔴 — …", "Humid climate 🟡 — …").
 - Default to 🟡 when evidence is weak or the effect depends on the person.
 - Use mild phrasing in explanations (may cause, can be, tends to) — no medical advice.
+- Each explanation must name the responsible ingredient(s) where possible.
 
 Rules: no medical advice, tie every bullet to a preference, do not invent ingredients.
 PRODUCT TYPE RELEVANCE — CRITICAL: For hair/scalp products (shampoo, conditioner, hair mask, hair oil, etc.) ONLY list hair-related preferences (hairType, scalpCondition, hairProblems) as bullets. Do NOT include skin conditions like enlarged pores, pigmentation, acne — they are irrelevant to hair products. For skincare products ONLY list skin-related preferences. Ignore hair preferences for face/body products.
