@@ -218,7 +218,7 @@ export const t = {
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Photo by Yuliia Parkina",
     tierAuthorIntro: "Hi. I'm Yuliia Parkina.",
-    tierAuthorReason: "I created GlowKey because I myself got tired of buying without looking.",
+    tierAuthorReason: "I created GlowKey because I myself got tired of buying without looking. Premium means I can keep improving it.",
     tierMalteserNote: "I'm a volunteer with Malteser Hilfsdienst. 3% of what you pay goes there.",
     tierChoose: "Choose your weekly amount:",
     tierBasic: "Basic",
@@ -234,6 +234,10 @@ export const t = {
     tierDonationGoes: "goes to Malteser Hilfsdienst every week.",
     tierPremiumDesc: "100 scans per day + Up to 10 AI questions per day + 100 'Pay Attention' analyses per day.",
     tierCancelEasy: "Cancel at any time in 2 taps.",
+    tierBenefitsLabel: "With Premium",
+    tierBenefit1: "100 scans per day",
+    tierBenefit2: "100 'Pay Attention' analyses per day",
+    tierBenefit3: "10 AI questions per day",
     tierSupportBtn: "Support",
   },
   ru: {
@@ -446,7 +450,7 @@ export const t = {
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Фото: Юлия Паркина",
     tierAuthorIntro: "Привет. Я Юлия Паркина.",
-    tierAuthorReason: "Я создала GlowKey, потому что сама устала покупать вслепую.",
+    tierAuthorReason: "Я создала GlowKey, потому что сама устала покупать вслепую. Premium позволяет мне продолжать его улучшать.",
     tierMalteserNote: "Я волонтёр в Malteser Hilfsdienst. 3% от вашей оплаты идёт туда.",
     tierChoose: "Выберите еженедельную сумму:",
     tierBasic: "Базовый",
@@ -462,6 +466,10 @@ export const t = {
     tierDonationGoes: "перечисляется Malteser Hilfsdienst каждую неделю.",
     tierPremiumDesc: "100 сканирований в день + до 10 вопросов к ИИ в день + 100 анализов «Обрати внимание» в день.",
     tierCancelEasy: "Отмена в любой момент за 2 касания.",
+    tierBenefitsLabel: "С Premium",
+    tierBenefit1: "100 сканирований в день",
+    tierBenefit2: "100 анализов «Обрати внимание» в день",
+    tierBenefit3: "10 вопросов к ИИ в день",
     tierSupportBtn: "Поддержать",
   },
   de: {
@@ -674,7 +682,7 @@ export const t = {
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Foto: Yuliia Parkina",
     tierAuthorIntro: "Hallo. Ich bin Yuliia Parkina.",
-    tierAuthorReason: "Ich habe GlowKey entwickelt, weil ich es selbst leid war, blind zu kaufen.",
+    tierAuthorReason: "Ich habe GlowKey entwickelt, weil ich es selbst leid war, blind zu kaufen. Premium ermöglicht mir, es weiter zu verbessern.",
     tierMalteserNote: "Ich bin ehrenamtlich beim Malteser Hilfsdienst tätig. 3% deines Beitrags gehen dorthin.",
     tierChoose: "Wähle deinen Wochenbeitrag:",
     tierBasic: "Basis",
@@ -690,6 +698,10 @@ export const t = {
     tierDonationGoes: "gehen wöchentlich an den Malteser Hilfsdienst.",
     tierPremiumDesc: "100 Scans pro Tag + bis zu 10 KI-Fragen pro Tag + 100 'Beachte'-Analysen pro Tag.",
     tierCancelEasy: "Jederzeit in 2 Taps kündbar.",
+    tierBenefitsLabel: "Mit Premium",
+    tierBenefit1: "100 Scans pro Tag",
+    tierBenefit2: "100 'Beachte'-Analysen pro Tag",
+    tierBenefit3: "10 KI-Fragen pro Tag",
     tierSupportBtn: "Unterstützen",
   },
   uk: {
@@ -902,7 +914,7 @@ export const t = {
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Фото: Юлія Паркіна",
     tierAuthorIntro: "Привіт. Я Юлія Паркіна.",
-    tierAuthorReason: "Я створила GlowKey, бо сама втомилася купувати наосліп.",
+    tierAuthorReason: "Я створила GlowKey, бо сама втомилася купувати наосліп. Premium дозволяє мені продовжувати його покращувати.",
     tierMalteserNote: "Я волонтерка у Malteser Hilfsdienst. 3% з твоєї оплати йдуть туди.",
     tierChoose: "Оберіть щотижневу суму:",
     tierBasic: "Базовий",
@@ -918,6 +930,10 @@ export const t = {
     tierDonationGoes: "щотижня йдуть до Malteser Hilfsdienst.",
     tierPremiumDesc: "100 сканувань на день + до 10 питань до ШІ на день + 100 аналізів «Зверни увагу» на день.",
     tierCancelEasy: "Скасування у будь-який момент за 2 дотики.",
+    tierBenefitsLabel: "З Premium",
+    tierBenefit1: "100 сканувань на день",
+    tierBenefit2: "100 аналізів «Зверни увагу» на день",
+    tierBenefit3: "10 питань до ШІ на день",
     tierSupportBtn: "Підтримати",
   },
   es: {
@@ -1130,7 +1146,7 @@ export const t = {
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Foto de Yuliia Parkina",
     tierAuthorIntro: "Hola. Soy Yuliia Parkina.",
-    tierAuthorReason: "Creé GlowKey porque yo misma me cansé de comprar sin mirar.",
+    tierAuthorReason: "Creé GlowKey porque yo misma me cansé de comprar sin mirar. Premium me permite seguir mejorándolo.",
     tierMalteserNote: "Soy voluntaria en Malteser Hilfsdienst. El 3% de lo que pagas va allí.",
     tierChoose: "Elige tu importe semanal:",
     tierBasic: "Básico",
@@ -1146,6 +1162,10 @@ export const t = {
     tierDonationGoes: "va a Malteser Hilfsdienst cada semana.",
     tierPremiumDesc: "100 escaneos por día + hasta 10 preguntas a la IA por día + 100 análisis 'Atención' por día.",
     tierCancelEasy: "Cancela en cualquier momento en 2 toques.",
+    tierBenefitsLabel: "Con Premium",
+    tierBenefit1: "100 escaneos por día",
+    tierBenefit2: "100 análisis 'Atención' por día",
+    tierBenefit3: "10 preguntas a la IA por día",
     tierSupportBtn: "Apoyar",
   },
   fr: {
@@ -1358,7 +1378,7 @@ export const t = {
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Photo de Yuliia Parkina",
     tierAuthorIntro: "Bonjour. Je suis Yuliia Parkina.",
-    tierAuthorReason: "J'ai créé GlowKey parce que j'en avais moi-même assez d'acheter sans regarder.",
+    tierAuthorReason: "J'ai créé GlowKey parce que j'en avais moi-même assez d'acheter sans regarder. Premium me permet de continuer à l'améliorer.",
     tierMalteserNote: "Je suis bénévole chez Malteser Hilfsdienst. 3% de ce que tu paies y est versé.",
     tierChoose: "Choisis ton montant hebdomadaire :",
     tierBasic: "Basique",
@@ -1374,6 +1394,10 @@ export const t = {
     tierDonationGoes: "va à Malteser Hilfsdienst chaque semaine.",
     tierPremiumDesc: "100 scans par jour + jusqu'à 10 questions à l'IA par jour + 100 analyses 'Attention' par jour.",
     tierCancelEasy: "Annule à tout moment en 2 taps.",
+    tierBenefitsLabel: "Avec Premium",
+    tierBenefit1: "100 scans par jour",
+    tierBenefit2: "100 analyses 'Attention' par jour",
+    tierBenefit3: "10 questions à l'IA par jour",
     tierSupportBtn: "Soutenir",
   },
   it: {
@@ -1586,7 +1610,7 @@ export const t = {
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Foto di Yuliia Parkina",
     tierAuthorIntro: "Ciao. Sono Yuliia Parkina.",
-    tierAuthorReason: "Ho creato GlowKey perché io stessa ero stanca di comprare senza guardare.",
+    tierAuthorReason: "Ho creato GlowKey perché io stessa ero stanca di comprare senza guardare. Premium mi permette di continuare a migliorarlo.",
     tierMalteserNote: "Sono volontaria al Malteser Hilfsdienst. Il 3% di ciò che paghi va lì.",
     tierChoose: "Scegli il tuo importo settimanale:",
     tierBasic: "Base",
@@ -1602,6 +1626,10 @@ export const t = {
     tierDonationGoes: "va a Malteser Hilfsdienst ogni settimana.",
     tierPremiumDesc: "100 scansioni al giorno + fino a 10 domande all'IA al giorno + 100 analisi 'Attenzione' al giorno.",
     tierCancelEasy: "Annulla in qualsiasi momento in 2 tocchi.",
+    tierBenefitsLabel: "Con Premium",
+    tierBenefit1: "100 scansioni al giorno",
+    tierBenefit2: "100 analisi 'Attenzione' al giorno",
+    tierBenefit3: "10 domande all'IA al giorno",
     tierSupportBtn: "Supporta",
   },
   tr: {
@@ -1814,7 +1842,7 @@ export const t = {
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Fotoğraf: Yuliia Parkina",
     tierAuthorIntro: "Merhaba. Ben Yuliia Parkina.",
-    tierAuthorReason: "GlowKey'i oluşturdum çünkü ben de bakmadan satın almaktan yorulmuştum.",
+    tierAuthorReason: "GlowKey'i oluşturdum çünkü ben de bakmadan satın almaktan yorulmuştum. Premium, onu geliştirmeye devam etmemi sağlıyor.",
     tierMalteserNote: "Malteser Hilfsdienst'te gönüllüyüm. Ödediğinizin %3'ü oraya gidiyor.",
     tierChoose: "Haftalık tutarınızı seçin:",
     tierBasic: "Temel",
@@ -1830,6 +1858,10 @@ export const t = {
     tierDonationGoes: "her hafta Malteser Hilfsdienst'e gider.",
     tierPremiumDesc: "Günde 100 tarama + günde en fazla 10 AI sorusu + günde 100 'Dikkat' analizi.",
     tierCancelEasy: "İstediğiniz zaman 2 dokunuşla iptal edin.",
+    tierBenefitsLabel: "Premium ile",
+    tierBenefit1: "Günde 100 tarama",
+    tierBenefit2: "Günde 100 'Dikkat' analizi",
+    tierBenefit3: "Günde 10 AI sorusu",
     tierSupportBtn: "Destekle",
   },
 };
