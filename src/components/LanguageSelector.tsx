@@ -10,7 +10,7 @@ const LANGS: { code: Language; flag: string; label: string }[] = [
 
 interface Props {
   currentLang: Language;
-  onSelect: (l: Language) => void;
+  onSelect: (l: Language) => void | Promise<void>;
   logo?: React.ReactNode;
 }
 
