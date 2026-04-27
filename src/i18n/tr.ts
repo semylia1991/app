@@ -233,7 +233,6 @@ const tr: Translations = {
     tierBenefit2: "Günde 100 'Dikkat' analizi",
     tierBenefit3: "Günde 10 AI sorusu",
     tierSupportBtn: "Destekle",
-  },
 };
 
 export default tr;
