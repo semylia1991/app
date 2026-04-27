@@ -424,19 +424,29 @@ const Q: Partial<Record<Language, Quote[]>> = {
 };
  
 const getQ = (l: Language) => { const list = Q[l] || Q['en']!; return list[Math.floor(Math.random() * list.length)]; };
-const DELAYS = [0, 3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000];
- 
-export function LoadingScreen({ isVisible, lang }: { isVisible: boolean; lang: Language }) {
+
+// Total number of loading steps — used by App.tsx to drive progress externally.
+export const LOADING_STEPS_COUNT = 9;
+
+// Step interval in ms: spread steps evenly across a ~20s "expected" window.
+// App.tsx advances steps on this cadence until the real response arrives,
+// then immediately closes the screen. No artificial minimum wait.
+export const LOADING_STEP_INTERVAL_MS = 2200;
+
+export function LoadingScreen({ isVisible, lang, currentStep }: {
+  isVisible: boolean;
+  lang: Language;
+  /** 0-based index of the currently active step, controlled by the parent */
+  currentStep: number;
+}) {
   const [quote, setQuote] = useState<Quote>(() => getQ(lang));
-  const [step, setStep] = useState(0);
   const T = t[lang];
   const steps = [T.loadingStep1, T.loadingStep2, T.loadingStep3, T.loadingStep4, T.loadingStep5, T.loadingStep6, T.loadingStep7, T.loadingStep8, T.loadingStep9];
- 
+
+  // Refresh quote only when the screen becomes visible or language changes.
   useEffect(() => {
-    if (!isVisible) { setStep(0); return; }
-    setQuote(getQ(lang)); setStep(0);
-    const timers = DELAYS.map((d, i) => setTimeout(() => setStep(i), d));
-    return () => timers.forEach(clearTimeout);
+    if (!isVisible) return;
+    setQuote(getQ(lang));
   }, [isVisible, lang]);
  
   return (
@@ -476,7 +486,7 @@ export function LoadingScreen({ isVisible, lang }: { isVisible: boolean; lang: L
           {/* Steps */}
           <div style={{ width: '100%', maxWidth: 280, background: '#FAF7F2', border: '0.5px solid #DDD5C8', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 9 }}>
             {steps.map((s, i) => {
-              const done = i < step, active = i === step;
+              const done = i < currentStep, active = i === currentStep;
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 18, height: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
