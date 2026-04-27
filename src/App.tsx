@@ -6,7 +6,7 @@ import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, 
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
-import { t, Language } from './i18n';
+import { t, Language, loadLanguage } from './i18n';
 import { analyzeProductImage, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile } from './services/ai';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -18,7 +18,7 @@ import { AlternativesSection } from './components/AlternativesSection';
 import { WhereToBuy } from './components/WhereToBuy';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { AskAI } from './components/AskAI';
-import { LoadingScreen, LOADING_STEPS_COUNT, LOADING_STEP_INTERVAL_MS } from './components/LoadingScreen';
+import { LoadingScreen } from './components/LoadingScreen';
 import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
 import { CompareSection } from './components/CompareSection';
@@ -161,6 +161,8 @@ function buildShopLinks(productName: string, brand: string): ShopLink[] {
 export default function App() {
   const SUPPORTED_LANGS: Language[] = ['en', 'ru', 'de', 'uk', 'es', 'fr', 'it', 'tr'];
 
+  // Language detection is now also handled inside i18n/index.ts (for the
+  // initial eager load). Keep it here too so useState gets the right value.
   function getInitialLang(): Language {
     const saved = localStorage.getItem('lang') as Language | null;
     if (saved && SUPPORTED_LANGS.includes(saved)) return saved;
@@ -170,8 +172,11 @@ export default function App() {
 
   const [lang, setLangState] = useState<Language>(getInitialLang);
 
-  function setLang(l: Language) {
+  // Async: ensure the locale chunk is loaded before flipping state so that
+  // t[lang] is never undefined when components re-render.
+  async function setLang(l: Language) {
     localStorage.setItem('lang', l);
+    await loadLanguage(l);
     setLangState(l);
   }
   const [file, setFile]               = useState<File | null>(null);
@@ -180,7 +185,6 @@ export default function App() {
   const [scanPhotoUrl, setScanPhotoUrl] = useState<string | null>(null);
   const [consent, setConsent]         = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
   const [isTranslating, setIsTranslating] = useState(false);
   const [result, setResult]           = useState<AnalysisResult | null>(null);
   const [error, setError]             = useState<string | null>(null);
@@ -312,20 +316,8 @@ export default function App() {
     if (!previewUrl || !consent) return;
     if (!subscription.canScan) { setPaywallReason('scans'); return; }
     setIsAnalyzing(true);
-    setLoadingStep(0);
     setError(null);
     posthog.capture('scan_started', { lang });
-
-    // Advance the loading step indicator on a regular cadence.
-    // Capped at LOADING_STEPS_COUNT - 2 so the final "Completing…" step
-    // only fires when the real response arrives — no artificial minimum wait.
-    const stepTimer = setInterval(() => {
-      setLoadingStep(prev => {
-        const next = prev + 1;
-        return next < LOADING_STEPS_COUNT - 1 ? next : prev;
-      });
-    }, LOADING_STEP_INTERVAL_MS);
-
     try {
       const match = previewUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
       if (!match) throw new Error('Invalid image format');
@@ -346,14 +338,7 @@ export default function App() {
             };
           })()
         : undefined;
-
       const analysis = await analyzeProductImage(previewUrl, mimeType, lang, serializedProfile);
-
-      // Response received — jump to the final step so the user sees
-      // "Completing analysis…" check, then close the screen immediately.
-      clearInterval(stepTimer);
-      setLoadingStep(LOADING_STEPS_COUNT - 1);
-
       const analysisWithShops: AnalysisResult = {
         ...analysis,
         shopLinks: buildShopLinks(analysis.productName, analysis.brand),
@@ -372,7 +357,6 @@ export default function App() {
       if (totalScans % 5 === 0) setTimeout(() => setIsSurveyOpen(true), 1500);
       posthog.capture('scan_completed', { product_name: analysis.productName, brand: analysis.brand, lang });
     } catch (err) {
-      clearInterval(stepTimer);
       console.error('[handleAnalyze] error:', err);
       const message = err instanceof Error ? err.message : String(err);
       setError(`${t[lang].error}${message ? ` — ${message}` : ''}`);
@@ -380,7 +364,6 @@ export default function App() {
     } finally {
       setScanHistoryKey(k => k + 1);
       setIsAnalyzing(false);
-      setLoadingStep(0);
     }
   };
 
@@ -482,7 +465,7 @@ export default function App() {
                     const sourceLang = (scanLang ?? lang) as Language;
                     translationCache.current = new Map([[sourceLang, r]]);
                     setResult(r);
-                    if (scanLang && scanLang !== lang) setLang(scanLang as Language);
+                    if (scanLang && scanLang !== lang) void setLang(scanLang as Language);
                   }}
                 />
                 <UserProfilePanel
@@ -895,7 +878,7 @@ export default function App() {
       </footer>
 
       {/* ── MODALS & OVERLAYS ── */}
-      <LoadingScreen isVisible={isAnalyzing} lang={lang} currentStep={loadingStep} />
+      <LoadingScreen isVisible={isAnalyzing} lang={lang} />
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
 
       <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent />} />
