@@ -4,6 +4,7 @@
  */
 
 import { GoogleGenAI, Type } from "@google/genai";
+import { INGREDIENTS_DB } from "./ingredients-db";
 
 // ── Available models (updated April 2026) ─────────────────────────────────────
 const MODELS = [
@@ -86,6 +87,27 @@ For each ingredient in the "ingredients" array you MUST always provide a "descri
 - Explain what the ingredient IS and what it DOES in this product (function, mechanism)
 - Note any safety concerns, common reactions, or special properties
 - Be 1–7 words. Never leave it empty.
+
+⚡ TOKEN-SAVING RULE — VERY IMPORTANT:
+The server has a local database of well-known INCI ingredients with pre-written
+descriptions and safety statuses. After your response, the server will AUTOMATICALLY
+overwrite the "description" and "status" of any ingredient that exists in this
+local database. So:
+
+  • If the ingredient name (lowercased, trimmed) matches a key in the local DB
+    → you may output description: "-" (just a dash) and status: "🟢" as a placeholder.
+       The server will replace both with the canonical values.
+  • If the ingredient is NOT in the local DB → you MUST give a real description
+    (1–7 words) and a real status. Be accurate, this is final.
+
+You do not have the DB list — guess based on commonness. Big well-known INCI like
+"glycerin", "niacinamide", "phenoxyethanol", "tocopherol", "sodium hyaluronate",
+"retinol", "ascorbic acid", common plant oils and extracts, parabens, sulfates,
+silicones, common preservatives and UV filters — all of these are likely in the DB.
+Rare/exotic/proprietary trademark names are likely NOT in the DB.
+
+When in doubt, give a real description — false placeholders cause errors but real
+descriptions never do.
 
 Provide the ENTIRE analysis in ${language}. Every single field — analysis, usage, benefits, sideEffects, warnings, interactions, shelfLife — MUST be written in ${language}. Do NOT use English for any field unless ${language} is English.
 
@@ -269,6 +291,59 @@ Answer in ${language}.
 `.trim();
 }
 
+// ── Local DB enrichment ───────────────────────────────────────────────────────
+/**
+ * Post-process Gemini's JSON response: for every ingredient that exists in our
+ * local INGREDIENTS_DB, replace the AI-generated description and status with the
+ * canonical values from the DB. This is what makes ~80% of every analysis
+ * deterministic and saves output tokens (AI is allowed to output "-" for known
+ * ingredients in the prompt).
+ *
+ * Receives a raw JSON string (Gemini's responseMimeType is application/json,
+ * so it should always be valid JSON), returns a string with the same shape.
+ * If parsing fails for any reason, the original string is returned untouched —
+ * we never want enrichment to break the response.
+ */
+function applyLocalDbEnrichment(rawJson: string): string {
+  if (!rawJson) return rawJson;
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch {
+    return rawJson; // not JSON — let downstream handle it
+  }
+
+  if (!parsed || !Array.isArray(parsed.ingredients)) return rawJson;
+
+  let knownCount = 0;
+  parsed.ingredients = parsed.ingredients.map((ing: any) => {
+    if (!ing || typeof ing.name !== "string") return ing;
+    const key = ing.name.toLowerCase().trim();
+    const local = INGREDIENTS_DB[key];
+    if (!local) return ing; // unknown — keep AI result as-is
+
+    knownCount++;
+    return {
+      name: ing.name,
+      // Local DB is canonical for known INCI: its status takes precedence
+      // (unlike enrichIngredients which trusts AI downgrades — for the analyze
+      // endpoint we want full determinism for the regulator-aligned DB)
+      status: local.status,
+      description: local.description,
+    };
+  });
+
+  // Optional: log savings for debugging
+  if (typeof console !== "undefined" && knownCount > 0) {
+    console.log(
+      `[ingredients-db] Enriched ${knownCount} of ${parsed.ingredients.length} ingredients from local DB`,
+    );
+  }
+
+  return JSON.stringify(parsed);
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 
@@ -355,7 +430,12 @@ export async function handleGeminiRequest(
       },
     });
 
-    return { status: 200, rawText: response.text ?? "" };
+    // ── Local DB enrichment ───────────────────────────────────────────────────
+    // Override AI descriptions/statuses for ingredients known in our local DB.
+    // This guarantees deterministic results for ~1000 well-known INCI and lets
+    // the AI focus its tokens on truly unknown ingredients.
+    const enrichedText = applyLocalDbEnrichment(response.text ?? "");
+    return { status: 200, rawText: enrichedText };
   }
 
   // ── Translate ───────────────────────────────────────────────────────────────
