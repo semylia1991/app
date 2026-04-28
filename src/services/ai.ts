@@ -1,6 +1,8 @@
 // All Gemini calls go through the Netlify Function /api/gemini.
 // The API key is NEVER sent to the browser.
 
+import { getCachedAnalysis, saveToCache } from './productCache';
+
 const FUNCTION_URL = "/api/gemini";
 
 export interface Ingredient {
@@ -101,6 +103,47 @@ const LANGUAGE_NAMES: Record<string, string> = {
   tr: "Turkish",
 };
 
+// ── Lightweight identify (только имя+бренд для проверки кэша) ──────────────
+async function identifyProduct(
+  base64Image: string,
+  mimeType: string,
+): Promise<{ productName: string; brand: string }> {
+  return callFunction<{ productName: string; brand: string }>({
+    action: "identify",
+    base64Image,
+    mimeType,
+  });
+}
+
+// ── Полный анализ через ИИ (как было) ──────────────────────────────────────
+async function analyzeProductImageRaw(
+  base64Image: string,
+  mimeType: string,
+  language: string,
+  userProfile?: SerializedProfile,
+): Promise<AnalysisResult> {
+  return callFunction<AnalysisResult>({
+    action: "analyze",
+    base64Image,
+    mimeType,
+    language: LANGUAGE_NAMES[language] || "English",
+    ...(userProfile && Object.values(userProfile).some(Boolean) ? { userProfile } : {}),
+  });
+}
+
+/**
+ * ГЛАВНАЯ функция, которую вызывает App.tsx.
+ *
+ * Поток:
+ *   1. Сжимаем картинку
+ *   2. identify — лёгкий запрос (~200 токенов): достаём productName + brand
+ *   3. Ищем в product_cache. Если есть — возвращаем мгновенно.
+ *   4. Если нет — полный analyze, сохраняем в кэш.
+ *   5. personalNote генерится отдельно (если был userProfile).
+ *
+ * Сигнатура и тип возврата идентичны старой analyzeProductImage,
+ * так что App.tsx не нужно переписывать.
+ */
 export async function analyzeProductImage(
   base64Image: string,
   mimeType: string,
@@ -108,14 +151,53 @@ export async function analyzeProductImage(
   userProfile?: SerializedProfile,
 ): Promise<AnalysisResult> {
   const compressed = await compressImage(base64Image);
-  return callFunction<AnalysisResult>({
-    action: "analyze",
-    base64Image: compressed.data,
-    mimeType: compressed.mimeType,
-    language: LANGUAGE_NAMES[language] || "English",
-    // Only send userProfile if it has at least one non-empty field
-    ...(userProfile && Object.values(userProfile).some(Boolean) ? { userProfile } : {}),
-  });
+
+  // 1. Лёгкое распознавание для ключа кэша
+  let identification: { productName: string; brand: string } | null = null;
+  try {
+    identification = await identifyProduct(compressed.data, compressed.mimeType);
+  } catch (e) {
+    console.warn('[ai] identify failed, will fallback to full analyze:', e);
+  }
+
+  // 2. Поиск в кэше (только если identify прошёл и оба поля непустые)
+  if (identification?.productName && identification?.brand) {
+    const cached = await getCachedAnalysis(
+      identification.productName,
+      identification.brand,
+      language,
+    );
+    if (cached) {
+      // Кэш-хит! Если нужен personalNote — генерим его отдельным вызовом.
+      if (userProfile && Object.values(userProfile).some(Boolean)) {
+        try {
+          const note = await generatePersonalNote(cached, userProfile, language);
+          return { ...cached, personalNote: note };
+        } catch (e) {
+          console.warn('[ai] personalNote failed for cached result:', e);
+          return cached;
+        }
+      }
+      return cached;
+    }
+  }
+
+  // 3. Кэш-промах — делаем полный анализ
+  const fresh = await analyzeProductImageRaw(
+    compressed.data,
+    compressed.mimeType,
+    language,
+    userProfile,
+  );
+
+  // 4. Сохраняем в кэш (fire-and-forget — не задерживаем UI)
+  if (fresh.productName && fresh.brand) {
+    saveToCache(fresh.productName, fresh.brand, language, fresh).catch((e) =>
+      console.warn('[ai] cache save failed:', e),
+    );
+  }
+
+  return fresh;
 }
 
 export async function translateAnalysisResult(
