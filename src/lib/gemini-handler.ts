@@ -4,7 +4,7 @@
  */
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { INGREDIENTS_DB } from "./ingredients-db";
+import { INGREDIENTS_DB } from "./ingredients-db.js";
 
 // ── Available models (updated April 2026) ─────────────────────────────────────
 const MODELS = [
@@ -397,6 +397,46 @@ export async function handleGeminiRequest(
     }
     const response = await generateWithRetry(ai, { contents: [{ parts: [{ text: message }] }] });
     return { status: 200, body: { response: response.text } };
+  }
+
+  // ── Identify (lightweight: only productName + brand for cache lookup) ──────
+  // Используется клиентом перед полным analyze, чтобы проверить product_cache.
+  // Стоит ~200 токенов вместо ~3000, поэтому даже если кэш-промах — потеря
+  // маленькая. При попадании в кэш — экономия огромная.
+  if (action === "identify") {
+    const { base64Image, mimeType } = body as {
+      base64Image?: string;
+      mimeType?: string;
+    };
+    if (!base64Image || !mimeType) {
+      return { status: 400, body: { error: "base64Image and mimeType are required." } };
+    }
+    const imageData = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
+
+    const response = await generateWithRetry(ai, {
+      contents: [{
+        parts: [
+          { text: `Look at this cosmetic product photo and extract ONLY the product name and the brand name.
+Return strict JSON with exactly two fields: "productName" and "brand".
+If you cannot read either, return an empty string for that field.
+Do not analyze ingredients. Do not write descriptions. Just identify.` },
+          { inlineData: { data: imageData, mimeType } },
+        ],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            productName: { type: Type.STRING },
+            brand:       { type: Type.STRING },
+          },
+          required: ["productName", "brand"],
+        },
+        temperature: 0.1,
+      },
+    });
+    return { status: 200, rawText: response.text ?? "" };
   }
 
   // ── Analyze product image ───────────────────────────────────────────────────
