@@ -213,7 +213,7 @@ const uk: Translations = {
     tierPhotoCredit: "Фото: Юлія Паркіна",
     tierAuthorIntro: "Привіт. Я Юлія Паркіна.",
     tierAuthorReason: "Я створила GlowKI, бо сама втомилася купувати наосліп. Premium дозволяє мені продовжувати його покращувати.",
-    tierMalteserNote: "Я волонтерка у Malteser Hilfsdienst. 3% з твоєї оплати йдуть туди.",
+    tierMalteserNote: "Я волонтерка у Malteser Hilfsdienst. 3% з твоєї оплати йдуть на благодійність — в цьому місяці ти допоможеш Malteser Hilfsdienst.",
     tierChoose: "Оберіть щотижневу суму:",
     tierBasic: "Базовий",
     tierWithYou: "Я з тобою",
