@@ -3,9 +3,9 @@
 import type { Translations } from './types';
 
 const tr: Translations = {
-    title: "GlowKey AI",
+    title: "GlowKI",
     subtitle: "Parlamanın anahtarını bul!",
-    description: "İçerik listesinin fotoğrafını çek — GlowKey AI saniyeler içinde hangi içeriklerin tercihlerine uygun olduğunu gösterir. Senin için.",
+    description: "İçerik listesinin fotoğrafını çek — GlowKI saniyeler içinde hangi içeriklerin tercihlerine uygun olduğunu gösterir. Senin için.",
     uploadPhoto: "Fotoğraf yükle",
     takePhoto: "Fotoğraf çek",
     chooseFromGallery: "Galeriden seç",
@@ -207,12 +207,12 @@ const tr: Translations = {
     subCancelLaw: "§312k BGB uyarınca aboneliğinizi burada iptal edebilirsiniz:",
     subCancelBtn: "Aboneliği iptal et",
     subUpgradeBtn: "Premium'a geç — Senin fiyatın",
-    subPaymentNote: "Ödeme verileri yalnızca Stripe'ta saklanır. GlowKey AI kart verilerinize erişemez.",
+    subPaymentNote: "Ödeme verileri yalnızca Stripe'ta saklanır. GlowKI kart verilerinize erişemez.",
 
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Fotoğraf: Yuliia Parkina",
     tierAuthorIntro: "Merhaba. Ben Yuliia Parkina.",
-    tierAuthorReason: "GlowKey AI'ı oluşturdum çünkü ben de bakmadan satın almaktan yorulmuştum. Premium, onu geliştirmeye devam etmemi sağlıyor.",
+    tierAuthorReason: "GlowKI'ı oluşturdum çünkü ben de bakmadan satın almaktan yorulmuştum. Premium, onu geliştirmeye devam etmemi sağlıyor.",
     tierMalteserNote: "Malteser Hilfsdienst'te gönüllüyüm. Ödediğinizin %3'ü oraya gidiyor.",
     tierChoose: "Haftalık tutarınızı seçin:",
     tierBasic: "Temel",
