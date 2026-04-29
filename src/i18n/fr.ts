@@ -213,7 +213,7 @@ const fr: Translations = {
     tierPhotoCredit: "Photo de Yuliia Parkina",
     tierAuthorIntro: "Bonjour. Je suis Yuliia Parkina.",
     tierAuthorReason: "J'ai créé GlowKI parce que j'en avais moi-même assez d'acheter sans regarder. Premium me permet de continuer à l'améliorer.",
-    tierMalteserNote: "Je suis bénévole chez Malteser Hilfsdienst. 3% de ce que tu paies y est versé.",
+    tierMalteserNote: "Je suis bénévole chez Malteser Hilfsdienst. 3% de ton paiement vont à la charité — ce mois-ci tu aides Malteser Hilfsdienst.",
     tierChoose: "Choisis ton montant hebdomadaire :",
     tierBasic: "Basique",
     tierWithYou: "Je suis avec toi",
