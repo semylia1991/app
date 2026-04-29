@@ -3,9 +3,9 @@
 import type { Translations } from './types';
 
 const fr: Translations = {
-    title: "GlowKey AI",
+    title: "GlowKI",
     subtitle: "Trouvez votre clé pour rayonner !",
-    description: "Photographie la liste des ingrédients : GlowKey AI te montrera en quelques secondes quels ingrédients correspondent à tes préférences. Pour toi.",
+    description: "Photographie la liste des ingrédients : GlowKI te montrera en quelques secondes quels ingrédients correspondent à tes préférences. Pour toi.",
     uploadPhoto: "Télécharger une photo",
     takePhoto: "Prendre une photo",
     chooseFromGallery: "Choisir dans la galerie",
@@ -207,12 +207,12 @@ const fr: Translations = {
     subCancelLaw: "Conformément au §312k BGB, vous pouvez résilier votre abonnement ici :",
     subCancelBtn: "Résilier l'abonnement",
     subUpgradeBtn: "Passer à Premium — Ton prix",
-    subPaymentNote: "Les données de paiement sont stockées uniquement chez Stripe. GlowKey AI n'a pas accès aux données de votre carte.",
+    subPaymentNote: "Les données de paiement sont stockées uniquement chez Stripe. GlowKI n'a pas accès aux données de votre carte.",
 
     // Tier picker (Premium unlocks)
     tierPhotoCredit: "Photo de Yuliia Parkina",
     tierAuthorIntro: "Bonjour. Je suis Yuliia Parkina.",
-    tierAuthorReason: "J'ai créé GlowKey AI parce que j'en avais moi-même assez d'acheter sans regarder. Premium me permet de continuer à l'améliorer.",
+    tierAuthorReason: "J'ai créé GlowKI parce que j'en avais moi-même assez d'acheter sans regarder. Premium me permet de continuer à l'améliorer.",
     tierMalteserNote: "Je suis bénévole chez Malteser Hilfsdienst. 3% de ce que tu paies y est versé.",
     tierChoose: "Choisis ton montant hebdomadaire :",
     tierBasic: "Basique",
