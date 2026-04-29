@@ -76,7 +76,7 @@ export function PrivacyPolicyContent() {
       </p>
       <p>
         <strong>Yuliia Parkina</strong><br/>
-        GlowKey AI<br/>
+        GlowKI<br/>
         Wagenburgstrasse 79<br/>
         70184 Stuttgart<br/>
         Deutschland<br/>
@@ -260,12 +260,12 @@ export function AGBContent() {
 
       <h4>1. Anbieter und Geltungsbereich</h4>
       <p>
-        Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung des Dienstes <strong>GlowKey AI</strong>,
+        Diese Allgemeinen Geschäftsbedingungen gelten für die Nutzung des Dienstes <strong>GlowKI</strong>,
         betrieben von:
       </p>
       <p>
         <strong>Yuliia Parkina</strong><br/>
-        GlowKey AI<br/>
+        GlowKI<br/>
         Wagenburgstrasse 79<br/>
         70184 Stuttgart<br/>
         Deutschland<br/>
@@ -274,7 +274,7 @@ export function AGBContent() {
 
       <h4>2. Leistungsbeschreibung</h4>
       <p>
-        GlowKey AI ist eine webbasierte Anwendung zur KI-gestützten Analyse von Kosmetikinhaltsstoffen (INCI).
+        GlowKI ist eine webbasierte Anwendung zur KI-gestützten Analyse von Kosmetikinhaltsstoffen (INCI).
         Der Dienst wird in einer kostenlosen Basisversion sowie einer kostenpflichtigen Premium-Version angeboten.
       </p>
       <p>
@@ -294,7 +294,7 @@ export function AGBContent() {
       <h4>3. Vertragsschluss und Premium-Abonnement</h4>
       <p>
         Durch Klick auf „Auf Premium upgraden" und Abschluss des Zahlungsvorgangs über Stripe
-        kommt ein Abonnementvertrag zwischen Ihnen und Yuliia Parkina (GlowKey AI) zustande.
+        kommt ein Abonnementvertrag zwischen Ihnen und Yuliia Parkina (GlowKI) zustande.
         Der Vertrag wird in deutscher oder englischer Sprache geschlossen.
       </p>
       <p>
@@ -315,7 +315,7 @@ export function AGBContent() {
         Um Ihr Widerrufsrecht auszuüben, müssen Sie uns:
       </p>
       <p>
-        <strong>Yuliia Parkina, GlowKey AI</strong><br/>
+        <strong>Yuliia Parkina, GlowKI</strong><br/>
         Wagenburgstrasse 79, 70184 Stuttgart<br/>
         E-Mail: <a href="mailto:yuliia.parkina@gmail.com" className="text-[#B89F7A] hover:underline">yuliia.parkina@gmail.com</a>
       </p>
@@ -351,7 +351,7 @@ export function AGBContent() {
         für eine ununterbrochene Erreichbarkeit. Wartungsarbeiten und technische Störungen sind möglich.
       </p>
       <p>
-        Die Haftung von GlowKey AI ist auf Vorsatz und grobe Fahrlässigkeit beschränkt, soweit keine
+        Die Haftung von GlowKI ist auf Vorsatz und grobe Fahrlässigkeit beschränkt, soweit keine
         Verletzung wesentlicher Vertragspflichten vorliegt. Für die Richtigkeit, Vollständigkeit
         und Aktualität der KI-generierten Analyseergebnisse wird keine Gewähr übernommen.
       </p>
@@ -387,7 +387,7 @@ export function ImpressumContent() {
       <p><strong>Angaben gemäß § 5 DDG:</strong></p>
       <p>
         Yuliia Parkina<br/>
-        GlowKey AI<br/>
+        GlowKI<br/>
         Wagenburgstrasse 79<br/>
         70184 Stuttgart<br/>
         Deutschland
