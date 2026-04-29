@@ -20,7 +20,7 @@ const COPY: Record<Language, {
   en: {
     tag: 'First scan done.',
     name: "I'm Yuliia.",
-    line1: 'I built GlowKey AI because I myself got tired of buying without looking.',
+    line1: 'I built GlowKI because I myself got tired of buying without looking.',
     malteser: "I also volunteer at Malteser Hilfsdienst — when you go Premium, 3% goes where I help.",
     closing: "Glad you're here.",
     reason: '',
@@ -29,7 +29,7 @@ const COPY: Record<Language, {
   de: {
     tag: 'Erster Scan fertig.',
     name: 'Ich bin Yuliia.',
-    line1: 'Ich habe GlowKey AI entwickelt, weil ich es selbst leid war, blind zu kaufen.',
+    line1: 'Ich habe GlowKI entwickelt, weil ich es selbst leid war, blind zu kaufen.',
     malteser: 'Ich bin auch ehrenamtlich beim Malteser Hilfsdienst — wenn du Premium wählst, gehen 3% dorthin, wo ich helfe.',
     closing: 'Schön, dass du da bist.',
     reason: '',
@@ -38,7 +38,7 @@ const COPY: Record<Language, {
   ru: {
     tag: 'Первый скан готов.',
     name: 'Я Yuliia.',
-    line1: 'Я сделала GlowKey AI потому что сама устала покупать не глядя.',
+    line1: 'Я сделала GlowKI потому что сама устала покупать не глядя.',
     malteser: 'Ещё я волонтёрю в Malteser Hilfsdienst — когда перейдёшь на платный план, 3% пойдут туда, где я помогаю.',
     closing: 'Рада, что ты здесь.',
     reason: '',
@@ -47,7 +47,7 @@ const COPY: Record<Language, {
   uk: {
     tag: 'Перший скан готовий.',
     name: 'Я Yuliia.',
-    line1: 'Я створила GlowKey AI, бо сама втомилася купувати наосліп.',
+    line1: 'Я створила GlowKI, бо сама втомилася купувати наосліп.',
     malteser: 'Ще я волонтерю у Malteser Hilfsdienst — коли перейдеш на платний план, 3% підуть туди, де я допомагаю.',
     closing: 'Рада, що ти тут.',
     reason: '',
@@ -56,7 +56,7 @@ const COPY: Record<Language, {
   es: {
     tag: 'Primer escaneo listo.',
     name: 'Soy Yuliia.',
-    line1: 'Creé GlowKey AI porque yo misma me cansé de comprar sin mirar.',
+    line1: 'Creé GlowKI porque yo misma me cansé de comprar sin mirar.',
     malteser: 'También soy voluntaria en Malteser Hilfsdienst — cuando elijas Premium, el 3% irá donde yo ayudo.',
     closing: 'Me alegra que estés aquí.',
     reason: '',
@@ -65,7 +65,7 @@ const COPY: Record<Language, {
   fr: {
     tag: 'Premier scan terminé.',
     name: 'Je suis Yuliia.',
-    line1: "J'ai créé GlowKey AI parce que j'en avais assez d'acheter sans regarder.",
+    line1: "J'ai créé GlowKI parce que j'en avais assez d'acheter sans regarder.",
     malteser: "Je suis aussi bénévole chez Malteser Hilfsdienst — quand tu passes en Premium, 3% vont là où j'aide.",
     closing: 'Ravie que tu sois là.',
     reason: '',
@@ -74,7 +74,7 @@ const COPY: Record<Language, {
   it: {
     tag: 'Prima scansione pronta.',
     name: 'Sono Yuliia.',
-    line1: 'Ho creato GlowKey AI perché ero stanca di comprare senza guardare.',
+    line1: 'Ho creato GlowKI perché ero stanca di comprare senza guardare.',
     malteser: 'Sono anche volontaria al Malteser Hilfsdienst — quando scegli Premium, il 3% va dove aiuto.',
     closing: 'Felice che tu sia qui.',
     reason: '',
@@ -83,7 +83,7 @@ const COPY: Record<Language, {
   tr: {
     tag: 'İlk tarama hazır.',
     name: 'Ben Yuliia.',
-    line1: "GlowKey AI'ı yarattım çünkü ben de bakmadan satın almaktan yorulmuştum.",
+    line1: "GlowKI'ı yarattım çünkü ben de bakmadan satın almaktan yorulmuştum.",
     malteser: "Aynı zamanda Malteser Hilfsdienst'te gönüllüyüm — Premium'a geçtiğinde, %3 yardım ettiğim yere gidecek.",
     closing: 'Burada olduğun için mutluyum.',
     reason: '',
