@@ -1,7 +1,7 @@
 // All Gemini calls go through the Netlify Function /api/gemini.
 // The API key is NEVER sent to the browser.
 
-import { getCachedAnalysis, saveToCache } from './productCache';
+import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage } from './productCache';
 
 const FUNCTION_URL = "/api/gemini";
 
@@ -103,7 +103,6 @@ const LANGUAGE_NAMES: Record<string, string> = {
   tr: "Turkish",
 };
 
-// ── Lightweight identify (только имя+бренд для проверки кэша) ──────────────
 async function identifyProduct(
   base64Image: string,
   mimeType: string,
@@ -115,7 +114,6 @@ async function identifyProduct(
   });
 }
 
-// ── Полный анализ через ИИ (как было) ──────────────────────────────────────
 async function analyzeProductImageRaw(
   base64Image: string,
   mimeType: string,
@@ -132,17 +130,20 @@ async function analyzeProductImageRaw(
 }
 
 /**
- * ГЛАВНАЯ функция, которую вызывает App.tsx.
+ * ГЛАВНАЯ функция — трёхуровневый кэш + параллельные запросы.
  *
- * Поток:
- *   1. Сжимаем картинку
- *   2. identify — лёгкий запрос (~200 токенов): достаём productName + brand
- *   3. Ищем в product_cache. Если есть — возвращаем мгновенно.
- *   4. Если нет — полный analyze, сохраняем в кэш.
- *   5. personalNote генерится отдельно (если был userProfile).
+ * Уровень 0 — image_hash (~0.1s, без Gemini):
+ *   SHA-256 сжатого фото → SELECT по индексу → мгновенный возврат.
+ *   Работает если тот же снимок уже сканировали.
  *
- * Сигнатура и тип возврата идентичны старой analyzeProductImage,
- * так что App.tsx не нужно переписывать.
+ * Уровень 1 — identify + analyze параллельно:
+ *   Если хэш не совпал — запускаем identify и analyze одновременно.
+ *   Как только identify готов — проверяем кэш по имени продукта.
+ *   Кэш-хит  → возвращаем сразу, analyze игнорируем.
+ *   Кэш-промах → ждём analyze (он уже почти готов).
+ *
+ * Уровень 2 — полный analyze (кэш-промах):
+ *   Сохраняем с image_hash — следующий скан того же фото будет уровнем 0.
  */
 export async function analyzeProductImage(
   base64Image: string,
@@ -152,15 +153,41 @@ export async function analyzeProductImage(
 ): Promise<AnalysisResult> {
   const compressed = await compressImage(base64Image);
 
-  // 1. Лёгкое распознавание для ключа кэша
-  let identification: { productName: string; brand: string } | null = null;
-  try {
-    identification = await identifyProduct(compressed.data, compressed.mimeType);
-  } catch (e) {
-    console.warn('[ai] identify failed, will fallback to full analyze:', e);
+  // ── Уровень 0: поиск по image_hash ────────────────────────────────────────
+  const imageHash = await hashImage(compressed.data);
+
+  if (imageHash) {
+    const hashCached = await getCachedByHash(imageHash, language);
+    if (hashCached) {
+      if (userProfile && Object.values(userProfile).some(Boolean)) {
+        try {
+          const note = await generatePersonalNote(hashCached, userProfile, language);
+          return { ...hashCached, personalNote: note };
+        } catch (e) {
+          console.warn('[ai] personalNote failed (hash hit):', e);
+          return hashCached;
+        }
+      }
+      return hashCached;
+    }
   }
 
-  // 2. Поиск в кэше (только если identify прошёл и оба поля непустые)
+  // ── Уровень 1: identify + analyze параллельно ──────────────────────────────
+  const identifyPromise = identifyProduct(compressed.data, compressed.mimeType).catch((e) => {
+    console.warn('[ai] identify failed:', e);
+    return null;
+  });
+
+  const analyzePromise = analyzeProductImageRaw(
+    compressed.data,
+    compressed.mimeType,
+    language,
+    userProfile,
+  );
+
+  // Ждём identify — он быстрее (~1.5s vs ~4s)
+  const identification = await identifyPromise;
+
   if (identification?.productName && identification?.brand) {
     const cached = await getCachedAnalysis(
       identification.productName,
@@ -168,13 +195,16 @@ export async function analyzeProductImage(
       language,
     );
     if (cached) {
-      // Кэш-хит! Если нужен personalNote — генерим его отдельным вызовом.
+      // Кэш-хит по имени — попутно привязываем image_hash к записи
+      if (imageHash) {
+        saveToCache(cached.productName, cached.brand, language, cached, imageHash).catch(() => {});
+      }
       if (userProfile && Object.values(userProfile).some(Boolean)) {
         try {
           const note = await generatePersonalNote(cached, userProfile, language);
           return { ...cached, personalNote: note };
         } catch (e) {
-          console.warn('[ai] personalNote failed for cached result:', e);
+          console.warn('[ai] personalNote failed (name hit):', e);
           return cached;
         }
       }
@@ -182,17 +212,11 @@ export async function analyzeProductImage(
     }
   }
 
-  // 3. Кэш-промах — делаем полный анализ
-  const fresh = await analyzeProductImageRaw(
-    compressed.data,
-    compressed.mimeType,
-    language,
-    userProfile,
-  );
+  // ── Уровень 2: кэш-промах — ждём analyze ──────────────────────────────────
+  const fresh = await analyzePromise;
 
-  // 4. Сохраняем в кэш (fire-and-forget — не задерживаем UI)
   if (fresh.productName && fresh.brand) {
-    saveToCache(fresh.productName, fresh.brand, language, fresh).catch((e) =>
+    saveToCache(fresh.productName, fresh.brand, language, fresh, imageHash).catch((e) =>
       console.warn('[ai] cache save failed:', e),
     );
   }
