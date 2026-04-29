@@ -220,7 +220,7 @@ const en: Translations = {
     tierPhotoCredit: "Photo by Yuliia Parkina",
     tierAuthorIntro: "Hi. I'm Yuliia Parkina.",
     tierAuthorReason: "I created GlowKI because I myself got tired of buying without looking. Premium means I can keep improving it.",
-    tierMalteserNote: "I'm a volunteer with Malteser Hilfsdienst. 3% of what you pay goes there.",
+    tierMalteserNote: "I'm a volunteer with Malteser Hilfsdienst. 3% of your payment goes to charity — this month you're helping Malteser Hilfsdienst.",
     tierChoose: "Choose your weekly amount:",
     tierBasic: "Basic",
     tierWithYou: "I'm with you",
