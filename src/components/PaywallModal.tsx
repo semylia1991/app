@@ -14,24 +14,24 @@ interface Props {
 
 const REASONS: Record<string, Record<string, string>> = {
   scans: {
-    en: "You've used all 15 free scans for today.",
-    ru: "Вы использовали все 15 бесплатных сканирований на сегодня.",
-    de: "Sie haben alle 15 kostenlosen Scans für heute verwendet.",
-    uk: "Ви використали всі 15 безкоштовних сканувань на сьогодні.",
-    es: "Has usado los 15 escaneos gratuitos de hoy.",
-    fr: "Vous avez utilisé les 15 scans gratuits d'aujourd'hui.",
-    it: "Hai usato i 15 scan gratuiti di oggi.",
-    tr: "Bugünkü 15 ücretsiz taramanızı kullandınız.",
+    en: "You've used all 5 free scans for today.",
+    ru: "Вы использовали все 5 бесплатных сканирований на сегодня.",
+    de: "Sie haben alle 5 kostenlosen Scans für heute verwendet.",
+    uk: "Ви використали всі 5 безкоштовних сканувань на сьогодні.",
+    es: "Has usado los 5 escaneos gratuitos de hoy.",
+    fr: "Vous avez utilisé les 5 scans gratuits d'aujourd'hui.",
+    it: "Hai usato i 5 scan gratuiti di oggi.",
+    tr: "Bugünkü 5 ücretsiz taramanızı kullandınız.",
   },
   note: {
-    en: "You've reached the limit of 15 free 'Pay Attention' analyses today.",
-    ru: "Вы достигли лимита в 15 бесплатных анализов «Обрати внимание» на сегодня.",
-    de: "Sie haben das Limit von 15 kostenlosen 'Beachte'-Analysen erreicht.",
-    uk: "Ви досягли ліміту в 15 безкоштовних аналізів «Зверни увагу» на сьогодні.",
-    es: "Has alcanzado el límite de 15 análisis gratuitos 'Atención' hoy.",
-    fr: "Vous avez atteint la limite de 15 analyses 'Attention' gratuites aujourd'hui.",
-    it: "Hai raggiunto il limite di 15 analisi 'Attenzione' gratuite oggi.",
-    tr: "Bugünkü 15 ücretsiz 'Dikkat' analizinizi kullandınız.",
+    en: "You've reached the limit of 5 free 'Pay Attention' analyses today.",
+    ru: "Вы достигли лимита в 5 бесплатных анализов «Обрати внимание» на сегодня.",
+    de: "Sie haben das Limit von 5 kostenlosen 'Beachte'-Analysen erreicht.",
+    uk: "Ви досягли ліміту в 5 безкоштовних аналізів «Зверни увагу» на сьогодні.",
+    es: "Has alcanzado el límite de 5 análisis gratuitos 'Atención' hoy.",
+    fr: "Vous avez atteint la limite de 5 analyses 'Attention' gratuites aujourd'hui.",
+    it: "Hai raggiunto il limite di 5 analisi 'Attenzione' gratuite oggi.",
+    tr: "Bugünkü 5 ücretsiz 'Dikkat' analizinizi kullandınız.",
   },
   askAi: {
     en: "You've used all 3 free AI questions for today.",
@@ -57,14 +57,14 @@ const FEATURES: Record<Language, string[]> = {
 };
 
 const UPGRADE_LABEL: Record<Language, string> = {
-  en: 'Upgrade to Premium — €4.99/mo',
-  ru: 'Перейти на Premium — €4.99/мес',
-  de: 'Auf Premium upgraden — €4,99/Mo',
-  uk: 'Перейти на Premium — €4.99/міс',
-  es: 'Actualizar a Premium — €4,99/mes',
-  fr: "Passer à Premium — 4,99 €/mois",
-  it: 'Passa a Premium — €4,99/mese',
-  tr: "Premium'a Geç — €4,99/ay",
+  en: 'Upgrade to Premium — Your price',
+  ru: 'Перейти на Premium — Твоя цена',
+  de: 'Auf Premium upgraden — Dein Preis',
+  uk: 'Перейти на Premium — Твоя ціна',
+  es: 'Actualizar a Premium — Tu precio',
+  fr: "Passer à Premium — Ton prix",
+  it: 'Passa a Premium — Il tuo prezzo',
+  tr: "Premium'a Geç — Fiyatın",
 };
 
 const MAYBE_LATER: Record<Language, string> = {
@@ -152,13 +152,13 @@ export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
                   <Crown size={28} className="text-[#B89F7A]" />
                 </div>
               </div>
-              <h2 className="text-xl font-serif text-white mb-1">GlowKey Premium</h2>
+              <h2 className="text-xl font-serif text-white mb-1">GlowKI Premium</h2>
               <p className="text-xs text-white/60 leading-relaxed">{reasonText}</p>
             </div>
 
             {/* Price */}
             <div className="text-center py-4 border-b border-[#D4C3A3]">
-              <span className="text-4xl font-serif text-[#2C3E50]">€4.99</span>
+              <span className="text-4xl font-serif text-[#2C3E50]">Your price</span>
               <span className="text-sm text-[#B89F7A] ml-1">/mo</span>
             </div>
 
