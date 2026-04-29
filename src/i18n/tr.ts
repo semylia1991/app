@@ -213,7 +213,7 @@ const tr: Translations = {
     tierPhotoCredit: "Fotoğraf: Yuliia Parkina",
     tierAuthorIntro: "Merhaba. Ben Yuliia Parkina.",
     tierAuthorReason: "GlowKI'ı oluşturdum çünkü ben de bakmadan satın almaktan yorulmuştum. Premium, onu geliştirmeye devam etmemi sağlıyor.",
-    tierMalteserNote: "Malteser Hilfsdienst'te gönüllüyüm. Ödediğinizin %3'ü oraya gidiyor.",
+    tierMalteserNote: "Malteser Hilfsdienst'te gönüllüyüm. Ödemenizin %3'ü hayır kurumuna gidiyor — bu ay Malteser Hilfsdienst'e yardım ediyorsunuz.",
     tierChoose: "Haftalık tutarınızı seçin:",
     tierBasic: "Temel",
     tierWithYou: "Seninleyim",
