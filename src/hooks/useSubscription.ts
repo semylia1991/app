@@ -56,7 +56,7 @@ function todayKey() {
 // Not cryptographically bulletproof (key is in JS bundle), but stops casual
 // DevTools edits — anyone who clears storage simply resets to 0 anyway.
 
-const SALT = 'glowkey-usage-v1';
+const SALT = 'glowki-usage-v1';
 
 async function signData(data: UsageToday, date: string): Promise<string> {
   const enc = new TextEncoder();
