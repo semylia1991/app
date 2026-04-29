@@ -8,10 +8,14 @@ import { INGREDIENTS_DB } from "./ingredients-db.js";
 
 // ── Available models (updated April 2026) ─────────────────────────────────────
 const MODELS = [
-  "gemini-2.5-flash",        // Основная модель: лучший баланс скорости, цены и качества
-  "gemini-2.5-flash-lite",   // Более быстрый и дешёвый вариант
-  // "gemini-2.5-pro",       // Раскомментировать, если нужна максимальная точность (дороже)
+  "gemini-2.0-flash",          // Основная модель: быстрее 2.5 Flash, хорошее качество
+  "gemini-2.5-flash",          // Fallback: если 2.0 недоступен
+  "gemini-2.5-flash-lite",     // Последний резерв
+  // "gemini-2.5-pro",         // Раскомментировать, если нужна максимальная точность (дороже)
 ];
+
+// Для identify достаточно Flash-Lite — задача простая (только имя + бренд)
+const MODEL_LITE = "gemini-2.5-flash-lite";
 
 export interface HandlerResult {
   status: number;
@@ -114,7 +118,7 @@ Provide the ENTIRE analysis in ${language}. Every single field — analysis, usa
 Formatting Rules:
 - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
 - analysis: Strictly 1-2 sentences in ${language}. START by stating what the product is. NEVER use English if ${language} is not English.
-- alternatives: Return 3–5 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
+- alternatives: Return 2–3 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
@@ -145,7 +149,7 @@ Formatting Rules:
 • [Ingredient/Mechanism] [description]
 
 - sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names into ${language}. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
-⚠️ [translated side effect category name]:
+🟡 [translated side effect category name]:
 • [Ingredient] [description of potential reaction]
 
 🔴 [translated side effect category name]:
@@ -153,7 +157,7 @@ Formatting Rules:
 
 - interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names AND block titles into ${language}. The section MUST be split into TWO clearly labeled blocks separated by a divider line (---). Use DOUBLE NEWLINES between categories:
 
-## ✅ [translated title for "Best Combinations"]
+## 🟢 [translated title for "Best Combinations"]
 
 ⚗️ [translated label for "Actives Compatibility"]:
 - [Active ingredient] — [can combine, why it works well]
@@ -163,9 +167,9 @@ Formatting Rules:
 
 ---
 
-## ⚠️ [translated title for "Caution: Conflicts!"]
+## 🟡 [translated title for "Caution: Conflicts!"]
 
-🚫 [translated label for "Avoid Combining With"]:
+🔴 [translated label for "Avoid Combining With"]:
 - [Ingredient/product type] — [reason to avoid]
 
 Ensure the output strictly follows the JSON schema.`.trim();
@@ -183,7 +187,6 @@ Ensure the output strictly follows the JSON schema.`.trim();
     userProfile.hairProblems    ? "hairProblems (HAIR): "    + userProfile.hairProblems     : null,
     userProfile.bodySkinType    ? "bodySkinType (BODY): "    + userProfile.bodySkinType     : null,
     userProfile.climate         ? "climate (UNIVERSAL): "    + userProfile.climate          : null,
-    userProfile.allergies       ? "⚠️ allergies (UNIVERSAL — always flag in warnings): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
 
   if (!profileLines) return basePrompt;
@@ -249,20 +252,20 @@ STEP 4 — Format for "personalNote" (translate ALL text to ${language}):
   - <preference label in ${language}> <color emoji> — <one short explanation, max ~12 words, tie to specific ingredients>
   ...
 
-  Color emoji: 🟢 suitable/beneficial, 🟡 unclear/depends on individual reaction
-  (default when uncertain), 🔴 problematic/unsuitable.
+  Color emoji: ✅ suitable/beneficial, ⚠️ unclear/depends on individual reaction
+  (default when uncertain), 🚫 problematic/unsuitable.
 
   CRITICAL — LABEL RULES:
   ❌ NEVER output raw camelCase keys like "condPigmentation", "oilySkin", "skinType".
-  ✅ Always translate preference keys and values into human-readable ${language} text.
+  🟢 Always translate preference keys and values into human-readable ${language} text.
      Examples: condPigmentation → "Uneven skin tone" / "Неровный тон кожи" / "Ungleichmäßiger Hautton"
                oilySkin → "Oily skin" / "Жирная кожа"
                dryness → "Dryness" / "Сухость"
-  ✅ Use the preference VALUE as the bullet label (e.g. "Oily skin 🟢 — ..."),
+  🟢 Use the preference VALUE as the bullet label (e.g. "Oily skin ✅ — ..."),
      not the field name ("skinType").
-  ✅ Each explanation must mention WHY — name the responsible ingredient(s)
+  🟢 Each explanation must mention WHY — name the responsible ingredient(s)
      (e.g. "soothes redness (centella + panthenol)", "may clog pores (caprylic triglyceride)").
-  ✅ Use mild phrasing: may cause, can be, tends to — no medical advice.
+  🟢 Use mild phrasing: may cause, can be, tends to — no medical advice.
 
 ═══════════════════════════════════════════════════════════════════════
 USER PROFILE (each line is tagged with its category):
@@ -422,7 +425,9 @@ export async function handleGeminiRequest(
     }
     const imageData = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
 
-    const response = await generateWithRetry(ai, {
+    // identify использует Flash-Lite — задача простая, не нужна мощная модель
+    const identifyResult = await ai.models.generateContent({
+      model: MODEL_LITE,
       contents: [{
         parts: [
           { text: `Look at this cosmetic product photo and extract ONLY the product name and the brand name.
@@ -443,9 +448,10 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
           required: ["productName", "brand"],
         },
         temperature: 0.1,
+        maxOutputTokens: 60,
       },
     });
-    return { status: 200, rawText: response.text ?? "" };
+    return { status: 200, rawText: identifyResult.text ?? "" };
   }
 
   // ── Analyze product image ───────────────────────────────────────────────────
@@ -476,6 +482,7 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
         responseSchema: buildAnalysisSchema(withNote),
         temperature: 0.4,
         topP: 0.9,
+        maxOutputTokens: 1500,
       },
     });
 
@@ -587,7 +594,7 @@ Structure (translate all headings to ${language}):
 ...
 
 ---
-⚠️ *[Automated analysis based on selected preferences. Not medical advice.]*
+🟡 *[Automated analysis based on selected preferences. Not medical advice.]*
 
 COLOR MARKERS — use EXACTLY these emojis:
 - 🟢 if the product's ingredients are likely suitable / beneficial for this preference
