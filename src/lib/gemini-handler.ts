@@ -482,7 +482,7 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
         responseSchema: buildAnalysisSchema(withNote),
         temperature: 0.4,
         topP: 0.9,
-        maxOutputTokens: 1500,
+        maxOutputTokens: 4000,
       },
     });
 
@@ -597,9 +597,9 @@ Structure (translate all headings to ${language}):
 🟡 *[Automated analysis based on selected preferences. Not medical advice.]*
 
 COLOR MARKERS — use EXACTLY these emojis:
-- 🟢 if the product's ingredients are likely suitable / beneficial for this preference
-- 🟡 if the effect is unclear, mixed, or depends on individual reaction
-- 🔴 if the product's ingredients are likely problematic / unsuitable for this preference
+- ✅ if the product's ingredients are likely suitable / beneficial for this preference
+- ⚠️ if the effect is unclear, mixed, or depends on individual reaction
+- 🚫 if the product's ingredients are likely problematic / unsuitable for this preference
 
 FORMAT RULES:
 - List EVERY user preference relevant to this product type as its own bullet.
@@ -608,15 +608,15 @@ FORMAT RULES:
   Always translate to human-readable ${language} text:
   condPigmentation → "Uneven skin tone" / "Неровный тон кожи" / "Ungleichmäßiger Hautton"
   Use the preference VALUE as the label, not the field key.
-- Use the user's preference value as the label (e.g. "Oily skin 🟢 — …", "Nut allergy 🔴 — …", "Humid climate 🟡 — …").
-- Default to 🟡 when evidence is weak or the effect depends on the person.
+- Use the user's preference value as the label (e.g. "Oily skin ✅ — …", "Nut allergy 🚫 — …", "Humid climate ⚠️ — …").
+- Default to ⚠️ when evidence is weak or the effect depends on the person.
 - Use mild phrasing in explanations (may cause, can be, tends to) — no medical advice.
 - Each explanation must name the responsible ingredient(s) where possible.
 
 Rules: no medical advice, tie every bullet to a preference, do not invent ingredients.
 PRODUCT TYPE RELEVANCE — CRITICAL: For hair/scalp products (shampoo, conditioner, hair mask, hair oil, etc.) ONLY list hair-related preferences (hairType, scalpCondition, hairProblems) as bullets. Do NOT include skin conditions like enlarged pores, pigmentation, acne — they are irrelevant to hair products. For skincare products ONLY list skin-related preferences. Ignore hair preferences for face/body products.
 CLIMATE: If climate is specified, include it as a bullet — apply it only in the context of the product's use area (scalp/hair for hair products, skin for skincare).
-ALLERGIES: Each listed allergy MUST be its own bullet. If a matching ingredient or close derivative is found → 🔴 with a clear warning. If no match found → 🟢 with "no matching ingredient detected" or similar.`;
+ALLERGIES: Each listed allergy MUST be its own bullet. If a matching ingredient or close derivative is found → 🚫 with a clear warning. If no match found → 🟢 with "no matching ingredient detected" or similar.`;
 
     const response = await generateWithRetry(ai, {
       contents: [{ parts: [{ text: prompt }] }],
