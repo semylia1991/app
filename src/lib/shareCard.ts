@@ -124,7 +124,7 @@ export async function generateShareCard(result: AnalysisResult): Promise<Blob> {
   ctx.fillStyle = C.gold;
   ctx.font = '500 36px Georgia, serif';
   ctx.textAlign = 'center';
-  ctx.fillText('GlowKey AI', W / 2, 52);
+  ctx.fillText('GlowKI', W / 2, 52);
 
   // Tagline
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
@@ -242,7 +242,7 @@ export async function generateShareCard(result: AnalysisResult): Promise<Blob> {
   ctx.fillStyle = C.dark;
   ctx.font = '500 28px Georgia, serif';
   ctx.textAlign = 'center';
-  ctx.fillText('glowkey.ai  ·  #GlowKeyAI #SkinCare #CleanBeauty', W / 2, H - 48);
+  ctx.fillText('glowki.ai  ·  #GlowKI #SkinCare #CleanBeauty', W / 2, H - 48);
 
   ctx.fillStyle = C.gold;
   ctx.font = '22px Arial, sans-serif';
