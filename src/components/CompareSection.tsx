@@ -15,7 +15,7 @@ interface Props {
 
 // Extract sections from a personalNote:
 // - Brief summary   : the first 1-2 sentences before the "By preferences" heading
-// - Preference bullets: every bullet that contains a 🟢 / 🟡 / 🔴 marker
+// - Preference bullets: every bullet that contains a ✅ / ⚠️ / 🚫 marker
 // - rawNote         : the whole note (used as fallback when format is legacy/unknown)
 function parsePersonalNote(note?: string): { summary: string; bullets: string[]; rawNote: string } {
   if (!note || !note.trim()) return { summary: '', bullets: [], rawNote: '' };
@@ -29,7 +29,7 @@ function parsePersonalNote(note?: string): { summary: string; bullets: string[];
     if (!line) continue;
     if (line.startsWith('---')) continue;
     const isBullet = /^[-•*]\s/.test(line);
-    const hasMarker = /[🟢🟡🔴]/.test(line);
+    const hasMarker = /[✅⚠️🚫]/.test(line);
 
     if (isBullet && hasMarker) {
       seenBullet = true;
@@ -64,18 +64,18 @@ function truncate(text: string, max = 260): string {
   return s.length > max ? s.slice(0, max - 1).trimEnd() + '…' : s;
 }
 
-// Parse a bullet line "Label 🟢 — explanation" into its label and color.
+// Parse a bullet line "Label ✅ — explanation" into its label and color.
 // Returns { label, color } where color is one of 'green' | 'yellow' | 'red' | null.
 function parseBullet(bullet: string): { label: string; color: 'green' | 'yellow' | 'red' | null } {
   const text = bullet.trim();
   let color: 'green' | 'yellow' | 'red' | null = null;
-  if (text.includes('🟢')) color = 'green';
-  else if (text.includes('🟡')) color = 'yellow';
-  else if (text.includes('🔴')) color = 'red';
+  if (text.includes('✅')) color = 'green';
+  else if (text.includes('⚠️')) color = 'yellow';
+  else if (text.includes('🚫')) color = 'red';
 
   // Remove all color emojis and trailing "— explanation" from the label
   let label = text
-    .replace(/[🟢🟡🔴]/g, '')
+    .replace(/[✅⚠️🚫]/g, '')
     .replace(/\s*[—–-]\s*.*$/s, '')
     .trim();
 
