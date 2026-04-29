@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onUpgrade: () => void;
   lang: Language;
   reason: 'scans' | 'note' | 'askAi';
   userId?: string;
@@ -21,7 +22,7 @@ const REASONS: Record<string, Record<string, string>> = {
     es: "Has usado los 5 escaneos gratuitos de hoy.",
     fr: "Vous avez utilisé les 5 scans gratuits d'aujourd'hui.",
     it: "Hai usato i 5 scan gratuiti di oggi.",
-    tr: "Bugünkü 5 ücretsiz taramanızı kullandınız.",
+    tr: "Bugünkü 15 ücretsiz taramanızı kullandınız.",
   },
   note: {
     en: "You've reached the limit of 5 free 'Pay Attention' analyses today.",
@@ -31,7 +32,7 @@ const REASONS: Record<string, Record<string, string>> = {
     es: "Has alcanzado el límite de 5 análisis gratuitos 'Atención' hoy.",
     fr: "Vous avez atteint la limite de 5 analyses 'Attention' gratuites aujourd'hui.",
     it: "Hai raggiunto il limite di 5 analisi 'Attenzione' gratuite oggi.",
-    tr: "Bugünkü 5 ücretsiz 'Dikkat' analizinizi kullandınız.",
+    tr: "Bugünkü 15 ücretsiz 'Dikkat' analizinizi kullandınız.",
   },
   askAi: {
     en: "You've used all 3 free AI questions for today.",
@@ -60,7 +61,7 @@ const UPGRADE_LABEL: Record<Language, string> = {
   en: 'Upgrade to Premium — Your price',
   ru: 'Перейти на Premium — Твоя цена',
   de: 'Auf Premium upgraden — Dein Preis',
-  uk: 'Перейти на Premium — Твоя ціна',
+  uk: 'Перейти на Premium —Твоя ціна',
   es: 'Actualizar a Premium — Tu precio',
   fr: "Passer à Premium — Ton prix",
   it: 'Passa a Premium — Il tuo prezzo',
@@ -78,9 +79,8 @@ const MAYBE_LATER: Record<Language, string> = {
   tr: 'Belki sonra',
 };
 
-export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+export function PaywallModal({ isOpen, onClose, onUpgrade, lang, reason, userId }: Props) {
+
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   const handleSignIn = async () => {
@@ -92,31 +92,9 @@ export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
     setIsSigningIn(false);
   };
 
-  const handleUpgrade = async () => {
-    // Safety guard — should never happen because button is hidden when userId is missing
-    if (!userId) {
-      setUpgradeError('Please sign in first.');
-      return;
-    }
-    setIsLoading(true);
-    setUpgradeError(null);
-    try {
-      const res = await fetch('/api/stripe-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setUpgradeError(data.error ?? 'Something went wrong. Please try again.');
-        setIsLoading(false);
-      }
-    } catch (err) {
-      setUpgradeError('Network error. Please try again.');
-      setIsLoading(false);
-    }
+  const handleUpgrade = () => {
+    onClose();
+    onUpgrade();
   };
 
   const reasonText = REASONS[reason]?.[lang] ?? REASONS[reason]?.['en'] ?? '';
@@ -158,8 +136,8 @@ export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
 
             {/* Price */}
             <div className="text-center py-4 border-b border-[#D4C3A3]">
-              <span className="text-4xl font-serif text-[#2C3E50]">Your price</span>
-              <span className="text-sm text-[#B89F7A] ml-1">/mo</span>
+              <span className="text-4xl font-serif text-[#2C3E50]">€4.99</span>
+              <span className="text-sm text-[#B89F7A] ml-1">/week</span>
             </div>
 
             {/* Features */}
@@ -201,19 +179,11 @@ export function PaywallModal({ isOpen, onClose, lang, reason, userId }: Props) {
                 <>
                   <button
                     onClick={handleUpgrade}
-                    disabled={isLoading}
-                    className="w-full py-3.5 bg-[#2C3E50] text-white text-xs tracking-widest uppercase font-semibold hover:bg-[#2C3E50]/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-[#2C3E50] text-white text-xs tracking-widest uppercase font-semibold hover:bg-[#2C3E50]/90 transition-colors flex items-center justify-center gap-2"
                   >
-                    {isLoading ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <Sparkles size={14} />
-                    )}
+                    <Sparkles size={14} />
                     {UPGRADE_LABEL[lang]}
                   </button>
-                  {upgradeError && (
-                    <p className="text-xs text-red-600 text-center -mt-1">{upgradeError}</p>
-                  )}
                 </>
               )}
 
