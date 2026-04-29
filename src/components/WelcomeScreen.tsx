@@ -211,7 +211,7 @@ export function WelcomeScreen({ lang: langProp, onScan, onClose }: Props) {
             }}>
               <img
                 src={logo}
-                alt="GlowKey AI"
+                alt="GlowKI"
                 style={{ width: 26, height: 26, objectFit: 'contain' }}
               />
             </div>
@@ -221,7 +221,7 @@ export function WelcomeScreen({ lang: langProp, onScan, onClose }: Props) {
               fontFamily: "'Cormorant Garamond', serif", fontWeight: 400,
               lineHeight: 1,
             }}>
-              GLOWKEY AI
+              GLOWKI
             </p>
           </div>
 
