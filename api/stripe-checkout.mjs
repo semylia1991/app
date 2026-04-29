@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     params.append('line_items[0][price_data][currency]', 'eur');
     params.append('line_items[0][price_data][unit_amount]', String(cents));
     params.append('line_items[0][price_data][recurring][interval]', 'week');
-    params.append('line_items[0][price_data][product_data][name]', 'GlowKey Premium — Custom');
+    params.append('line_items[0][price_data][product_data][name]', 'GlowKI Premium — Custom');
   } else {
     const priceId = FIXED_PRICE_IDS[tier];
     if (!priceId) {
