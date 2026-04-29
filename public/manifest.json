@@ -1,6 +1,6 @@
 {
-  "name": "GlowKey AI",
-  "short_name": "GlowKey",
+  "name": "GlowKI",
+  "short_name": "GlowKI",
   "description": "Scan cosmetic products to understand ingredients",
   "start_url": "/",
   "display": "standalone",
@@ -22,4 +22,3 @@
     }
   ]
 }
-
