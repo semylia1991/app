@@ -39,7 +39,7 @@ h1,h2,h3,h4,h5,h6,.font-serif {
   background: #FAF7F2;
   border: 0.5px solid #DDD5C8;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* inner gold border ornament */
