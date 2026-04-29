@@ -1,5 +1,5 @@
 -- ============================================================
--- GlowKey AI — Freemium migrations
+-- GlowKI — Freemium migrations
 -- Run these in Supabase SQL Editor (in order)
 -- ============================================================
 
