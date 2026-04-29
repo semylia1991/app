@@ -890,6 +890,7 @@ export default function App() {
       <PaywallModal
         isOpen={paywallReason !== null}
         onClose={() => setPaywallReason(null)}
+        onUpgrade={() => { setPaywallReason(null); setShowSubscriptionPage(true); }}
         lang={lang}
         reason={paywallReason ?? 'scans'}
         userId={user?.id}
