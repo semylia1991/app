@@ -213,7 +213,7 @@ const es: Translations = {
     tierPhotoCredit: "Foto de Yuliia Parkina",
     tierAuthorIntro: "Hola. Soy Yuliia Parkina.",
     tierAuthorReason: "Creé GlowKI porque yo misma me cansé de comprar sin mirar. Premium me permite seguir mejorándolo.",
-    tierMalteserNote: "Soy voluntaria en Malteser Hilfsdienst. El 3% de lo que pagas va allí.",
+    tierMalteserNote: "Soy voluntaria en Malteser Hilfsdienst. El 3% de tu pago va a la beneficencia — este mes estás ayudando a Malteser Hilfsdienst.",
     tierChoose: "Elige tu importe semanal:",
     tierBasic: "Básico",
     tierWithYou: "Estoy contigo",
@@ -235,4 +235,4 @@ const es: Translations = {
     tierSupportBtn: "Apoyar",
 };
 
-export default es;
+export default es;;
