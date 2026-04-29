@@ -304,8 +304,16 @@ Answer in ${language}.
  * If parsing fails for any reason, the original string is returned untouched —
  * we never want enrichment to break the response.
  */
-function applyLocalDbEnrichment(rawJson: string): string {
+const LANGUAGE_NAME_TO_CODE: Record<string, string> = {
+  english: "en", russian: "ru", german: "de", ukrainian: "uk",
+  spanish: "es", french: "fr", italian: "it", turkish: "tr",
+};
+
+function applyLocalDbEnrichment(rawJson: string, language?: string): string {
   if (!rawJson) return rawJson;
+
+  // Map full language name (e.g. "Russian") to code (e.g. "ru"), default "en"
+  const langCode = LANGUAGE_NAME_TO_CODE[(language ?? "").toLowerCase()] ?? "en";
 
   let parsed: any;
   try {
@@ -324,13 +332,14 @@ function applyLocalDbEnrichment(rawJson: string): string {
     if (!local) return ing; // unknown — keep AI result as-is
 
     knownCount++;
+    // Extract localised string from description object; fallback to English
+    const descObj = local.description as Record<string, string>;
+    const description = descObj[langCode] ?? descObj["en"] ?? "";
     return {
       name: ing.name,
       // Local DB is canonical for known INCI: its status takes precedence
-      // (unlike enrichIngredients which trusts AI downgrades — for the analyze
-      // endpoint we want full determinism for the regulator-aligned DB)
       status: local.status,
-      description: local.description,
+      description,
     };
   });
 
@@ -474,7 +483,7 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
     // Override AI descriptions/statuses for ingredients known in our local DB.
     // This guarantees deterministic results for ~1000 well-known INCI and lets
     // the AI focus its tokens on truly unknown ingredients.
-    const enrichedText = applyLocalDbEnrichment(response.text ?? "");
+    const enrichedText = applyLocalDbEnrichment(response.text ?? "", language);
     return { status: 200, rawText: enrichedText };
   }
 
