@@ -56,7 +56,7 @@ const guideContent: Record<Language, {
   disclaimer: string;
 }> = {
   en: {
-    heroEyebrow: 'GlowKey AI — User Guide',
+    heroEyebrow: 'GlowKI — User Guide',
     heroTitle: 'Know what you',
     heroTitleEm: 'apply',
     heroSubtitle: 'AI reads cosmetic ingredients and explains each one in your language',
@@ -64,8 +64,8 @@ const guideContent: Record<Language, {
     introLabel: 'Introduction',
     introTitle: 'Cosmetic formulas are no longer a',
     introTitleEm: 'mystery',
-    introQuote: '"Have you ever wondered what Dimethicone, Phenoxyethanol or Butylated Hydroxytoluene on a label actually means? GlowKey AI decodes it in seconds." — GlowKey AI Team',
-    introBody: 'GlowKey AI is a smart cosmetic ingredient analyzer. Photograph a cream, serum, shampoo or any other product, and the app instantly tells you which components are safe, what requires caution, how to use the product correctly, and what alternatives exist on the market.',
+    introQuote: '"Have you ever wondered what Dimethicone, Phenoxyethanol or Butylated Hydroxytoluene on a label actually means? GlowKI decodes it in seconds." — GlowKI Team',
+    introBody: 'GlowKI is a smart cosmetic ingredient analyzer. Photograph a cream, serum, shampoo or any other product, and the app instantly tells you which components are safe, what requires caution, how to use the product correctly, and what alternatives exist on the market.',
 
     stepsLabel: 'How it works',
     stepsTitle: 'Four steps to a',
@@ -131,17 +131,17 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Are my photos stored?', a: 'No. Images are used exclusively for analysis and are not stored on servers. Only the analysis result is saved in the database — and only if you are signed in.' },
       { q: 'How accurate is the analysis?', a: 'The AI references data from EWG Skin Deep, CosDNA, PubChem, INCI Decoder and EU CosIng. If data on a specific ingredient is unavailable, this is clearly stated — the app never invents information.' },
-      { q: 'Is this medical advice?', a: 'No. GlowKey AI provides information for educational purposes. Always consult a dermatologist before changing your skincare routine, especially if you have a skin condition.' },
+      { q: 'Is this medical advice?', a: 'No. GlowKI provides information for educational purposes. Always consult a dermatologist before changing your skincare routine, especially if you have a skin condition.' },
       { q: 'Do I need to register?', a: 'No — you can analyse products without an account. Google sign-in unlocks scan history, my preferences, and the ability to share results.' },
       { q: 'What if the AI didn\'t recognise the product?', a: 'Try taking a sharper photo specifically of the INCI list, making sure the text is clearly visible and not obscured by shadows. If the problem persists, photograph only the ingredient text section up close.' },
-      { q: 'Can I install the app on my phone?', a: 'Yes. GlowKey AI is a Progressive Web App (PWA). In your phone\'s browser, tap "Add to Home Screen" and the app installs like a regular app — no app store needed.' },
+      { q: 'Can I install the app on my phone?', a: 'Yes. GlowKI is a Progressive Web App (PWA). In your phone\'s browser, tap "Add to Home Screen" and the app installs like a regular app — no app store needed.' },
     ],
 
-    disclaimer: 'GlowKey AI is an informational tool. The analysis is created by artificial intelligence and may contain errors or incomplete interpretations. Results are not medical advice and should not be used to diagnose or treat skin conditions.',
+    disclaimer: 'GlowKI is an informational tool. The analysis is created by artificial intelligence and may contain errors or incomplete interpretations. Results are not medical advice and should not be used to diagnose or treat skin conditions.',
   },
 
   ru: {
-    heroEyebrow: 'GlowKey AI — Руководство пользователя',
+    heroEyebrow: 'GlowKI — Руководство пользователя',
     heroTitle: 'Знай, что ты',
     heroTitleEm: 'наносишь',
     heroSubtitle: 'Искусственный интеллект читает состав косметики и объясняет каждый ингредиент на вашем языке',
@@ -149,8 +149,8 @@ const guideContent: Record<Language, {
     introLabel: 'Введение',
     introTitle: 'Состав косметики больше не',
     introTitleEm: 'тайна',
-    introQuote: '«Вы когда-нибудь задавались вопросом, что скрывается за строчкой Dimethicone, Phenoxyethanol или Butylated Hydroxytoluene на упаковке? GlowKey AI расшифрует это за секунды.» — Команда GlowKey AI',
-    introBody: 'GlowKey AI — это умный анализатор косметических ингредиентов. Сфотографируйте крем, сыворотку, шампунь или любой другой продукт, и приложение мгновенно расскажет: какие компоненты безопасны, что требует осторожности, как правильно использовать продукт и какие аналоги существуют на рынке.',
+    introQuote: '«Вы когда-нибудь задавались вопросом, что скрывается за строчкой Dimethicone, Phenoxyethanol или Butylated Hydroxytoluene на упаковке? GlowKI расшифрует это за секунды.» — Команда GlowKI',
+    introBody: 'GlowKI — это умный анализатор косметических ингредиентов. Сфотографируйте крем, сыворотку, шампунь или любой другой продукт, и приложение мгновенно расскажет: какие компоненты безопасны, что требует осторожности, как правильно использовать продукт и какие аналоги существуют на рынке.',
 
     stepsLabel: 'Инструкция',
     stepsTitle: 'Четыре шага до',
@@ -216,17 +216,17 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Мои фотографии сохраняются?', a: 'Нет. Изображения используются исключительно для анализа и не хранятся на серверах. В базе данных сохраняется только результат анализа — и только если вы вошли в аккаунт.' },
       { q: 'Насколько точен анализ?', a: 'ИИ обращается к данным баз EWG Skin Deep, CosDNA, PubChem, INCI Decoder и EU CosIng. При отсутствии данных о конкретном ингредиенте это явно указывается — приложение никогда не придумывает информацию.' },
-      { q: 'Это медицинская рекомендация?', a: 'Нет. GlowKey AI предоставляет информацию в образовательных целях. Всегда консультируйтесь с дерматологом перед изменением ухода, особенно при кожных заболеваниях.' },
+      { q: 'Это медицинская рекомендация?', a: 'Нет. GlowKI предоставляет информацию в образовательных целях. Всегда консультируйтесь с дерматологом перед изменением ухода, особенно при кожных заболеваниях.' },
       { q: 'Нужна ли регистрация?', a: 'Нет — анализировать можно без аккаунта. Регистрация через Google открывает историю сканирований, персональный профиль и возможность делиться результатами.' },
       { q: 'Что делать, если ИИ не распознал продукт?', a: 'Попробуйте сделать более чёткий снимок именно состава (INCI), убедитесь, что текст хорошо виден и не перекрыт тенью. Если проблема повторяется — сфотографируйте только текстовую часть с ингредиентами крупным планом.' },
-      { q: 'Можно ли установить приложение на телефон?', a: 'Да. GlowKey AI — это Progressive Web App (PWA). В браузере на телефоне нажмите «Добавить на главный экран» и приложение установится как обычное без магазина приложений.' },
+      { q: 'Можно ли установить приложение на телефон?', a: 'Да. GlowKI — это Progressive Web App (PWA). В браузере на телефоне нажмите «Добавить на главный экран» и приложение установится как обычное без магазина приложений.' },
     ],
 
-    disclaimer: 'GlowKey AI — это информационный инструмент. Анализ создаётся искусственным интеллектом и может содержать ошибки или неполные интерпретации. Результаты не являются медицинской консультацией и не должны использоваться для диагностики или лечения кожных заболеваний.',
+    disclaimer: 'GlowKI — это информационный инструмент. Анализ создаётся искусственным интеллектом и может содержать ошибки или неполные интерпретации. Результаты не являются медицинской консультацией и не должны использоваться для диагностики или лечения кожных заболеваний.',
   },
 
   de: {
-    heroEyebrow: 'GlowKey AI — Benutzerhandbuch',
+    heroEyebrow: 'GlowKI — Benutzerhandbuch',
     heroTitle: 'Wissen, was du',
     heroTitleEm: 'aufträgst',
     heroSubtitle: 'KI liest Kosmetikinhaltsstoffe und erklärt jeden in deiner Sprache',
@@ -234,8 +234,8 @@ const guideContent: Record<Language, {
     introLabel: 'Einführung',
     introTitle: 'Kosmetikformeln sind keine',
     introTitleEm: 'Geheimnisse mehr',
-    introQuote: '"Haben Sie sich jemals gefragt, was Dimethicone, Phenoxyethanol oder Butylated Hydroxytoluene auf einem Etikett bedeuten? GlowKey AI entschlüsselt es in Sekunden." — GlowKey AI Team',
-    introBody: 'GlowKey AI ist ein intelligenter Kosmetikinhaltsstoff-Analysator. Fotografieren Sie eine Creme, ein Serum, ein Shampoo oder ein anderes Produkt, und die App teilt Ihnen sofort mit, welche Bestandteile sicher sind, was Vorsicht erfordert, wie das Produkt korrekt verwendet wird und welche Alternativen auf dem Markt existieren.',
+    introQuote: '"Haben Sie sich jemals gefragt, was Dimethicone, Phenoxyethanol oder Butylated Hydroxytoluene auf einem Etikett bedeuten? GlowKI entschlüsselt es in Sekunden." — GlowKI Team',
+    introBody: 'GlowKI ist ein intelligenter Kosmetikinhaltsstoff-Analysator. Fotografieren Sie eine Creme, ein Serum, ein Shampoo oder ein anderes Produkt, und die App teilt Ihnen sofort mit, welche Bestandteile sicher sind, was Vorsicht erfordert, wie das Produkt korrekt verwendet wird und welche Alternativen auf dem Markt existieren.',
 
     stepsLabel: 'Anleitung',
     stepsTitle: 'Vier Schritte zur',
@@ -301,17 +301,17 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Werden meine Fotos gespeichert?', a: 'Nein. Bilder werden ausschließlich zur Analyse verwendet und nicht auf Servern gespeichert. In der Datenbank wird nur das Analyseergebnis gespeichert — und nur wenn Sie angemeldet sind.' },
       { q: 'Wie genau ist die Analyse?', a: 'Die KI nutzt Daten aus EWG Skin Deep, CosDNA, PubChem, INCI Decoder und EU CosIng. Fehlen Daten zu einem bestimmten Inhaltsstoff, wird dies klar angegeben — die App erfindet keine Informationen.' },
-      { q: 'Ist das ein medizinischer Rat?', a: 'Nein. GlowKey AI stellt Informationen zu Bildungszwecken bereit. Konsultieren Sie immer einen Dermatologen, bevor Sie Ihre Pflegeroutine ändern.' },
+      { q: 'Ist das ein medizinischer Rat?', a: 'Nein. GlowKI stellt Informationen zu Bildungszwecken bereit. Konsultieren Sie immer einen Dermatologen, bevor Sie Ihre Pflegeroutine ändern.' },
       { q: 'Muss ich mich registrieren?', a: 'Nein — Sie können Produkte ohne Konto analysieren. Die Google-Anmeldung schaltet den Scan-Verlauf, ein persönliches Profil und die Möglichkeit zum Teilen von Ergebnissen frei.' },
       { q: 'Was tun, wenn die KI das Produkt nicht erkennt?', a: 'Versuchen Sie, ein schärferes Foto speziell der INCI-Liste aufzunehmen, und stellen Sie sicher, dass der Text gut sichtbar und nicht von Schatten verdeckt ist.' },
-      { q: 'Kann ich die App auf meinem Telefon installieren?', a: 'Ja. GlowKey AI ist eine Progressive Web App (PWA). Tippen Sie im Browser Ihres Telefons auf „Zum Startbildschirm hinzufügen".' },
+      { q: 'Kann ich die App auf meinem Telefon installieren?', a: 'Ja. GlowKI ist eine Progressive Web App (PWA). Tippen Sie im Browser Ihres Telefons auf „Zum Startbildschirm hinzufügen".' },
     ],
 
-    disclaimer: 'GlowKey AI ist ein Informationswerkzeug. Die Analyse wird von künstlicher Intelligenz erstellt und kann Fehler oder unvollständige Interpretationen enthalten. Die Ergebnisse sind keine medizinische Beratung.',
+    disclaimer: 'GlowKI ist ein Informationswerkzeug. Die Analyse wird von künstlicher Intelligenz erstellt und kann Fehler oder unvollständige Interpretationen enthalten. Die Ergebnisse sind keine medizinische Beratung.',
   },
 
   uk: {
-    heroEyebrow: 'GlowKey AI — Керівництво користувача',
+    heroEyebrow: 'GlowKI — Керівництво користувача',
     heroTitle: 'Знай, що ти',
     heroTitleEm: 'наносиш',
     heroSubtitle: 'Штучний інтелект читає склад косметики і пояснює кожен інгредієнт вашою мовою',
@@ -319,8 +319,8 @@ const guideContent: Record<Language, {
     introLabel: 'Вступ',
     introTitle: 'Склад косметики більше не',
     introTitleEm: 'таємниця',
-    introQuote: '«Ви коли-небудь замислювалися, що ховається за рядком Dimethicone, Phenoxyethanol або Butylated Hydroxytoluene на упаковці? GlowKey AI розшифрує це за секунди.» — Команда GlowKey AI',
-    introBody: 'GlowKey AI — це розумний аналізатор косметичних інгредієнтів. Сфотографуйте крем, сироватку, шампунь або будь-який інший продукт, і застосунок миттєво розповість: які компоненти безпечні, що потребує обережності, як правильно використовувати продукт і які аналоги існують на ринку.',
+    introQuote: '«Ви коли-небудь замислювалися, що ховається за рядком Dimethicone, Phenoxyethanol або Butylated Hydroxytoluene на упаковці? GlowKI розшифрує це за секунди.» — Команда GlowKI',
+    introBody: 'GlowKI — це розумний аналізатор косметичних інгредієнтів. Сфотографуйте крем, сироватку, шампунь або будь-який інший продукт, і застосунок миттєво розповість: які компоненти безпечні, що потребує обережності, як правильно використовувати продукт і які аналоги існують на ринку.',
 
     stepsLabel: 'Інструкція',
     stepsTitle: 'Чотири кроки до',
@@ -386,17 +386,17 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Мої фотографії зберігаються?', a: 'Ні. Зображення використовуються виключно для аналізу і не зберігаються на серверах. У базі даних зберігається лише результат аналізу — і лише якщо ви увійшли в акаунт.' },
       { q: 'Наскільки точний аналіз?', a: 'ШІ звертається до даних баз EWG Skin Deep, CosDNA, PubChem, INCI Decoder та EU CosIng. За відсутності даних про конкретний інгредієнт це явно вказується.' },
-      { q: 'Це медична рекомендація?', a: 'Ні. GlowKey AI надає інформацію в освітніх цілях. Завжди консультуйтеся з дерматологом перед зміною догляду.' },
+      { q: 'Це медична рекомендація?', a: 'Ні. GlowKI надає інформацію в освітніх цілях. Завжди консультуйтеся з дерматологом перед зміною догляду.' },
       { q: 'Потрібна реєстрація?', a: 'Ні — аналізувати можна без акаунту. Реєстрація через Google відкриває історію сканувань, персональний профіль і можливість ділитися результатами.' },
       { q: 'Що робити, якщо ШІ не розпізнав продукт?', a: 'Спробуйте зробити чіткіший знімок саме складу (INCI), переконайтесь, що текст добре видно і не перекритий тінню.' },
-      { q: 'Чи можна встановити застосунок на телефон?', a: 'Так. GlowKey AI — це Progressive Web App (PWA). У браузері на телефоні натисніть «Додати на головний екран».' },
+      { q: 'Чи можна встановити застосунок на телефон?', a: 'Так. GlowKI — це Progressive Web App (PWA). У браузері на телефоні натисніть «Додати на головний екран».' },
     ],
 
-    disclaimer: 'GlowKey AI — це інформаційний інструмент. Аналіз створюється штучним інтелектом і може містити помилки або неповні інтерпретації. Результати не є медичною консультацією.',
+    disclaimer: 'GlowKI — це інформаційний інструмент. Аналіз створюється штучним інтелектом і може містити помилки або неповні інтерпретації. Результати не є медичною консультацією.',
   },
 
   es: {
-    heroEyebrow: 'GlowKey AI — Guía de usuario',
+    heroEyebrow: 'GlowKI — Guía de usuario',
     heroTitle: 'Sabe lo que te',
     heroTitleEm: 'aplicas',
     heroSubtitle: 'La IA lee los ingredientes cosméticos y explica cada uno en tu idioma',
@@ -404,8 +404,8 @@ const guideContent: Record<Language, {
     introLabel: 'Introducción',
     introTitle: 'Las fórmulas cosméticas ya no son un',
     introTitleEm: 'misterio',
-    introQuote: '"¿Alguna vez te has preguntado qué significa Dimethicone, Phenoxyethanol o Butylated Hydroxytoluene en una etiqueta? GlowKey AI lo descifra en segundos." — Equipo GlowKey AI',
-    introBody: 'GlowKey AI es un analizador inteligente de ingredientes cosméticos. Fotografía una crema, suero, champú o cualquier otro producto, y la app te dice al instante qué componentes son seguros, qué requiere precaución, cómo usar el producto correctamente y qué alternativas existen en el mercado.',
+    introQuote: '"¿Alguna vez te has preguntado qué significa Dimethicone, Phenoxyethanol o Butylated Hydroxytoluene en una etiqueta? GlowKI lo descifra en segundos." — Equipo GlowKI',
+    introBody: 'GlowKI es un analizador inteligente de ingredientes cosméticos. Fotografía una crema, suero, champú o cualquier otro producto, y la app te dice al instante qué componentes son seguros, qué requiere precaución, cómo usar el producto correctamente y qué alternativas existen en el mercado.',
 
     stepsLabel: 'Instrucciones',
     stepsTitle: 'Cuatro pasos para un',
@@ -471,17 +471,17 @@ const guideContent: Record<Language, {
     faqs: [
       { q: '¿Se almacenan mis fotos?', a: 'No. Las imágenes se usan exclusivamente para el análisis y no se almacenan en servidores. Solo el resultado del análisis se guarda — y solo si has iniciado sesión.' },
       { q: '¿Qué tan preciso es el análisis?', a: 'La IA utiliza datos de EWG Skin Deep, CosDNA, PubChem, INCI Decoder y EU CosIng. Si no hay datos sobre un ingrediente específico, se indica claramente.' },
-      { q: '¿Es un consejo médico?', a: 'No. GlowKey AI proporciona información con fines educativos. Siempre consulta a un dermatólogo antes de cambiar tu rutina de cuidado.' },
+      { q: '¿Es un consejo médico?', a: 'No. GlowKI proporciona información con fines educativos. Siempre consulta a un dermatólogo antes de cambiar tu rutina de cuidado.' },
       { q: '¿Necesito registrarme?', a: 'No — puedes analizar productos sin cuenta. El inicio de sesión con Google desbloquea el historial, un perfil personal y la posibilidad de compartir resultados.' },
       { q: '¿Qué pasa si la IA no reconoce el producto?', a: 'Intenta tomar una foto más nítida específicamente de la lista INCI, asegurándote de que el texto sea claramente visible y no esté oscurecido por sombras.' },
-      { q: '¿Puedo instalar la app en mi teléfono?', a: 'Sí. GlowKey AI es una Progressive Web App (PWA). En el navegador de tu teléfono, toca "Añadir a pantalla de inicio".' },
+      { q: '¿Puedo instalar la app en mi teléfono?', a: 'Sí. GlowKI es una Progressive Web App (PWA). En el navegador de tu teléfono, toca "Añadir a pantalla de inicio".' },
     ],
 
-    disclaimer: 'GlowKey AI es una herramienta informativa. El análisis es creado por inteligencia artificial y puede contener errores o interpretaciones incompletas. Los resultados no son consejo médico.',
+    disclaimer: 'GlowKI es una herramienta informativa. El análisis es creado por inteligencia artificial y puede contener errores o interpretaciones incompletas. Los resultados no son consejo médico.',
   },
 
   fr: {
-    heroEyebrow: 'GlowKey AI — Guide d\'utilisation',
+    heroEyebrow: 'GlowKI — Guide d\'utilisation',
     heroTitle: 'Sache ce que tu',
     heroTitleEm: 'appliques',
     heroSubtitle: 'L\'IA lit les ingrédients cosmétiques et explique chacun dans ta langue',
@@ -489,8 +489,8 @@ const guideContent: Record<Language, {
     introLabel: 'Introduction',
     introTitle: 'Les formules cosmétiques ne sont plus un',
     introTitleEm: 'mystère',
-    introQuote: '"T\'es-tu déjà demandé ce que signifient Diméthicone, Phénoxyéthanol ou Hydroxytoluène butylé sur une étiquette ? GlowKey AI le décode en quelques secondes." — Équipe GlowKey AI',
-    introBody: 'GlowKey AI est un analyseur intelligent d\'ingrédients cosmétiques. Photographie une crème, un sérum, un shampoing ou tout autre produit, et l\'application te dit instantanément quels composants sont sûrs, ce qui nécessite de la prudence, comment utiliser le produit correctement et quelles alternatives existent sur le marché.',
+    introQuote: '"T\'es-tu déjà demandé ce que signifient Diméthicone, Phénoxyéthanol ou Hydroxytoluène butylé sur une étiquette ? GlowKI le décode en quelques secondes." — Équipe GlowKI',
+    introBody: 'GlowKI est un analyseur intelligent d\'ingrédients cosmétiques. Photographie une crème, un sérum, un shampoing ou tout autre produit, et l\'application te dit instantanément quels composants sont sûrs, ce qui nécessite de la prudence, comment utiliser le produit correctement et quelles alternatives existent sur le marché.',
 
     stepsLabel: 'Mode d\'emploi',
     stepsTitle: 'Quatre étapes pour une',
@@ -556,17 +556,17 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Mes photos sont-elles stockées ?', a: 'Non. Les images sont utilisées exclusivement pour l\'analyse et ne sont pas stockées sur les serveurs. Seul le résultat de l\'analyse est sauvegardé — et uniquement si tu es connecté·e.' },
       { q: 'Quelle est la précision de l\'analyse ?', a: 'L\'IA utilise les données de EWG Skin Deep, CosDNA, PubChem, INCI Decoder et EU CosIng. Si des données sur un ingrédient spécifique sont indisponibles, cela est clairement indiqué.' },
-      { q: 'Est-ce un conseil médical ?', a: 'Non. GlowKey AI fournit des informations à des fins éducatives. Consulte toujours un dermatologue avant de modifier ta routine de soin.' },
+      { q: 'Est-ce un conseil médical ?', a: 'Non. GlowKI fournit des informations à des fins éducatives. Consulte toujours un dermatologue avant de modifier ta routine de soin.' },
       { q: 'Dois-je m\'inscrire ?', a: 'Non — tu peux analyser des produits sans compte. La connexion Google débloque l\'historique, un profil personnel et la possibilité de partager les résultats.' },
       { q: 'Que faire si l\'IA ne reconnaît pas le produit ?', a: 'Essaie de prendre une photo plus nette spécifiquement de la liste INCI, en t\'assurant que le texte est bien visible et non obscurci par des ombres.' },
-      { q: 'Puis-je installer l\'app sur mon téléphone ?', a: 'Oui. GlowKey AI est une Progressive Web App (PWA). Dans le navigateur de ton téléphone, appuie sur « Ajouter à l\'écran d\'accueil ».' },
+      { q: 'Puis-je installer l\'app sur mon téléphone ?', a: 'Oui. GlowKI est une Progressive Web App (PWA). Dans le navigateur de ton téléphone, appuie sur « Ajouter à l\'écran d\'accueil ».' },
     ],
 
-    disclaimer: 'GlowKey AI est un outil informatif. L\'analyse est créée par intelligence artificielle et peut contenir des erreurs ou des interprétations incomplètes. Les résultats ne constituent pas un avis médical.',
+    disclaimer: 'GlowKI est un outil informatif. L\'analyse est créée par intelligence artificielle et peut contenir des erreurs ou des interprétations incomplètes. Les résultats ne constituent pas un avis médical.',
   },
 
   it: {
-    heroEyebrow: 'GlowKey AI — Guida utente',
+    heroEyebrow: 'GlowKI — Guida utente',
     heroTitle: 'Sappi cosa ti',
     heroTitleEm: 'applichi',
     heroSubtitle: 'L\'IA legge gli ingredienti cosmetici e spiega ognuno nella tua lingua',
@@ -574,8 +574,8 @@ const guideContent: Record<Language, {
     introLabel: 'Introduzione',
     introTitle: 'Le formule cosmetiche non sono più un',
     introTitleEm: 'mistero',
-    introQuote: '"Ti sei mai chiesto cosa significano Dimetilcone, Fenossietanolo o Idrossitoluene butilato su un\'etichetta? GlowKey AI lo decodifica in pochi secondi." — Team GlowKey AI',
-    introBody: 'GlowKey AI è un analizzatore intelligente di ingredienti cosmetici. Fotografa una crema, un siero, uno shampoo o qualsiasi altro prodotto, e l\'app ti dice immediatamente quali componenti sono sicuri, cosa richiede cautela, come usare correttamente il prodotto e quali alternative esistono sul mercato.',
+    introQuote: '"Ti sei mai chiesto cosa significano Dimetilcone, Fenossietanolo o Idrossitoluene butilato su un\'etichetta? GlowKI lo decodifica in pochi secondi." — Team GlowKI',
+    introBody: 'GlowKI è un analizzatore intelligente di ingredienti cosmetici. Fotografa una crema, un siero, uno shampoo o qualsiasi altro prodotto, e l\'app ti dice immediatamente quali componenti sono sicuri, cosa richiede cautela, come usare correttamente il prodotto e quali alternative esistono sul mercato.',
 
     stepsLabel: 'Istruzioni',
     stepsTitle: 'Quattro passi per un\'analisi',
@@ -641,17 +641,17 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Le mie foto vengono conservate?', a: 'No. Le immagini sono usate esclusivamente per l\'analisi e non vengono archiviate sui server. Solo il risultato dell\'analisi viene salvato — e solo se sei connesso·a.' },
       { q: 'Quanto è accurata l\'analisi?', a: 'L\'IA utilizza dati da EWG Skin Deep, CosDNA, PubChem, INCI Decoder e EU CosIng. Se mancano dati su un ingrediente specifico, viene chiaramente indicato.' },
-      { q: 'È un consiglio medico?', a: 'No. GlowKey AI fornisce informazioni a scopo educativo. Consulta sempre un dermatologo prima di modificare la tua routine di cura.' },
+      { q: 'È un consiglio medico?', a: 'No. GlowKI fornisce informazioni a scopo educativo. Consulta sempre un dermatologo prima di modificare la tua routine di cura.' },
       { q: 'Ho bisogno di registrarmi?', a: 'No — puoi analizzare prodotti senza account. Il login con Google sblocca la cronologia, un profilo personale e la possibilità di condividere i risultati.' },
       { q: 'Cosa fare se l\'IA non riconosce il prodotto?', a: 'Prova a scattare una foto più nitida specificamente della lista INCI, assicurandoti che il testo sia ben visibile e non oscurato da ombre.' },
-      { q: 'Posso installare l\'app sul telefono?', a: 'Sì. GlowKey AI è una Progressive Web App (PWA). Nel browser del tuo telefono, tocca "Aggiungi alla schermata Home".' },
+      { q: 'Posso installare l\'app sul telefono?', a: 'Sì. GlowKI è una Progressive Web App (PWA). Nel browser del tuo telefono, tocca "Aggiungi alla schermata Home".' },
     ],
 
-    disclaimer: 'GlowKey AI è uno strumento informativo. L\'analisi è creata dall\'intelligenza artificiale e può contenere errori o interpretazioni incomplete. I risultati non costituiscono un consiglio medico.',
+    disclaimer: 'GlowKI è uno strumento informativo. L\'analisi è creata dall\'intelligenza artificiale e può contenere errori o interpretazioni incomplete. I risultati non costituiscono un consiglio medico.',
   },
 
   tr: {
-    heroEyebrow: 'GlowKey AI — Kullanım Kılavuzu',
+    heroEyebrow: 'GlowKI — Kullanım Kılavuzu',
     heroTitle: 'Ne sürdüğünü',
     heroTitleEm: 'bil',
     heroSubtitle: 'Yapay zeka kozmetik içerikleri okur ve her birini kendi dilinde açıklar',
@@ -659,8 +659,8 @@ const guideContent: Record<Language, {
     introLabel: 'Giriş',
     introTitle: 'Kozmetik formüller artık bir',
     introTitleEm: 'sır değil',
-    introQuote: '"Bir etiketteki Dimetikon, Fenoksietanol veya Bütillenmiş Hidroksitoluen\'in ne anlama geldiğini hiç merak ettiniz mi? GlowKey AI saniyeler içinde çözer." — GlowKey AI Ekibi',
-    introBody: 'GlowKey AI akıllı bir kozmetik içerik analizörüdür. Bir krem, serum, şampuan veya başka bir ürünü fotoğraflayın; uygulama hangi bileşenlerin güvenli olduğunu, nelerin dikkat gerektirdiğini, ürünü nasıl doğru kullanacağınızı ve pazardaki alternatifleri anında söyler.',
+    introQuote: '"Bir etiketteki Dimetikon, Fenoksietanol veya Bütillenmiş Hidroksitoluen\'in ne anlama geldiğini hiç merak ettiniz mi? GlowKI saniyeler içinde çözer." — GlowKI Ekibi',
+    introBody: 'GlowKI akıllı bir kozmetik içerik analizörüdür. Bir krem, serum, şampuan veya başka bir ürünü fotoğraflayın; uygulama hangi bileşenlerin güvenli olduğunu, nelerin dikkat gerektirdiğini, ürünü nasıl doğru kullanacağınızı ve pazardaki alternatifleri anında söyler.',
 
     stepsLabel: 'Nasıl çalışır',
     stepsTitle: 'Tam analize',
@@ -726,13 +726,13 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Fotoğraflarım saklanıyor mu?', a: 'Hayır. Görüntüler yalnızca analiz için kullanılır ve sunucularda saklanmaz. Yalnızca analiz sonucu veritabanına kaydedilir — ve yalnızca giriş yapmışsanız.' },
       { q: 'Analiz ne kadar doğru?', a: 'YZ, EWG Skin Deep, CosDNA, PubChem, INCI Decoder ve EU CosIng verilerini kullanır. Belirli bir içerik hakkında veri yoksa bu açıkça belirtilir.' },
-      { q: 'Bu tıbbi tavsiye mi?', a: 'Hayır. GlowKey AI bilgileri eğitim amaçlı sunar. Bakım rutininizi değiştirmeden önce her zaman bir dermatologa danışın.' },
+      { q: 'Bu tıbbi tavsiye mi?', a: 'Hayır. GlowKI bilgileri eğitim amaçlı sunar. Bakım rutininizi değiştirmeden önce her zaman bir dermatologa danışın.' },
       { q: 'Kayıt olmam gerekiyor mu?', a: 'Hayır — ürünleri hesap olmadan analiz edebilirsiniz. Google girişi tarama geçmişini, kişisel profili ve sonuçları paylaşma özelliğini açar.' },
       { q: 'YZ ürünü tanımazsa ne yapmalıyım?', a: 'Özellikle INCI listesinin daha net bir fotoğrafını çekmeyi deneyin; metnin açıkça görüldüğünden ve gölgeyle örtülmediğinden emin olun.' },
-      { q: 'Uygulamayı telefonuma yükleyebilir miyim?', a: 'Evet. GlowKey AI bir Progressive Web App\'tir (PWA). Telefonunuzun tarayıcısında "Ana ekrana ekle"ye dokunun.' },
+      { q: 'Uygulamayı telefonuma yükleyebilir miyim?', a: 'Evet. GlowKI bir Progressive Web App\'tir (PWA). Telefonunuzun tarayıcısında "Ana ekrana ekle"ye dokunun.' },
     ],
 
-    disclaimer: 'GlowKey AI bir bilgi aracıdır. Analiz yapay zeka tarafından oluşturulur ve hatalar veya eksik yorumlar içerebilir. Sonuçlar tıbbi tavsiye niteliği taşımaz.',
+    disclaimer: 'GlowKI bir bilgi aracıdır. Analiz yapay zeka tarafından oluşturulur ve hatalar veya eksik yorumlar içerebilir. Sonuçlar tıbbi tavsiye niteliği taşımaz.',
   },
 };
 
