@@ -581,7 +581,7 @@ const guideContent: Record<Language, {
     stepsTitle: 'Cinque passi per un\'analisi',
     stepsTitleEm: 'completa',
     steps: [
-      { num: '01', title: 'Fotografa l'etichetta', desc: 'Fotografa il retro della confezione con la lista INCI o l\'intero prodotto. Più nitida è la foto e più chiaro il testo, più precisa è l\'analisi.' },
+      { num: '01', title: "Fotografa l'etichetta", desc: 'Fotografa il retro della confezione con la lista INCI o l\'intero prodotto. Più nitida è la foto e più chiaro il testo, più precisa è l\'analisi.' },
       { num: '02', title: 'Premi — e aspetta 10 secondi', desc: 'Spunta la casella di consenso e premi il pulsante. La tua foto viene inviata all\'IA solo per questa analisi e non viene archiviata.' },
       { num: '03', title: 'Ricevi l\'analisi completa', desc: 'L\'IA legge la formula, verifica database internazionali (EWG, CosDNA, EU CosIng) e restituisce un report strutturato. I prodotti noti vengono caricati dalla cache — quasi istantaneamente.' },
       { num: '04', title: 'Fai domande di approfondimento', desc: 'Dopo l\'analisi appare una chat "Chiedi all\'IA". Chiedi tutto sul prodotto — compatibilità con retinolo, idoneità per pelle sensibile, ordine di applicazione.' },
