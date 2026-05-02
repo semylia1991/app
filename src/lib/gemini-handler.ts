@@ -17,6 +17,26 @@ const MODELS = [
 // Для identify достаточно Flash-Lite — задача простая (только имя + бренд)
 const MODEL_LITE = "gemini-2.5-flash-lite";
 
+// ── Pricing constants (USD per 1M tokens, April 2026) ────────────────────────
+const PRICE = {
+  "gemini-2.0-flash":        { in: 0.10, out: 0.40 },
+  "gemini-2.5-flash":        { in: 0.30, out: 2.50 },
+  "gemini-2.5-flash-lite":   { in: 0.10, out: 0.40 },
+} as const;
+
+function logUsage(action: string, model: string, usage: any, ms: number) {
+  const inp  = usage?.promptTokenCount     ?? 0;
+  const out  = usage?.candidatesTokenCount ?? 0;
+  const p    = PRICE[model as keyof typeof PRICE] ?? { in: 0.30, out: 2.50 };
+  const cost = (inp * p.in + out * p.out) / 1_000_000;
+  console.log(
+    `[gemini] action=${action} model=${model} ` +
+    `in=${inp} out=${out} ` +
+    `cost=$${cost.toFixed(6)} ms=${ms}`
+  );
+}
+
+
 export interface HandlerResult {
   status: number;
   body?: unknown;
@@ -118,7 +138,7 @@ Provide the ENTIRE analysis in ${language}. Every single field — analysis, usa
 Formatting Rules:
 - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
 - analysis: Strictly 1-2 sentences in ${language}. START by stating what the product is. NEVER use English if ${language} is not English.
-- alternatives: Return 2–3 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
+- alternatives: Return 3–5 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
 
 - usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
@@ -187,6 +207,7 @@ Ensure the output strictly follows the JSON schema.`.trim();
     userProfile.hairProblems    ? "hairProblems (HAIR): "    + userProfile.hairProblems     : null,
     userProfile.bodySkinType    ? "bodySkinType (BODY): "    + userProfile.bodySkinType     : null,
     userProfile.climate         ? "climate (UNIVERSAL): "    + userProfile.climate          : null,
+    userProfile.allergies       ? "🟡 allergies (UNIVERSAL — always flag in warnings): " + userProfile.allergies : null,
   ].filter(Boolean).join("\n");
 
   if (!profileLines) return basePrompt;
@@ -252,8 +273,8 @@ STEP 4 — Format for "personalNote" (translate ALL text to ${language}):
   - <preference label in ${language}> <color emoji> — <one short explanation, max ~12 words, tie to specific ingredients>
   ...
 
-  Color emoji: ✅ suitable/beneficial, ⚠️ unclear/depends on individual reaction
-  (default when uncertain), 🚫 problematic/unsuitable.
+  Color emoji: 🟢 suitable/beneficial, 🟡 unclear/depends on individual reaction
+  (default when uncertain), 🔴 problematic/unsuitable.
 
   CRITICAL — LABEL RULES:
   ❌ NEVER output raw camelCase keys like "condPigmentation", "oilySkin", "skinType".
@@ -261,7 +282,7 @@ STEP 4 — Format for "personalNote" (translate ALL text to ${language}):
      Examples: condPigmentation → "Uneven skin tone" / "Неровный тон кожи" / "Ungleichmäßiger Hautton"
                oilySkin → "Oily skin" / "Жирная кожа"
                dryness → "Dryness" / "Сухость"
-  🟢 Use the preference VALUE as the bullet label (e.g. "Oily skin ✅ — ..."),
+  🟢 Use the preference VALUE as the bullet label (e.g. "Oily skin 🟢 — ..."),
      not the field name ("skinType").
   🟢 Each explanation must mention WHY — name the responsible ingredient(s)
      (e.g. "soothes redness (centella + panthenol)", "may clog pores (caprylic triglyceride)").
@@ -375,7 +396,9 @@ async function generateWithRetry(
     const p = { ...params, model } as Parameters<GoogleGenAI["models"]["generateContent"]>[0];
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
+        const _t0 = Date.now();
         const result = await ai.models.generateContent(p);
+        logUsage(String(body?.action ?? "unknown"), model, result.usageMetadata, Date.now() - _t0);
         return result;
       } catch (err: any) {
         lastError = err;
@@ -451,6 +474,7 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
         maxOutputTokens: 60,
       },
     });
+    logUsage("identify", MODEL_LITE, identifyResult.usageMetadata, 0);
     return { status: 200, rawText: identifyResult.text ?? "" };
   }
 
@@ -482,7 +506,6 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
         responseSchema: buildAnalysisSchema(withNote),
         temperature: 0.4,
         topP: 0.9,
-        maxOutputTokens: 4000,
       },
     });
 
@@ -597,9 +620,9 @@ Structure (translate all headings to ${language}):
 🟡 *[Automated analysis based on selected preferences. Not medical advice.]*
 
 COLOR MARKERS — use EXACTLY these emojis:
-- ✅ if the product's ingredients are likely suitable / beneficial for this preference
-- ⚠️ if the effect is unclear, mixed, or depends on individual reaction
-- 🚫 if the product's ingredients are likely problematic / unsuitable for this preference
+- 🟢 if the product's ingredients are likely suitable / beneficial for this preference
+- 🟡 if the effect is unclear, mixed, or depends on individual reaction
+- 🔴 if the product's ingredients are likely problematic / unsuitable for this preference
 
 FORMAT RULES:
 - List EVERY user preference relevant to this product type as its own bullet.
@@ -608,15 +631,15 @@ FORMAT RULES:
   Always translate to human-readable ${language} text:
   condPigmentation → "Uneven skin tone" / "Неровный тон кожи" / "Ungleichmäßiger Hautton"
   Use the preference VALUE as the label, not the field key.
-- Use the user's preference value as the label (e.g. "Oily skin ✅ — …", "Nut allergy 🚫 — …", "Humid climate ⚠️ — …").
-- Default to ⚠️ when evidence is weak or the effect depends on the person.
+- Use the user's preference value as the label (e.g. "Oily skin 🟢 — …", "Nut allergy 🔴 — …", "Humid climate 🟡 — …").
+- Default to 🟡 when evidence is weak or the effect depends on the person.
 - Use mild phrasing in explanations (may cause, can be, tends to) — no medical advice.
 - Each explanation must name the responsible ingredient(s) where possible.
 
 Rules: no medical advice, tie every bullet to a preference, do not invent ingredients.
 PRODUCT TYPE RELEVANCE — CRITICAL: For hair/scalp products (shampoo, conditioner, hair mask, hair oil, etc.) ONLY list hair-related preferences (hairType, scalpCondition, hairProblems) as bullets. Do NOT include skin conditions like enlarged pores, pigmentation, acne — they are irrelevant to hair products. For skincare products ONLY list skin-related preferences. Ignore hair preferences for face/body products.
 CLIMATE: If climate is specified, include it as a bullet — apply it only in the context of the product's use area (scalp/hair for hair products, skin for skincare).
-ALLERGIES: Each listed allergy MUST be its own bullet. If a matching ingredient or close derivative is found → 🚫 with a clear warning. If no match found → 🟢 with "no matching ingredient detected" or similar.`;
+ALLERGIES: Each listed allergy MUST be its own bullet. If a matching ingredient or close derivative is found → 🔴 with a clear warning. If no match found → 🟢 with "no matching ingredient detected" or similar.`;
 
     const response = await generateWithRetry(ai, {
       contents: [{ parts: [{ text: prompt }] }],
