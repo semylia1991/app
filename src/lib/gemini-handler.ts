@@ -390,6 +390,7 @@ function isTransient(err: any): boolean {
 async function generateWithRetry(
   ai: GoogleGenAI,
   params: Omit<Parameters<GoogleGenAI["models"]["generateContent"]>[0], "model">,
+  action = "unknown",
 ): Promise<Awaited<ReturnType<GoogleGenAI["models"]["generateContent"]>>> {
   let lastError: unknown;
   for (const model of MODELS) {
@@ -398,7 +399,7 @@ async function generateWithRetry(
       try {
         const _t0 = Date.now();
         const result = await ai.models.generateContent(p);
-        logUsage(String(body?.action ?? "unknown"), model, result.usageMetadata, Date.now() - _t0);
+        logUsage(action, model, result.usageMetadata, Date.now() - _t0);
         return result;
       } catch (err: any) {
         lastError = err;
@@ -430,7 +431,7 @@ export async function handleGeminiRequest(
     if (!message || typeof message !== "string") {
       return { status: 400, body: { error: "message is required and must be a string." } };
     }
-    const response = await generateWithRetry(ai, { contents: [{ parts: [{ text: message }] }] });
+    const response = await generateWithRetry(ai, { contents: [{ parts: [{ text: message }] }] }, "test");
     return { status: 200, body: { response: response.text } };
   }
 
@@ -507,7 +508,7 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
         temperature: 0.4,
         topP: 0.9,
       },
-    });
+    }, "analyze");
 
     // ── Local DB enrichment ───────────────────────────────────────────────────
     // Override AI descriptions/statuses for ingredients known in our local DB.
@@ -526,7 +527,7 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
     const response = await generateWithRetry(ai, {
       contents: [{ parts: [{ text: buildTranslatePrompt(result, targetLanguage) }] }],
       config: { responseMimeType: "application/json" },
-    });
+    }, "translate");
     return { status: 200, rawText: response.text ?? "" };
   }
 
@@ -540,7 +541,7 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
     }
     const response = await generateWithRetry(ai, {
       contents: [{ parts: [{ text: buildAskPrompt(question, context, language) }] }],
-    });
+    }, "ask");
     return { status: 200, body: { answer: response.text ?? "" } };
   }
 
@@ -653,7 +654,7 @@ ALLERGIES: Each listed allergy MUST be its own bullet. If a matching ingredient 
         temperature: 0.4,
         topP: 0.9,
       },
-    });
+    }, "personalNote");
     return { status: 200, rawText: response.text ?? "" };
   }
 
