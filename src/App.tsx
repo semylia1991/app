@@ -25,6 +25,8 @@ import { CompareSection } from './components/CompareSection';
 import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
 import { PersonalAnalysis } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
+import { WelcomePremiumModal } from './components/WelcomePremiumModal';
+import { CancelPremiumModal } from './components/CancelPremiumModal';
 import { FeedbackSurvey } from './components/FeedbackSurvey';
 import { useSubscription } from './hooks/useSubscription';
 import { SubscriptionPage } from './components/SubscriptionPage';
@@ -210,6 +212,10 @@ export default function App() {
   const [showSubscriptionPage, setShowSubscriptionPage] = useState<boolean>(
     () => window.location.search.includes('portal=return')
   );
+  const [showWelcomePremium, setShowWelcomePremium] = useState<boolean>(
+    () => window.location.search.includes('success=1')
+  );
+  const [showCancelPremium, setShowCancelPremium] = useState<boolean>(false);
 
   // ── Welcome screen — shown once to unauthenticated first-time visitors ──
   const [showWelcome, dismissWelcome] = useShowWelcome(user);
@@ -437,7 +443,12 @@ export default function App() {
         onBack={() => {
           setShowSubscriptionPage(false);
           window.history.replaceState({}, '', window.location.pathname);
-          subscription.refresh();
+          // Check if subscription was canceled in portal
+          subscription.refresh().then(() => {
+            if (!subscription.isPremium) {
+              setShowCancelPremium(true);
+            }
+          });
         }}
         onUpgrade={() => {
           setShowSubscriptionPage(false);
@@ -894,6 +905,21 @@ export default function App() {
         lang={lang}
         reason={paywallReason ?? 'scans'}
         userId={user?.id}
+      />
+
+      <WelcomePremiumModal
+        isOpen={showWelcomePremium}
+        onClose={() => {
+          setShowWelcomePremium(false);
+          window.history.replaceState({}, '', window.location.pathname);
+        }}
+        lang={lang}
+      />
+
+      <CancelPremiumModal
+        isOpen={showCancelPremium}
+        onClose={() => setShowCancelPremium(false)}
+        lang={lang}
       />
 
       <FeedbackSurvey
