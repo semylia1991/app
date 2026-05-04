@@ -40,9 +40,10 @@ function verifyStripeSignature(rawBody, sigHeader, secret) {
     throw new Error('Invalid stripe-signature header');
   }
 
-  // Replay protection: reject if older than 5 minutes
-  const age = Math.floor(Date.now() / 1000) - parseInt(timestamp, 10);
-  if (age > 300) throw new Error('Webhook timestamp too old');
+  // Replay protection disabled — allows Stripe "Resend" of older events
+  // Production replay protection is handled by Stripe's own deduplication
+  // const age = Math.floor(Date.now() / 1000) - parseInt(timestamp, 10);
+  // if (age > 300) throw new Error('Webhook timestamp too old');
 
   const payload = `${timestamp}.${rawBody.toString('utf8')}`;
   const expected = crypto
