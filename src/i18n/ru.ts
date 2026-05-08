@@ -214,7 +214,7 @@ const ru: Translations = {
     tierPhotoCredit: "Фото: Юлия Паркина",
     tierAuthorIntro: "Привет. Я Юлия Паркина.",
     tierAuthorReason: "Я создала GlowKI, потому что сама устала покупать вслепую. Premium позволяет мне продолжать его улучшать.",
-    tierMalteserNote: "Я волонтёр в Malteser Hilfsdienst. 3% от оплаты идут на благотворительность — в этом месяце ты помогаешь Malteser Hilfsdienst.",
+    tierMalteserNote: "Я волонтёр в Malteser Hilfsdienst. 5% от оплаты идут на благотворительность — в этом месяце ты помогаешь Malteser Hilfsdienst.",
     tierChoose: "Выберите еженедельную сумму:",
     tierBasic: "Базовый",
     tierWithYou: "Я с тобой",
