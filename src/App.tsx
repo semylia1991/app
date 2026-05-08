@@ -8,6 +8,7 @@ import type { User } from '@supabase/supabase-js';
 
 import { t, Language, loadLanguage } from './i18n';
 import { analyzeProductImageStream, AnalysisResult, AnalysisDetails, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore } from './services/ai';
+import { computePersonalScore } from './lib/personalScore';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -32,6 +33,35 @@ import { useSubscription } from './hooks/useSubscription';
 import { SubscriptionPage } from './components/SubscriptionPage';
 import { WelcomeScreen, useShowWelcome } from './components/WelcomeScreen';
 import { FirstScanModal, useFirstScanModal } from './components/FirstScanModal';
+
+// Compact score chip rendered in CollapsibleSection headers (always visible)
+// for the Ingredients and Personal Note rows.
+function ScoreBadge({ score }: { score: number | null }) {
+  if (score === null) return null;
+  const color = score >= 7.5 ? '#2D9B5A' : score >= 5 ? '#E8A020' : '#D94040';
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'baseline',
+        gap: 1,
+        padding: '3px 9px',
+        borderRadius: 999,
+        background: `${color}18`,
+        border: `1px solid ${color}55`,
+        fontFamily: 'var(--font-sans)',
+        fontWeight: 700,
+        color,
+        fontSize: '0.78rem',
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {score.toFixed(1)}
+      <span style={{ fontSize: '0.62rem', opacity: 0.75, fontWeight: 600 }}>/10</span>
+    </span>
+  );
+}
 
 /* ── helpers ── */
 function splitParagraphs(text: string): string[] {
@@ -774,7 +804,12 @@ export default function App() {
                   <div className="prose-luxury"><ReactMarkdown>{result.analysis}</ReactMarkdown></div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={15} />} collapseLabel={cl}>
+                <CollapsibleSection
+                  title={t[lang].ingredients}
+                  icon={<Leaf size={15} />}
+                  collapseLabel={cl}
+                  headerBadge={<ScoreBadge score={computeProductScore(result.ingredients)} />}
+                >
                       {result.ingredients.length === 0 ? (
                         <p style={{ fontSize: '0.8rem', color: '#8A8078', fontStyle: 'italic' }}>
                           {lang === 'ru' ? 'Состав не найден. Сфотографируйте этикетку с INCI-списком крупным планом.' :
@@ -838,7 +873,20 @@ export default function App() {
                       })()}
                     </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={15} />} collapseLabel={cl}>
+                <CollapsibleSection
+                  title={t[lang].noteSection}
+                  icon={<NotebookPen size={15} />}
+                  collapseLabel={cl}
+                  headerBadge={
+                    <ScoreBadge
+                      score={
+                        userProfile && result.personalNote
+                          ? computePersonalScore(result.ingredients, userProfile)
+                          : null
+                      }
+                    />
+                  }
+                >
                   <PersonalAnalysis
                     lang={lang} result={result} user={user} userProfile={userProfile}
                     canUseNote={subscription.canScan}
@@ -848,19 +896,6 @@ export default function App() {
                   />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].compareWith} icon={<GitCompareArrows size={15} />} collapseLabel={cl}>
-                  <CompareSection
-                    lang={lang}
-                    current={result}
-                    user={user}
-                    onRegister={() => {
-                      const btn = document.querySelector('[data-auth-button]') as HTMLElement;
-                      btn?.click();
-                    }}
-                  />
-                </CollapsibleSection>
-
-                {/* Product information */}
                 <CollapsibleSection title={t[lang].productInfo} icon={<Info size={15} />} collapseLabel={cl}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <CollapsibleSection title={t[lang].usage} icon={<Info size={15} />} collapseLabel={cl}>
@@ -917,6 +952,19 @@ export default function App() {
                       />
                     </CollapsibleSection>
                   </div>
+                </CollapsibleSection>
+
+
+                <CollapsibleSection title={t[lang].compareWith} icon={<GitCompareArrows size={15} />} collapseLabel={cl}>
+                  <CompareSection
+                    lang={lang}
+                    current={result}
+                    user={user}
+                    onRegister={() => {
+                      const btn = document.querySelector('[data-auth-button]') as HTMLElement;
+                      btn?.click();
+                    }}
+                  />
                 </CollapsibleSection>
 
 
