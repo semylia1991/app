@@ -246,6 +246,9 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [result, setResult]           = useState<AnalysisResult | null>(null);
+  // Defer mounting of Compare & WhereToBuy blocks until the browser is idle —
+  // they're not on the critical path, so let the main analysis paint first.
+  const [secondaryReady, setSecondaryReady] = useState(false);
   const [error, setError]             = useState<string | null>(null);
   const [user, setUser]               = useState<User | null>(null);
   const [sharedLoading, setSharedLoading] = useState(false);
@@ -287,6 +290,27 @@ export default function App() {
 
   const isSharedViewRef = useRef(false);
   useEffect(() => { isSharedViewRef.current = isSharedView; }, [isSharedView]);
+
+  // Schedule mounting of Compare/WhereToBuy when browser is idle.
+  // These blocks query Supabase + render external favicons — defer them
+  // so the main analysis paint isn't blocked.
+  useEffect(() => {
+    if (!result) {
+      setSecondaryReady(false);
+      return;
+    }
+    type IdleWindow = Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    const w = window as IdleWindow;
+    if (typeof w.requestIdleCallback === 'function') {
+      const id = w.requestIdleCallback(() => setSecondaryReady(true), { timeout: 1500 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(() => setSecondaryReady(true), 400);
+    return () => window.clearTimeout(id);
+  }, [result]);
 
   useEffect(() => {
     const loadFromUrl = () => {
@@ -955,22 +979,27 @@ export default function App() {
                 </CollapsibleSection>
 
 
-                <CollapsibleSection title={t[lang].compareWith} icon={<GitCompareArrows size={15} />} collapseLabel={cl}>
-                  <CompareSection
-                    lang={lang}
-                    current={result}
-                    user={user}
-                    onRegister={() => {
-                      const btn = document.querySelector('[data-auth-button]') as HTMLElement;
-                      btn?.click();
-                    }}
-                  />
-                </CollapsibleSection>
+                {/* Compare and WhereToBuy mount lazily (after browser idle) — not on critical path */}
+                {secondaryReady && (
+                  <>
+                    <CollapsibleSection title={t[lang].compareWith} icon={<GitCompareArrows size={15} />} collapseLabel={cl}>
+                      <CompareSection
+                        lang={lang}
+                        current={result}
+                        user={user}
+                        onRegister={() => {
+                          const btn = document.querySelector('[data-auth-button]') as HTMLElement;
+                          btn?.click();
+                        }}
+                      />
+                    </CollapsibleSection>
 
 
-                <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={15} />} collapseLabel={cl}>
-                  <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
-                </CollapsibleSection>
+                    <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={15} />} collapseLabel={cl}>
+                      <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
+                    </CollapsibleSection>
+                  </>
+                )}
               </div>
 
               {/* Footer actions */}
