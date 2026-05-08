@@ -11,7 +11,8 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import dotenv from "dotenv";
 import { handleGeminiRequest } from "./src/lib/gemini-handler.js";
-import { createCheckout, handleWebhook } from "./api/stripe.mjs";
+import createCheckout from "./api/stripe-checkout.mjs";
+import handleWebhook from "./api/webhook.mjs";
  
 dotenv.config({ path: ".env.local" });
  
@@ -111,4 +112,3 @@ async function startServer() {
 }
  
 startServer();
-
