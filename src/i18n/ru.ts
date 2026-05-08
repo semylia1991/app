@@ -72,6 +72,7 @@ const ru: Translations = {
     compareColumnName: "Название",
     compareColumnAnalysis: "Анализ",
     compareColumnPreferences: "По предпочтениям",
+    formulaScore: "Оценка состава",
     compareColumnSummary: "Резюме",
     compareRegisterPrompt: "Зарегистрируйтесь, чтобы сохранять сканирования и сравнивать продукты.",
     compareNoHistoryYet: "В истории пока нет других сканирований.",
