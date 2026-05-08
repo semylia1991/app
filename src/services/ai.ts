@@ -2,6 +2,7 @@
 // The API key is NEVER sent to the browser.
 
 import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage } from './productCache';
+import { lookupIngredient } from '../lib/ingredients-db';
 
 const FUNCTION_URL = "/api/gemini";
 
@@ -21,11 +22,12 @@ export interface Ingredient {
 export function computeProductScore(ingredients: Ingredient[]): number | null {
   if (!ingredients || ingredients.length === 0) return null;
 
-  const statusToScore: Record<string, number> = {
-    "🟢": 10,
-    "🟡": 5,
-    "🔴": 0,
-  };
+  // Fixed fallback when neither score nor DB lookup is available.
+  // Must match the values used in productCache.hydrateScores so the score
+  // is identical regardless of where the ingredients came from
+  // (fresh AI response, old cache without score, scan history, etc).
+  const fallbackByStatus = (status: string) =>
+    status === '🟢' ? 8 : status === '🟡' ? 5 : 1;
 
   let weightedSum = 0;
   let totalWeight = 0;
@@ -33,9 +35,14 @@ export function computeProductScore(ingredients: Ingredient[]): number | null {
   ingredients.forEach((ing, idx) => {
     // Position-based weight: first ingredient = highest weight
     const weight = 1 / (idx + 1);
-    const s = ing.score !== undefined
-      ? ing.score
-      : (statusToScore[ing.status] ?? 5);
+    let s: number;
+    if (typeof ing.score === 'number') {
+      s = ing.score;
+    } else {
+      // Score missing — try local DB (this happens for very old cached scans)
+      const dbEntry = lookupIngredient(ing.name);
+      s = dbEntry ? dbEntry.score : fallbackByStatus(ing.status);
+    }
     weightedSum += s * weight;
     totalWeight += weight;
   });
@@ -282,11 +289,37 @@ export async function translateAnalysisResult(
   result: AnalysisResult,
   targetLanguage: string,
 ): Promise<AnalysisResult> {
-  return callFunction<AnalysisResult>({
+  const translated = await callFunction<AnalysisResult>({
     action: "translate",
     result,
     targetLanguage,
   });
+
+  // ── PRESERVE numeric and structural fields from the original ──────────────
+  // The translate prompt sometimes mishandles non-text fields (drops `score`,
+  // re-renders status emojis, reorders ingredients). We restore them here from
+  // the original result so the Yuka-style score never drifts on language switch.
+  if (translated.ingredients && result.ingredients) {
+    // Build lookup by lowercased INCI name from the ORIGINAL
+    const byName = new Map(
+      result.ingredients.map((i) => [i.name.trim().toLowerCase(), i]),
+    );
+    translated.ingredients = translated.ingredients.map((tIng, idx) => {
+      // First try name match (best — survives reordering)
+      const orig = byName.get(tIng.name.trim().toLowerCase())
+        // Fallback to position match (if AI translated the name itself)
+        ?? result.ingredients[idx];
+      return {
+        ...tIng,
+        // status emoji is data, not text — never let translate change it
+        status: orig?.status ?? tIng.status,
+        // score is numeric — translate often drops it; restore from original
+        score:  orig?.score ?? tIng.score,
+      };
+    });
+  }
+
+  return translated;
 }
 
 export async function askFollowUpQuestion(
@@ -355,59 +388,50 @@ export async function analyzeDetails(
  * Two-stage analysis with progressive paint.
  *
  * Returns immediately with a fast result that contains everything shown
- * "above the fold" (analysis, ingredients, personal note, etc.).
+ * "above the fold" (analysis, ingredients).
  *
- * The provided onDetails callback is invoked LATER, when the deferred fields
- * (usage / benefits / sideEffects / warnings / interactions / alternatives)
- * are ready — so the UI can fill them in without blocking the first paint.
+ * The provided onLateUpdate callback can be invoked MULTIPLE times as
+ * deferred fields become ready:
+ *   - Details (usage, benefits, sideEffects, warnings, interactions, alternatives)
+ *   - personalNote — when there's a profile, this is fetched in parallel and
+ *     streams in without blocking the first paint.
  *
  * Cache strategy:
- *   - Hash hit  → return cached full result; onDetails called with cached fields.
+ *   - Hash hit  → return cached full result; onLateUpdate fires for details + note.
  *   - Name hit  → same.
- *   - Miss      → fast request → return → details request in background.
+ *   - Miss      → fast request → return → details + note both in background.
  */
 export async function analyzeProductImageStream(
   base64Image: string,
   mimeType: string,
   language: string,
   userProfile: SerializedProfile | undefined,
-  onDetails: (details: AnalysisDetails) => void,
+  onLateUpdate: (patch: Partial<AnalysisResult>) => void,
 ): Promise<AnalysisResult> {
   const compressed = await compressImage(base64Image);
 
-  // ── L0: hash cache ────────────────────────────────────────────────────────
-  const imageHash = await hashImage(compressed.data);
-  if (imageHash) {
-    const hashCached = await getCachedByHash(imageHash, language);
-    if (hashCached) {
-      // Cache already has full result — emit details immediately so caller
-      // can use a single update path.
-      queueMicrotask(() => onDetails({
-        usage:        hashCached.usage,
-        benefits:     hashCached.benefits,
-        sideEffects:  hashCached.sideEffects,
-        warnings:     hashCached.warnings,
-        interactions: hashCached.interactions,
-        alternatives: hashCached.alternatives,
-      }));
-      if (userProfile && Object.values(userProfile).some(Boolean)) {
-        try {
-          const note = await generatePersonalNote(hashCached, userProfile, language);
-          return { ...hashCached, personalNote: note };
-        } catch (e) {
-          console.warn('[ai] personalNote failed (hash hit):', e);
-          return hashCached;
-        }
-      }
-      return hashCached;
-    }
-  }
+  const hasProfile = !!userProfile && Object.values(userProfile).some(Boolean);
 
-  // ── L1: identify + analyzeFast in parallel ────────────────────────────────
-  const identifyPromise = identifyProduct(compressed.data, compressed.mimeType).catch((e) => {
-    console.warn('[ai] identify failed:', e);
-    return null;
-  });
+  // Helper: kick off personalNote fetch in background, deliver via onLateUpdate
+  const schedulePersonalNote = (full: AnalysisResult) => {
+    if (!hasProfile) return;
+    generatePersonalNote(full, userProfile!, language)
+      .then((note) => onLateUpdate({ personalNote: note }))
+      .catch((e) => console.warn('[ai] personalNote failed:', e));
+  };
+
+  // ── ALL parallel: hash, cache lookup, identify, analyzeFast ──────────────
+  // All four operations start immediately after compress. Whichever cache
+  // layer hits first wins; the AI requests are wasted but don't delay anything
+  // (they were going to run anyway on cache miss).
+  const hashPromise = hashImage(compressed.data);
+
+  const hashCachePromise = hashPromise.then((h) =>
+    h ? getCachedByHash(h, language) : null,
+  ).catch(() => null);
+
+  const identifyPromise = identifyProduct(compressed.data, compressed.mimeType)
+    .catch((e) => { console.warn('[ai] identify failed:', e); return null; });
 
   const fastPromise = analyzeFastRaw(
     compressed.data,
@@ -416,40 +440,50 @@ export async function analyzeProductImageStream(
     userProfile,
   );
 
+  // Step 1: race the fastest path — hash cache (cheapest, ~150ms)
+  const hashCached = await hashCachePromise;
+  if (hashCached) {
+    queueMicrotask(() => onLateUpdate({
+      usage:        hashCached.usage,
+      benefits:     hashCached.benefits,
+      sideEffects:  hashCached.sideEffects,
+      warnings:     hashCached.warnings,
+      interactions: hashCached.interactions,
+      alternatives: hashCached.alternatives,
+    }));
+    schedulePersonalNote(hashCached);
+    return hashCached;
+  }
+
+  // Step 2: hash missed — wait for identify, then check name cache
   const identification = await identifyPromise;
+  const imageHash = await hashPromise; // already resolved by now
 
   if (identification?.productName && identification?.brand) {
-    const cached = await getCachedAnalysis(
+    const nameCached = await getCachedAnalysis(
       identification.productName,
       identification.brand,
       language,
-    );
-    if (cached) {
+    ).catch(() => null);
+    if (nameCached) {
       if (imageHash) {
-        saveToCache(cached.productName, cached.brand, language, cached, imageHash).catch(() => {});
+        saveToCache(nameCached.productName, nameCached.brand, language, nameCached, imageHash).catch(() => {});
       }
-      queueMicrotask(() => onDetails({
-        usage:        cached.usage,
-        benefits:     cached.benefits,
-        sideEffects:  cached.sideEffects,
-        warnings:     cached.warnings,
-        interactions: cached.interactions,
-        alternatives: cached.alternatives,
+      queueMicrotask(() => onLateUpdate({
+        usage:        nameCached.usage,
+        benefits:     nameCached.benefits,
+        sideEffects:  nameCached.sideEffects,
+        warnings:     nameCached.warnings,
+        interactions: nameCached.interactions,
+        alternatives: nameCached.alternatives,
       }));
-      if (userProfile && Object.values(userProfile).some(Boolean)) {
-        try {
-          const note = await generatePersonalNote(cached, userProfile, language);
-          return { ...cached, personalNote: note };
-        } catch (e) {
-          console.warn('[ai] personalNote failed (name hit):', e);
-          return cached;
-        }
-      }
-      return cached;
+      schedulePersonalNote(nameCached);
+      return nameCached;
     }
   }
 
-  // ── L2: cache miss — wait for fast, kick off details in background ────────
+  // Step 3: full miss — analyzeFast was already running in parallel.
+  // We just await its result (likely already resolved by now).
   const fast = await fastPromise;
 
   // Default empty details so the AnalysisResult shape is preserved
@@ -469,11 +503,10 @@ export async function analyzeProductImageStream(
     ...placeholder,
   };
 
-  // Fire details in background — caller uses onDetails to merge into state.
+  // Fire details in background — caller uses onLateUpdate to merge into state.
   analyzeDetails(fast, language)
     .then((details) => {
-      onDetails(details);
-      // Save full result to cache so subsequent scans get an L0/L1 hit
+      onLateUpdate(details);
       if (fast.productName && fast.brand) {
         const full: AnalysisResult = { ...partialResult, ...details };
         saveToCache(full.productName, full.brand, language, full, imageHash).catch((e) =>
