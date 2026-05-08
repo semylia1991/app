@@ -8,9 +8,12 @@ interface Props {
   children: React.ReactNode;
   defaultOpen?: boolean;
   collapseLabel?: string;
+  // Optional badge rendered in the header (always visible, between title and chevron).
+  // Used e.g. for the Yuka-style score on the Ingredients / PersonalNote rows.
+  headerBadge?: React.ReactNode;
 }
 
-export function CollapsibleSection({ title, icon, children, defaultOpen = false, collapseLabel }: Props) {
+export function CollapsibleSection({ title, icon, children, defaultOpen = false, collapseLabel, headerBadge }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -25,7 +28,7 @@ export function CollapsibleSection({ title, icon, children, defaultOpen = false,
           transition: 'background 0.2s',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
           {/* green icon badge */}
           <span className="section-icon-wrap">
             {icon}
@@ -38,9 +41,12 @@ export function CollapsibleSection({ title, icon, children, defaultOpen = false,
             {title}
           </h3>
         </div>
-        <span style={{ color: '#2D5A3D', display: 'flex', flexShrink: 0 }}>
-          {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {headerBadge}
+          <span style={{ color: '#2D5A3D', display: 'flex' }}>
+            {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </span>
+        </div>
       </button>
 
       <AnimatePresence initial={false}>
