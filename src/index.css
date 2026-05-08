@@ -194,3 +194,9 @@ h1,h2,h3,h4,h5,h6,.font-serif {
   color: #2D5A3D;
   flex-shrink: 0;
 }
+
+/* ── SHIMMER ANIMATION (deferred-section placeholders) ── */
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
