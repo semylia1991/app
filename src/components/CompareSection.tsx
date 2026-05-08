@@ -4,7 +4,7 @@ import { ChevronRight, UserPlus, AlertCircle, ArrowLeft, Loader2 } from 'lucide-
 import type { User } from '@supabase/supabase-js';
 import { supabase, ScanRecord } from '../lib/supabase';
 import { t, Language } from '../i18n';
-import { AnalysisResult } from '../services/ai';
+import { AnalysisResult, computeProductScore } from '../services/ai';
 
 interface Props {
   lang: Language;
@@ -246,6 +246,26 @@ export function CompareSection({ lang, current, user, onRegister }: Props) {
                 <div style={{ fontWeight: 500, color: '#1A1410', wordBreak: 'break-word', fontSize: '0.85rem' }}>{picked.productName}</div>
                 <div style={{ fontStyle: 'italic', color: '#2D5A3D', fontSize: '0.72rem' }}>{picked.brand}</div>
               </div>
+
+              {/* ─── Formula score — Yuka-style number for each product ─── */}
+              <div style={sharedLabelStyle}>🧪 {tt.formulaScore ?? 'Formula score'}</div>
+              {(() => {
+                const renderScore = (r: AnalysisResult) => {
+                  const s = computeProductScore(r.ingredients);
+                  if (s === null) return <div style={{ ...sectionBodyStyle, color: '#8A8078', fontStyle: 'italic' }}>—</div>;
+                  const color = s >= 7.5 ? '#2D9B5A' : s >= 5 ? '#E8A020' : '#D94040';
+                  return (
+                    <div style={{ ...sectionBodyStyle, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 700, color, fontFamily: 'var(--font-sans)', lineHeight: 1 }}>{s.toFixed(1)}</span>
+                      <span style={{ fontSize: '0.7rem', color, opacity: 0.75, fontFamily: 'var(--font-sans)' }}>/10</span>
+                      <div style={{ flex: 1, height: 5, background: 'rgba(0,0,0,0.07)', borderRadius: 8, overflow: 'hidden', minWidth: 30 }}>
+                        <div style={{ height: '100%', width: `${s * 10}%`, background: color, borderRadius: 8 }} />
+                      </div>
+                    </div>
+                  );
+                };
+                return <>{renderScore(current)}{renderScore(picked)}</>;
+              })()}
 
               {/* ─── Analysis — shared label spans both columns ─── */}
               <div style={sharedLabelStyle}>📋 {tt.compareColumnAnalysis}</div>
