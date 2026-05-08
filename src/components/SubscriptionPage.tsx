@@ -32,7 +32,7 @@ const TIERS: Tier[] = [
   { id: 'custom',   amount: 0,    labelKey: 'tierCustom' },
 ];
 
-// 3% donation share (display-only, source of truth = backend)
+// 5% donation share (display-only, source of truth = backend)
 const DONATION_PCT = 0.03;
 const MIN_CUSTOM = 1;
 const MAX_CUSTOM = 99;
