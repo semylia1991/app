@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
 import { t, Language, loadLanguage } from './i18n';
-import { analyzeProductImage, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile } from './services/ai';
+import { analyzeProductImageStream, AnalysisResult, AnalysisDetails, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore } from './services/ai';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -36,6 +36,33 @@ import { FirstScanModal, useFirstScanModal } from './components/FirstScanModal';
 /* ── helpers ── */
 function splitParagraphs(text: string): string[] {
   return text.split('\n\n').map(s => s.trim()).filter(Boolean);
+}
+
+// Shimmer placeholder shown while deferred sections (usage / benefits / etc.)
+// are still loading from the analyzeDetails request.
+function LoadingPlaceholder({ lang }: { lang: Language }) {
+  const label =
+    lang === 'ru' ? 'Загружаем подробности…' :
+    lang === 'uk' ? 'Завантажуємо деталі…' :
+    lang === 'de' ? 'Details werden geladen…' :
+    lang === 'es' ? 'Cargando detalles…' :
+    lang === 'fr' ? 'Chargement des détails…' :
+    lang === 'it' ? 'Caricamento dettagli…' :
+    lang === 'tr' ? 'Detaylar yükleniyor…' :
+    'Loading details…';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: '#8A8078', fontStyle: 'italic', fontFamily: 'var(--font-serif)' }}>
+        <Loader2 size={14} className="animate-spin" style={{ color: '#B8923A' }} />
+        {label}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+        <div style={{ height: 10, width: '85%', background: 'linear-gradient(90deg, rgba(221,213,200,0.3) 0%, rgba(221,213,200,0.6) 50%, rgba(221,213,200,0.3) 100%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite', borderRadius: 4 }} />
+        <div style={{ height: 10, width: '70%', background: 'linear-gradient(90deg, rgba(221,213,200,0.3) 0%, rgba(221,213,200,0.6) 50%, rgba(221,213,200,0.3) 100%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite 0.2s', borderRadius: 4 }} />
+        <div style={{ height: 10, width: '92%', background: 'linear-gradient(90deg, rgba(221,213,200,0.3) 0%, rgba(221,213,200,0.6) 50%, rgba(221,213,200,0.3) 100%)', backgroundSize: '200% 100%', animation: 'shimmer 1.6s infinite 0.4s', borderRadius: 4 }} />
+      </div>
+    </div>
+  );
 }
 
 function UsageSection({ text, shelfLife, shelfLifeLabel }: { text: string; shelfLife?: string; shelfLifeLabel?: string }) {
@@ -344,7 +371,27 @@ export default function App() {
             };
           })()
         : undefined;
-      const analysis = await analyzeProductImage(previewUrl, mimeType, lang, serializedProfile);
+      // Two-stage: fast paint first, details stream in afterwards.
+      const langAtScan = lang;
+      const analysis = await analyzeProductImageStream(
+        previewUrl,
+        mimeType,
+        lang,
+        serializedProfile,
+        (details: AnalysisDetails) => {
+          // Don't overwrite state if user has switched language in the meantime —
+          // the freshly-translated result is more correct than stale details.
+          if (langAtScan !== lang) return;
+          setResult((prev) => {
+            if (!prev) return prev;
+            const merged: AnalysisResult = { ...prev, ...details };
+            originalResult.current = merged;
+            translationCache.current.set(langAtScan, merged);
+            saveScanToHistory(merged).catch(() => {});
+            return merged;
+          });
+        },
+      );
       const analysisWithShops: AnalysisResult = {
         ...analysis,
         shopLinks: buildShopLinks(analysis.productName, analysis.brand),
@@ -355,6 +402,7 @@ export default function App() {
       setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
+      // Initial save with the fast subset; will be re-saved when details arrive.
       await saveScanToHistory(analysis);
       await subscription.incrementScans();
       if (userProfile && analysisWithShops.personalNote) await subscription.incrementNoteAnalysis();
@@ -726,6 +774,70 @@ export default function App() {
                   <div className="prose-luxury"><ReactMarkdown>{result.analysis}</ReactMarkdown></div>
                 </CollapsibleSection>
 
+                <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={15} />} collapseLabel={cl}>
+                      {result.ingredients.length === 0 ? (
+                        <p style={{ fontSize: '0.8rem', color: '#8A8078', fontStyle: 'italic' }}>
+                          {lang === 'ru' ? 'Состав не найден. Сфотографируйте этикетку с INCI-списком крупным планом.' :
+                           lang === 'uk' ? 'Склад не знайдено. Сфотографуйте етикетку зі списком INCI великим планом.' :
+                           lang === 'de' ? 'Inhaltsstoffe nicht gefunden. Fotografieren Sie bitte das INCI-Etikett in Nahaufnahme.' :
+                           lang === 'es' ? 'Ingredientes no encontrados. Fotografíe la etiqueta INCI de cerca.' :
+                           lang === 'fr' ? "Ingrédients introuvables. Photographiez l'étiquette INCI en gros plan." :
+                           lang === 'it' ? "Ingredienti non trovati. Fotografa l'etichetta INCI da vicino." :
+                           lang === 'tr' ? 'İçerikler bulunamadı. Lütfen INCI etiketini yakından fotoğraflayın.' :
+                           'Ingredients not found. Please photograph the INCI label up close.'}
+                        </p>
+                      ) : (() => {
+                        const productScore = computeProductScore(result.ingredients);
+                        const scoreColor = productScore === null ? '#8A8078'
+                          : productScore >= 7.5 ? '#2D9B5A'
+                          : productScore >= 5 ? '#E8A020'
+                          : '#D94040';
+                        const scoreLabel = productScore === null ? '' :
+                          lang === 'ru' ? (productScore >= 7.5 ? 'Отличный состав' : productScore >= 5 ? 'Хороший состав' : 'Состав вызывает опасения') :
+                          lang === 'uk' ? (productScore >= 7.5 ? 'Чудовий склад' : productScore >= 5 ? 'Хороший склад' : 'Склад викликає занепокоєння') :
+                          lang === 'de' ? (productScore >= 7.5 ? 'Ausgezeichnete Formel' : productScore >= 5 ? 'Gute Formel' : 'Formel bedenklich') :
+                          lang === 'es' ? (productScore >= 7.5 ? 'Fórmula excelente' : productScore >= 5 ? 'Buena fórmula' : 'Fórmula preocupante') :
+                          lang === 'fr' ? (productScore >= 7.5 ? 'Excellente formule' : productScore >= 5 ? 'Bonne formule' : 'Formule préoccupante') :
+                          lang === 'it' ? (productScore >= 7.5 ? 'Formula eccellente' : productScore >= 5 ? 'Buona formula' : 'Formula preoccupante') :
+                          lang === 'tr' ? (productScore >= 7.5 ? 'Mükemmel formül' : productScore >= 5 ? 'İyi formül' : 'Formül endişe verici') :
+                          (productScore >= 7.5 ? 'Excellent formula' : productScore >= 5 ? 'Good formula' : 'Formula of concern');
+                        return (
+                          <>
+                            {productScore !== null && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', marginBottom: 12, background: 'rgba(255,255,255,0.6)', borderRadius: 14, border: `1.5px solid ${scoreColor}22` }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 64 }}>
+                                  <span style={{ fontSize: '2rem', fontWeight: 800, color: scoreColor, lineHeight: 1, fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em' }}>
+                                    {productScore.toFixed(1)}
+                                  </span>
+                                  <span style={{ fontSize: '0.72rem', color: scoreColor, opacity: 0.75, fontFamily: 'var(--font-sans)', marginTop: 1 }}>/10</span>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ height: 8, background: 'rgba(0,0,0,0.07)', borderRadius: 8, overflow: 'hidden', marginBottom: 6 }}>
+                                    <div style={{ height: '100%', width: `${productScore * 10}%`, background: scoreColor, borderRadius: 8, transition: 'width 0.6s ease' }} />
+                                  </div>
+                                  <span style={{ fontSize: '0.8rem', color: scoreColor, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{scoreLabel}</span>
+                                </div>
+                              </div>
+                            )}
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                              {result.ingredients.map((ing, idx) => {
+                                return (
+                                  <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '0.5px solid rgba(221,213,200,0.5)' }}>
+                                    <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
+                                    <div style={{ flex: 1 }}>
+                                      <span style={{ display: 'block', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2, fontFamily: 'var(--font-sans)' }}>{ing.name}</span>
+                                      <span style={{ fontSize: '1.05rem', color: '#8A8078', lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>{ing.description}</span>
+                                    </div>
+                                    
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </>
+                        );
+                      })()}
+                    </CollapsibleSection>
+
                 <CollapsibleSection title={t[lang].noteSection} icon={<NotebookPen size={15} />} collapseLabel={cl}>
                   <PersonalAnalysis
                     lang={lang} result={result} user={user} userProfile={userProfile}
@@ -751,51 +863,40 @@ export default function App() {
                 {/* Product information */}
                 <CollapsibleSection title={t[lang].productInfo} icon={<Info size={15} />} collapseLabel={cl}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <CollapsibleSection title={t[lang].ingredients} icon={<Leaf size={15} />} collapseLabel={cl}>
-                      {result.ingredients.length === 0 ? (
-                        <p style={{ fontSize: '0.8rem', color: '#8A8078', fontStyle: 'italic' }}>
-                          {lang === 'ru' ? 'Состав не найден. Сфотографируйте этикетку с INCI-списком крупным планом.' :
-                           lang === 'uk' ? 'Склад не знайдено. Сфотографуйте етикетку зі списком INCI великим планом.' :
-                           lang === 'de' ? 'Inhaltsstoffe nicht gefunden. Fotografieren Sie bitte das INCI-Etikett in Nahaufnahme.' :
-                           lang === 'es' ? 'Ingredientes no encontrados. Fotografíe la etiqueta INCI de cerca.' :
-                           lang === 'fr' ? "Ingrédients introuvables. Photographiez l'étiquette INCI en gros plan." :
-                           lang === 'it' ? "Ingredienti non trovati. Fotografa l'etichetta INCI da vicino." :
-                           lang === 'tr' ? 'İçerikler bulunamadı. Lütfen INCI etiketini yakından fotoğraflayın.' :
-                           'Ingredients not found. Please photograph the INCI label up close.'}
-                        </p>
-                      ) : (
-                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                          {result.ingredients.map((ing, idx) => (
-                            <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '0.5px solid rgba(221,213,200,0.5)' }}>
-                              <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
-                              <div>
-                                <span style={{ display: 'block', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2, fontFamily: 'var(--font-sans)' }}>{ing.name}</span>
-                                <span style={{ fontSize: '1.05rem', color: '#8A8078', lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>{ing.description}</span>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </CollapsibleSection>
-
                     <CollapsibleSection title={t[lang].usage} icon={<Info size={15} />} collapseLabel={cl}>
-                      <UsageSection text={result.usage} shelfLife={result.shelfLife} shelfLifeLabel={t[lang].shelfLife} />
+                      {result.usage
+                        ? <UsageSection text={result.usage} shelfLife={result.shelfLife} shelfLifeLabel={t[lang].shelfLife} />
+                        : <LoadingPlaceholder lang={lang} />}
                     </CollapsibleSection>
 
                     <CollapsibleSection title={t[lang].benefits} icon={<Sparkles size={15} />} collapseLabel={cl}>
-                      <BenefitsSection text={result.benefits} />
+                      {result.benefits
+                        ? <BenefitsSection text={result.benefits} />
+                        : <LoadingPlaceholder lang={lang} />}
                     </CollapsibleSection>
 
                     <CollapsibleSection title={t[lang].sideEffects} icon={<AlertTriangle size={15} />} collapseLabel={cl}>
-                      <BenefitsSection text={result.sideEffects} />
+                      {result.sideEffects
+                        ? <BenefitsSection text={result.sideEffects} />
+                        : <LoadingPlaceholder lang={lang} />}
                     </CollapsibleSection>
 
                     <CollapsibleSection title={t[lang].warnings} icon={<AlertCircle size={15} />} collapseLabel={cl}>
-                      <div className="prose-luxury"><ReactMarkdown>{result.warnings}</ReactMarkdown></div>
+                      {result.warnings
+                        ? <div className="prose-luxury"><ReactMarkdown>{result.warnings}</ReactMarkdown></div>
+                        : <LoadingPlaceholder lang={lang} />}
                     </CollapsibleSection>
 
                     <CollapsibleSection title={t[lang].interactions} icon={<Zap size={15} />} collapseLabel={cl}>
-                      <BenefitsSection text={result.interactions} />
+                      {result.interactions
+                        ? <BenefitsSection text={result.interactions} />
+                        : <LoadingPlaceholder lang={lang} />}
+                    </CollapsibleSection>
+
+                    <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={15} />} collapseLabel={cl}>
+                      {result.alternatives && result.alternatives.length > 0
+                        ? <AlternativesSection alternatives={result.alternatives} />
+                        : <LoadingPlaceholder lang={lang} />}
                     </CollapsibleSection>
 
                     <CollapsibleSection title={t[lang].askAi} icon={<Sparkles size={15} />} collapseLabel={cl}>
@@ -818,9 +919,6 @@ export default function App() {
                   </div>
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].alternatives} icon={<RefreshCw size={15} />} collapseLabel={cl}>
-                  <AlternativesSection alternatives={result.alternatives} />
-                </CollapsibleSection>
 
                 <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={15} />} collapseLabel={cl}>
                   <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
@@ -889,7 +987,7 @@ export default function App() {
       </footer>
 
       {/* ── MODALS & OVERLAYS ── */}
-      <LoadingScreen isVisible={isAnalyzing} lang={lang} />
+      <LoadingScreen isVisible={isAnalyzing} lang={lang} currentStep={0} />
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
 
       <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent />} />
