@@ -59,8 +59,9 @@ function buildAnalysisSchema(withPersonalNote: boolean) {
           name:        { type: Type.STRING },
           status:      { type: Type.STRING, enum: ["🟢", "🟡", "🔴"] },
           description: { type: Type.STRING },
+          score:       { type: Type.NUMBER },
         },
-        required: ["name", "status", "description"],
+        required: ["name", "status", "description", "score"],
       },
     },
     usage:        { type: Type.STRING },
@@ -95,6 +96,66 @@ function buildAnalysisSchema(withPersonalNote: boolean) {
   }
 
   return { type: Type.OBJECT, properties, required };
+}
+
+// Schema for FAST first-paint response — only fields shown immediately.
+function buildAnalysisFastSchema(withPersonalNote: boolean) {
+  const properties: Record<string, unknown> = {
+    productName:  { type: Type.STRING },
+    brand:        { type: Type.STRING },
+    productType:  { type: Type.STRING },
+    analysis:     { type: Type.STRING },
+    shelfLife:    { type: Type.STRING },
+    ingredients: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name:        { type: Type.STRING },
+          status:      { type: Type.STRING, enum: ["🟢", "🟡", "🔴"] },
+          description: { type: Type.STRING },
+          score:       { type: Type.NUMBER },
+        },
+        required: ["name", "status", "description", "score"],
+      },
+    },
+  };
+
+  const required = ["productName", "brand", "productType", "analysis", "shelfLife", "ingredients"];
+
+  if (withPersonalNote) {
+    properties["personalNote"] = { type: Type.STRING };
+    required.push("personalNote");
+  }
+
+  return { type: Type.OBJECT, properties, required };
+}
+
+// Schema for the deferred details — usage, benefits, sideEffects, warnings, interactions, alternatives.
+function buildAnalysisDetailsSchema() {
+  return {
+    type: Type.OBJECT,
+    properties: {
+      usage:        { type: Type.STRING },
+      benefits:     { type: Type.STRING },
+      sideEffects:  { type: Type.STRING },
+      warnings:     { type: Type.STRING },
+      interactions: { type: Type.STRING },
+      alternatives: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            name:   { type: Type.STRING },
+            brand:  { type: Type.STRING },
+            reason: { type: Type.STRING },
+          },
+          required: ["name", "brand", "reason"],
+        },
+      },
+    },
+    required: ["usage", "benefits", "sideEffects", "warnings", "interactions", "alternatives"],
+  };
 }
 
 // ── Prompts ───────────────────────────────────────────────────────────────────
@@ -132,6 +193,27 @@ Rare/exotic/proprietary trademark names are likely NOT in the DB.
 
 When in doubt, give a real description — false placeholders cause errors but real
 descriptions never do.
+
+INGREDIENT SCORE — YUKA-STYLE FORMULA:
+For EVERY ingredient, you MUST output a "score" field (integer 0–10).
+This score represents the ingredient's safety/benefit profile.
+
+Scoring guide:
+  • 🟢 Safe ingredients: score 7–10
+    - 10: skin-identical, certified natural, proven beneficial (hyaluronic acid, ceramides, niacinamide, vitamins, aloe vera)
+    - 8–9: well-tolerated functional ingredients (glycerin, plant oils, allantoin, panthenol)
+    - 7: neutral/synthetic but safe (glycols, mild emulsifiers, silicones)
+  • 🟡 Caution ingredients: score 3–6
+    - 5–6: mildly irritating in some users (alcohol denat, SLS, fragrance compounds)
+    - 3–4: restricted by EU, potential sensitizers (some preservatives, certain UV filters)
+  • 🔴 Avoid ingredients: score 0–2
+    - 0–1: proven harmful, banned (formaldehyde releasers, mercury, lead)
+    - 2: high-risk irritants or endocrine disruptors
+
+Note: the server AUTOMATICALLY assigns score from the local DB for known ingredients
+(🟢 → 10, 🟡 → 5, 🔴 → 0). Your score is used ONLY for ingredients NOT in the DB.
+So for known ingredients you may output score: 5 as a placeholder — it will be overwritten.
+For unknown/rare ingredients your score is final — be accurate.
 
 Provide the ENTIRE analysis in ${language}. Every single field — analysis, usage, benefits, sideEffects, warnings, interactions, shelfLife — MUST be written in ${language}. Do NOT use English for any field unless ${language} is English.
 
@@ -291,6 +373,172 @@ ${profileLines}
   return basePrompt + personalNoteSection;
 }
 
+// ── FAST analyze prompt — only fields shown immediately to the user ──────────
+// Returns: productName, brand, productType, analysis, ingredients, shelfLife,
+// and (optionally) personalNote. Skips heavy fields (usage / benefits / etc.).
+function buildAnalyzeFastPrompt(language: string, userProfile?: Record<string, unknown>): string {
+  const basePrompt = `
+You are an expert cosmetic safety analyst and INCI decoder.
+Analyze the provided image of a cosmetic product or its ingredient list.
+Extract the product name, brand, and INCI ingredients. Correct any OCR errors.
+NEVER invent ingredients, ratings, or studies. If data is not found, state "Data not found in public databases.".
+
+For each ingredient in the "ingredients" array you MUST always provide a "description" field (1–7 words).
+
+⚡ TOKEN-SAVING RULE — VERY IMPORTANT:
+The server has a local database of well-known INCI ingredients with pre-written
+descriptions and safety statuses. After your response, the server will AUTOMATICALLY
+overwrite the "description" and "status" of any ingredient that exists in this
+local database. So:
+
+  • If the ingredient name (lowercased, trimmed) matches a key in the local DB
+    → you may output description: "-" and status: "🟢" as a placeholder.
+  • If the ingredient is NOT in the local DB → you MUST give a real description
+    (1–7 words) and a real status. Be accurate, this is final.
+
+INGREDIENT SCORE (0–10, Yuka-style):
+  • 🟢 7–10 — safe (10 = skin-identical/active; 9 = excellent natural; 8 = plant extract; 7 = neutral functional)
+  • 🟡 3–6 — caution (5–6 mild, 3–4 sensitizers/restricted)
+  • 🔴 0–2 — avoid (formaldehyde, banned, harmful)
+For known DB ingredients you can output any number — server overrides with DB score.
+
+Provide the ENTIRE analysis in ${language}. Every text field MUST be in ${language}.
+
+Formatting:
+- productType: exact type (e.g. "Moisturizing Cream", "Exfoliating Toner").
+- analysis: STRICTLY 1-2 sentences in ${language}. Start by stating what the product is.
+- shelfLife: how long after opening (e.g. "12 months", "6 months after opening").
+
+Output strict JSON matching the schema. Do NOT include usage, benefits, sideEffects, warnings, interactions, alternatives — those are in a separate request.`.trim();
+
+  if (!userProfile) return basePrompt;
+
+  const profileLines = [
+    userProfile.skinType        ? "skinType (FACE): "        + userProfile.skinType        : null,
+    userProfile.skinSensitivity ? "skinSensitivity (FACE): " + userProfile.skinSensitivity : null,
+    userProfile.skinConditions  ? "skinConditions (FACE): "  + userProfile.skinConditions  : null,
+    userProfile.ageRange        ? "ageRange (FACE): "        + userProfile.ageRange         : null,
+    userProfile.hairType        ? "hairType (HAIR): "        + userProfile.hairType         : null,
+    userProfile.scalpCondition  ? "scalpCondition (HAIR): "  + userProfile.scalpCondition  : null,
+    userProfile.hairProblems    ? "hairProblems (HAIR): "    + userProfile.hairProblems     : null,
+    userProfile.bodySkinType    ? "bodySkinType (BODY): "    + userProfile.bodySkinType     : null,
+    userProfile.climate         ? "climate (UNIVERSAL): "    + userProfile.climate          : null,
+  ].filter(Boolean).join("\n");
+
+  if (!profileLines) return basePrompt;
+
+  const personalNoteSection = `
+
+═══════════════════════════════════════════════════════════════════════
+PERSONAL NOTE — produce a "personalNote" field in ${language}.
+
+STEP 1 — classify productType into ONE category:
+  HAIR (shampoo/conditioner/oil/mask), FACE (cream/serum/toner/sunscreen),
+  BODY (lotion/butter/oil/scrub), LIPS, NAILS, OTHER.
+
+STEP 2 — only use these profile fields per category:
+  HAIR  → hairType, scalpCondition, hairProblems, climate
+  FACE  → skinType, skinSensitivity, skinConditions, ageRange, climate
+  BODY  → bodySkinType, climate
+  LIPS  → skinSensitivity, climate
+  NAILS → (none)
+  OTHER → skinSensitivity, climate
+
+NEVER mix categories. NEVER mention irrelevant preferences. Allergies stay in warnings.
+
+STEP 3 — Format (translate to ${language}):
+  **[Brief summary]** 1-2 sentences referencing relevant preferences.
+  **[By preferences:]**
+  - <human-readable label> <emoji> — <short explanation, name responsible ingredient(s)>
+  - ...
+  Emoji: ✅ suitable, ⚠️ depends/uncertain, ⛔️ problematic.
+
+NEVER output raw camelCase keys. Translate them.
+
+USER PROFILE:
+${profileLines}
+═══════════════════════════════════════════════════════════════════════`;
+
+  return basePrompt + personalNoteSection;
+}
+
+// ── DETAILS analyze prompt — heavy fields produced in a second request ──────
+// Receives the fast result so AI doesn't re-analyze what's already known.
+function buildAnalyzeDetailsPrompt(language: string, fastResult: Record<string, unknown>): string {
+  const productLine    = `${fastResult.brand ?? ''} ${fastResult.productName ?? ''}`.trim();
+  const productType    = String(fastResult.productType ?? '');
+  const ingredientsStr = Array.isArray(fastResult.ingredients)
+    ? (fastResult.ingredients as Array<Record<string, unknown>>)
+        .map((i) => `${i.status ?? ''} ${i.name ?? ''}`)
+        .join(', ')
+    : '';
+
+  return `
+You are an expert cosmetic analyst. The product has already been identified.
+Your ONLY task: produce the DETAILED sections (usage, benefits, sideEffects, warnings, interactions, alternatives) in ${language}.
+Do NOT re-analyze ingredients or change identification.
+
+PRODUCT: ${productLine}
+PRODUCT TYPE: ${productType}
+INGREDIENTS: ${ingredientsStr}
+
+Provide ALL fields in ${language}. Translate every category label.
+
+- usage: Use this exact format with emojis. Translate ALL labels into ${language}. Use DOUBLE NEWLINES between items:
+👤 [translated "Best Suited For"]:
+- [Skin type] — [why]
+
+📋 [translated "How to Apply"]:
+- [Step 1]
+- [Step 2]
+- [Step 3]
+
+⏰ [translated "Frequency"]:
+- [How often — morning/evening/weekly]
+- [How long before seeing results]
+
+💧 [translated "Amount to Use"]:
+- [Exact amount — drops, pea-size, pump etc.]
+- [How to spread]
+
+🌡️ [translated "Before and After"]:
+- [What to do before]
+- [What to apply after]
+
+- benefits: emojis + bullet points + translated category headers. DOUBLE NEWLINES between categories:
+🧱 [translated category]:
+• [Ingredient/Mechanism] [description]
+
+💧 [translated category]:
+• [Ingredient/Mechanism] [description]
+
+- sideEffects: same style. Group by reaction type. DOUBLE NEWLINES between categories:
+🟡 [translated category]:
+• [Ingredient] [description]
+
+🔴 [translated category]:
+• [Ingredient] [description]
+
+- warnings: brief markdown paragraph. Mention allergies / contraindications.
+
+- interactions: TWO blocks separated by ---. DOUBLE NEWLINES between categories:
+
+## 🟢 [translated "Best Combinations"]
+
+[translated "Actives Compatibility"]:
+- [Active] — [why it works well]
+---
+
+## 🔴 [translated "Caution: Conflicts!"]
+
+[translated "Avoid Combining With"]:
+- [Ingredient/type] — [reason]
+
+- alternatives: 2-3 real, commercially available products as JSON array, ranked by ingredient overlap. Each item: name, brand, reason (one sentence naming 2–3 shared key INCI actives and any meaningful differences).
+
+Output strict JSON matching the schema.`.trim();
+}
+
 function buildTranslatePrompt(result: unknown, targetLanguage: string): string {
   return `
 Translate this JSON to ${targetLanguage}.
@@ -352,13 +600,15 @@ function applyLocalDbEnrichment(rawJson: string, language?: string): string {
 
     knownCount++;
     // Extract localised string from description object; fallback to English
-    const descObj = local.description as Record<string, string>;
+    const descObj = local.description as unknown as Record<string, string>;
     const description = descObj[langCode] ?? descObj["en"] ?? "";
+    // Use the precise Yuka-style score stored in the local DB
+    // AI score is ignored for known ingredients — DB score is authoritative
     return {
       name: ing.name,
-      // Local DB is canonical for known INCI: its status takes precedence
       status: local.status,
       description,
+      score: local.score,
     };
   });
 
@@ -475,6 +725,73 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
   }
 
   // ── Analyze product image ───────────────────────────────────────────────────
+  // ── Analyze FAST — first paint with only immediately-shown fields ─────────
+  // Returns: productName, brand, productType, analysis, ingredients, shelfLife, personalNote
+  // ~50% fewer tokens than full analyze → significantly faster first paint.
+  if (action === "analyzeFast") {
+    const { base64Image, mimeType, language, userProfile } = body as {
+      base64Image?: string;
+      mimeType?: string;
+      language?: string;
+      userProfile?: Record<string, unknown>;
+    };
+
+    if (!base64Image || !mimeType || !language) {
+      return { status: 400, body: { error: "base64Image, mimeType, and language are required." } };
+    }
+
+    const imageData = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
+    const withNote  = !!userProfile;
+
+    const response = await generateWithRetry(ai, {
+      contents: [{
+        parts: [
+          { text: buildAnalyzeFastPrompt(language, userProfile) },
+          { inlineData: { data: imageData, mimeType } },
+        ],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: buildAnalysisFastSchema(withNote),
+        temperature: 0.4,
+        topP: 0.9,
+      },
+    }, "analyzeFast");
+
+    const enrichedText = applyLocalDbEnrichment(response.text ?? "", language);
+    return { status: 200, rawText: enrichedText };
+  }
+
+  // ── Analyze DETAILS — deferred fields fetched after the first paint ────────
+  // Receives the fast result (so AI doesn't re-identify) and returns:
+  // usage, benefits, sideEffects, warnings, interactions, alternatives.
+  if (action === "analyzeDetails") {
+    const { fastResult, language } = body as {
+      fastResult?: Record<string, unknown>;
+      language?: string;
+    };
+
+    if (!fastResult || !language) {
+      return { status: 400, body: { error: "fastResult and language are required." } };
+    }
+
+    const response = await generateWithRetry(ai, {
+      contents: [{
+        parts: [
+          { text: buildAnalyzeDetailsPrompt(language, fastResult) },
+        ],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: buildAnalysisDetailsSchema(),
+        temperature: 0.4,
+        topP: 0.9,
+      },
+    }, "analyzeDetails");
+
+    return { status: 200, rawText: response.text ?? "" };
+  }
+
   if (action === "analyze") {
     const { base64Image, mimeType, language, userProfile } = body as {
       base64Image?: string;
