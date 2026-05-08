@@ -12,6 +12,30 @@
 
 import { supabase } from '../lib/supabase';
 import type { AnalysisResult } from './ai';
+import { lookupIngredient } from '../lib/ingredients-db';
+
+// ── Backward-compat: hydrate score from local DB ─────────────────────────────
+//
+// Older cached results were saved BEFORE the `score` field existed.
+// On read, fill in the missing scores from the local INCI DB so the
+// Yuka-style product score is consistent (no value swap on cache hit).
+function hydrateScores(result: AnalysisResult): AnalysisResult {
+  if (!result?.ingredients) return result;
+  let mutated = false;
+  const ingredients = result.ingredients.map((ing) => {
+    if (typeof ing.score === 'number') return ing;
+    const entry = lookupIngredient(ing.name);
+    if (entry) {
+      mutated = true;
+      return { ...ing, score: entry.score };
+    }
+    // Unknown ingredient with no score → fall back from status emoji
+    const fallback = ing.status === '🟢' ? 8 : ing.status === '🟡' ? 5 : 1;
+    mutated = true;
+    return { ...ing, score: fallback };
+  });
+  return mutated ? { ...result, ingredients } : result;
+}
 
 // ── Хэш изображения ──────────────────────────────────────────────────────────
 
@@ -58,7 +82,7 @@ export async function getCachedByHash(
     });
     if (error || !data) return null;
     console.log('[cache] HASH HIT:', imageHash.slice(0, 12) + '…');
-    return data as AnalysisResult;
+    return hydrateScores(data as AnalysisResult);
   } catch (e) {
     console.warn('[cache] hash lookup error:', e);
     return null;
@@ -90,7 +114,7 @@ export async function getCachedAnalysis(
     );
 
     console.log('[cache] NAME HIT:', cacheKey);
-    return data.result as AnalysisResult;
+    return hydrateScores(data.result as AnalysisResult);
   } catch (e) {
     console.warn('[cache] read error:', e);
     return null;
