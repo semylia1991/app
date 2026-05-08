@@ -309,13 +309,33 @@ STEP 3 — HARD RULES (violating these is a critical error):
 STEP 4 — Format for "personalNote" (translate ALL text to ${language}):
 
  **[Brief summary]**
-  1-2 sentences, referencing the relevant preferences using phrases like
-  "based on the selected preferences" or equivalent in ${language}.
+  1-2 sentences referencing the SELECTED PREFERENCES — never the user.
+  Use ONLY impersonal phrasing tied to the preferences themselves, e.g.:
+    ✅ "Based on the selected preferences..."
+    ✅ "According to the chosen preferences..."
+    ✅ "Given the indicated skin type..."
+    ✅ "For the specified preferences..."
+  NEVER use second-person or possessive phrasing, e.g.:
+    ❌ "suits your skin" / "your skin will love it" / "perfect for you"
+    ❌ "good for you" / "matches your needs" / "ideal for your hair"
+    ❌ "your dryness" / "your sensitivity"
+  Translate the impersonal templates above into ${language}. Examples:
+    RU: "Исходя из указанных предпочтений..." / "Согласно выбранным предпочтениям..."
+    DE: "Basierend auf den ausgewählten Präferenzen..."
+    UK: "Виходячи з обраних переваг..."
+    FR: "Selon les préférences sélectionnées..."
+    ES: "Según las preferencias seleccionadas..."
+    IT: "In base alle preferenze selezionate..."
+    TR: "Seçilen tercihlere göre..."
 
   **[By preferences:]**
   - <preference label in ${language}> <color emoji> — <one short explanation, max ~12 words, tie to specific ingredients>
   - <preference label in ${language}> <color emoji> — <one short explanation, max ~12 words, tie to specific ingredients>
   ...
+
+  In bullet explanations the SAME impersonal rule applies — describe the
+  ingredient's property, not "your skin". Good: "soothes redness (centella + panthenol)".
+  Bad: "soothes your redness". Bad: "good for your skin".
 
   Color emoji:✅ suitable/beneficial, ⚠️ unclear/depends on individual reaction
   (default when uncertain), ⛔️ problematic/unsuitable.
@@ -814,12 +834,31 @@ ${ingredients}
 Return ONLY valid JSON with a single field "personalNote" (string, in ${language}).
 Structure (translate all headings to ${language}):
 
- **[Brief summary]** — 1-2 sentences referencing the preferences explicitly.
+ **[Brief summary]** — 1-2 sentences referencing the SELECTED PREFERENCES.
+  Use ONLY impersonal phrasing — never address the user directly.
+    ✅ "Based on the selected preferences..."
+    ✅ "According to the chosen preferences..."
+    ✅ "Given the indicated skin type..."
+  NEVER use second-person / possessive phrasing:
+    ❌ "suits your skin" / "your skin will love it" / "perfect for you"
+    ❌ "good for you" / "matches your needs" / "ideal for your hair"
+  Translate templates into ${language}, e.g.:
+    RU: "Исходя из указанных предпочтений..."
+    DE: "Basierend auf den ausgewählten Präferenzen..."
+    UK: "Виходячи з обраних переваг..."
+    FR: "Selon les préférences sélectionnées..."
+    ES: "Según las preferencias seleccionadas..."
+    IT: "In base alle preferenze selezionate..."
+    TR: "Seçilen tercihlere göre..."
 
 **[By preferences:]**
 - <preference value> <color emoji> — <one short sentence explanation>
 - <preference value> <color emoji> — <one short sentence explanation>
 ...
+
+In bullet explanations the same impersonal rule applies — describe the
+ingredient's property, not "your skin". Good: "soothes redness (centella + panthenol)".
+Bad: "soothes your redness". Bad: "good for your skin".
 
 ---
 🟡 *[Automated analysis based on selected preferences. Not medical advice.]*
