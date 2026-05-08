@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
 import { t, Language, loadLanguage } from './i18n';
-import { analyzeProductImageStream, AnalysisResult, AnalysisDetails, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore } from './services/ai';
+import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore } from './services/ai';
 import { computePersonalScore } from './lib/personalScore';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -432,13 +432,13 @@ export default function App() {
         mimeType,
         lang,
         serializedProfile,
-        (details: AnalysisDetails) => {
+        (patch: Partial<AnalysisResult>) => {
           // Don't overwrite state if user has switched language in the meantime —
-          // the freshly-translated result is more correct than stale details.
+          // the freshly-translated result is more correct than stale data.
           if (langAtScan !== lang) return;
           setResult((prev) => {
             if (!prev) return prev;
-            const merged: AnalysisResult = { ...prev, ...details };
+            const merged: AnalysisResult = { ...prev, ...patch };
             originalResult.current = merged;
             translationCache.current.set(langAtScan, merged);
             saveScanToHistory(merged).catch(() => {});
