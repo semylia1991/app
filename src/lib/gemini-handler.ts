@@ -548,9 +548,15 @@ async function generateWithRetry(
   ai: GoogleGenAI,
   params: Omit<Parameters<GoogleGenAI["models"]["generateContent"]>[0], "model">,
   action = "unknown",
+  modelOverride?: string,
 ): Promise<Awaited<ReturnType<GoogleGenAI["models"]["generateContent"]>>> {
   let lastError: unknown;
-  for (const model of MODELS) {
+  // If modelOverride is given, try it FIRST. On any failure (transient or 404),
+  // fall through to the regular MODELS list — so quality and reliability are preserved.
+  const modelsToTry = modelOverride
+    ? [modelOverride, ...MODELS.filter(m => m !== modelOverride)]
+    : MODELS;
+  for (const model of modelsToTry) {
     const p = { ...params, model } as Parameters<GoogleGenAI["models"]["generateContent"]>[0];
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
@@ -668,7 +674,9 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
         temperature: 0.4,
         topP: 0.9,
       },
-    }, "analyzeFast");
+    }, "analyzeFast", MODEL_LITE);
+    // ↑ MODEL_LITE (gemini-2.5-flash-lite) — ~2× faster than Flash 2.0 for this task.
+    // Auto-falls back to Flash 2.0 / 2.5 from MODELS list on any failure.
 
     const enrichedText = applyLocalDbEnrichment(response.text ?? "", language);
     return { status: 200, rawText: enrichedText };
