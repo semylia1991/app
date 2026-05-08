@@ -71,6 +71,7 @@ export interface Translations {
   compareColumnName: string;
   compareColumnAnalysis: string;
   compareColumnPreferences: string;
+    formulaScore: string;
   compareColumnSummary: string;
   compareRegisterPrompt: string;
   compareNoHistoryYet: string;
