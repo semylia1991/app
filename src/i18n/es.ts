@@ -72,6 +72,7 @@ const es: Translations = {
     compareColumnName: "Nombre",
     compareColumnAnalysis: "Análisis",
     compareColumnPreferences: "Por preferencias",
+    formulaScore: "Puntuación de fórmula",
     compareColumnSummary: "Resumen",
     compareRegisterPrompt: "Regístrate para guardar escaneos y comparar productos.",
     compareNoHistoryYet: "Aún no hay otros escaneos en el historial.",
