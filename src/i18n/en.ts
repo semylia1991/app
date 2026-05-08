@@ -72,6 +72,7 @@ const en: Translations = {
     compareColumnName: "Name",
     compareColumnAnalysis: "Analysis",
     compareColumnPreferences: "By preferences",
+    formulaScore: "Formula score",
     compareColumnSummary: "Summary",
     compareRegisterPrompt: "Sign up to save scans and compare products.",
     compareNoHistoryYet: "No other scans in history yet.",
