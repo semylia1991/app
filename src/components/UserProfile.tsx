@@ -37,7 +37,7 @@ const BODY_SKIN_TYPE_KEYS = ['bodySkinDry', 'bodySkinSensitive', 'bodySkinOily',
 const CLIMATE_KEYS        = ['climateDry', 'climateWindy', 'climateSunny', 'climateCold', 'climateHumid', 'climateAny'] as const;
 
 const tr = (lang: Language, key: string): string =>
-  (t[lang] as Record<string, string>)[key] ?? key;
+  (t[lang] as unknown as Record<string, string>)[key] ?? key;
 
 export function translateProfile(profile: UserProfile, lang: Language) {
   return {
@@ -342,4 +342,3 @@ export function UserProfilePanel({ user, lang, onProfileChange, initialHasProfil
     </>
   );
 }
-    
