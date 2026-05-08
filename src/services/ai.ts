@@ -9,6 +9,39 @@ export interface Ingredient {
   name: string;
   status: "🟢" | "🟡" | "🔴";
   description: string;
+  score?: number; // 0–10, Yuka-style
+}
+
+/**
+ * Compute a Yuka-style product score (0–10) from ingredient list.
+ * Position weight: first ingredients (highest concentration) count more.
+ * 🟢 = 10, 🟡 = 5, 🔴 = 0 (from local DB)
+ * For AI-only ingredients, use the score field if present.
+ */
+export function computeProductScore(ingredients: Ingredient[]): number | null {
+  if (!ingredients || ingredients.length === 0) return null;
+
+  const statusToScore: Record<string, number> = {
+    "🟢": 10,
+    "🟡": 5,
+    "🔴": 0,
+  };
+
+  let weightedSum = 0;
+  let totalWeight = 0;
+
+  ingredients.forEach((ing, idx) => {
+    // Position-based weight: first ingredient = highest weight
+    const weight = 1 / (idx + 1);
+    const s = ing.score !== undefined
+      ? ing.score
+      : (statusToScore[ing.status] ?? 5);
+    weightedSum += s * weight;
+    totalWeight += weight;
+  });
+
+  if (totalWeight === 0) return null;
+  return Math.round((weightedSum / totalWeight) * 10) / 10;
 }
 
 export interface Alternative {
@@ -40,6 +73,27 @@ export interface AnalysisResult {
   shopLinks?: ShopLink[];
   // Optional: populated when userProfile is passed to analyzeProductImage
   personalNote?: string;
+}
+
+// Subset returned by the fast first-paint request.
+export interface AnalysisFastResult {
+  productName: string;
+  brand: string;
+  productType: string;
+  analysis: string;
+  ingredients: Ingredient[];
+  shelfLife: string;
+  personalNote?: string;
+}
+
+// Subset returned by the deferred details request.
+export interface AnalysisDetails {
+  usage: string;
+  benefits: string;
+  sideEffects: string;
+  warnings: string;
+  interactions: string;
+  alternatives: Alternative[];
 }
 
 // Serialised profile sent to the server (translated strings, not canonical keys)
@@ -261,4 +315,175 @@ export async function generatePersonalNote(
     language: LANGUAGE_NAMES[language] || language,
   });
   return data.personalNote ?? "";
+}
+
+// ─── Two-stage analysis ─────────────────────────────────────────────────────
+//
+// analyzeFast:    fast first paint (productName, brand, analysis, ingredients,
+//                 shelfLife, personalNote) — ~2–3s.
+// analyzeDetails: deferred fields (usage, benefits, sideEffects, warnings,
+//                 interactions, alternatives) — runs in the background while
+//                 the user reads the first paint.
+
+async function analyzeFastRaw(
+  base64Image: string,
+  mimeType: string,
+  language: string,
+  userProfile?: SerializedProfile,
+): Promise<AnalysisFastResult> {
+  return callFunction<AnalysisFastResult>({
+    action: "analyzeFast",
+    base64Image,
+    mimeType,
+    language: LANGUAGE_NAMES[language] || "English",
+    ...(userProfile && Object.values(userProfile).some(Boolean) ? { userProfile } : {}),
+  });
+}
+
+export async function analyzeDetails(
+  fastResult: AnalysisFastResult,
+  language: string,
+): Promise<AnalysisDetails> {
+  return callFunction<AnalysisDetails>({
+    action: "analyzeDetails",
+    fastResult,
+    language: LANGUAGE_NAMES[language] || "English",
+  });
+}
+
+/**
+ * Two-stage analysis with progressive paint.
+ *
+ * Returns immediately with a fast result that contains everything shown
+ * "above the fold" (analysis, ingredients, personal note, etc.).
+ *
+ * The provided onDetails callback is invoked LATER, when the deferred fields
+ * (usage / benefits / sideEffects / warnings / interactions / alternatives)
+ * are ready — so the UI can fill them in without blocking the first paint.
+ *
+ * Cache strategy:
+ *   - Hash hit  → return cached full result; onDetails called with cached fields.
+ *   - Name hit  → same.
+ *   - Miss      → fast request → return → details request in background.
+ */
+export async function analyzeProductImageStream(
+  base64Image: string,
+  mimeType: string,
+  language: string,
+  userProfile: SerializedProfile | undefined,
+  onDetails: (details: AnalysisDetails) => void,
+): Promise<AnalysisResult> {
+  const compressed = await compressImage(base64Image);
+
+  // ── L0: hash cache ────────────────────────────────────────────────────────
+  const imageHash = await hashImage(compressed.data);
+  if (imageHash) {
+    const hashCached = await getCachedByHash(imageHash, language);
+    if (hashCached) {
+      // Cache already has full result — emit details immediately so caller
+      // can use a single update path.
+      queueMicrotask(() => onDetails({
+        usage:        hashCached.usage,
+        benefits:     hashCached.benefits,
+        sideEffects:  hashCached.sideEffects,
+        warnings:     hashCached.warnings,
+        interactions: hashCached.interactions,
+        alternatives: hashCached.alternatives,
+      }));
+      if (userProfile && Object.values(userProfile).some(Boolean)) {
+        try {
+          const note = await generatePersonalNote(hashCached, userProfile, language);
+          return { ...hashCached, personalNote: note };
+        } catch (e) {
+          console.warn('[ai] personalNote failed (hash hit):', e);
+          return hashCached;
+        }
+      }
+      return hashCached;
+    }
+  }
+
+  // ── L1: identify + analyzeFast in parallel ────────────────────────────────
+  const identifyPromise = identifyProduct(compressed.data, compressed.mimeType).catch((e) => {
+    console.warn('[ai] identify failed:', e);
+    return null;
+  });
+
+  const fastPromise = analyzeFastRaw(
+    compressed.data,
+    compressed.mimeType,
+    language,
+    userProfile,
+  );
+
+  const identification = await identifyPromise;
+
+  if (identification?.productName && identification?.brand) {
+    const cached = await getCachedAnalysis(
+      identification.productName,
+      identification.brand,
+      language,
+    );
+    if (cached) {
+      if (imageHash) {
+        saveToCache(cached.productName, cached.brand, language, cached, imageHash).catch(() => {});
+      }
+      queueMicrotask(() => onDetails({
+        usage:        cached.usage,
+        benefits:     cached.benefits,
+        sideEffects:  cached.sideEffects,
+        warnings:     cached.warnings,
+        interactions: cached.interactions,
+        alternatives: cached.alternatives,
+      }));
+      if (userProfile && Object.values(userProfile).some(Boolean)) {
+        try {
+          const note = await generatePersonalNote(cached, userProfile, language);
+          return { ...cached, personalNote: note };
+        } catch (e) {
+          console.warn('[ai] personalNote failed (name hit):', e);
+          return cached;
+        }
+      }
+      return cached;
+    }
+  }
+
+  // ── L2: cache miss — wait for fast, kick off details in background ────────
+  const fast = await fastPromise;
+
+  // Default empty details so the AnalysisResult shape is preserved
+  const placeholder: AnalysisDetails = {
+    usage: '', benefits: '', sideEffects: '', warnings: '',
+    interactions: '', alternatives: [],
+  };
+
+  const partialResult: AnalysisResult = {
+    productName: fast.productName,
+    brand:       fast.brand,
+    productType: fast.productType,
+    analysis:    fast.analysis,
+    ingredients: fast.ingredients,
+    shelfLife:   fast.shelfLife,
+    personalNote: fast.personalNote,
+    ...placeholder,
+  };
+
+  // Fire details in background — caller uses onDetails to merge into state.
+  analyzeDetails(fast, language)
+    .then((details) => {
+      onDetails(details);
+      // Save full result to cache so subsequent scans get an L0/L1 hit
+      if (fast.productName && fast.brand) {
+        const full: AnalysisResult = { ...partialResult, ...details };
+        saveToCache(full.productName, full.brand, language, full, imageHash).catch((e) =>
+          console.warn('[ai] cache save failed:', e),
+        );
+      }
+    })
+    .catch((e) => {
+      console.warn('[ai] analyzeDetails failed:', e);
+    });
+
+  return partialResult;
 }
