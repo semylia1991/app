@@ -72,6 +72,7 @@ const uk: Translations = {
     compareColumnName: "Назва",
     compareColumnAnalysis: "Аналіз",
     compareColumnPreferences: "За уподобаннями",
+    formulaScore: "Оцінка складу",
     compareColumnSummary: "Резюме",
     compareRegisterPrompt: "Зареєструйтесь, щоб зберігати сканування та порівнювати продукти.",
     compareNoHistoryYet: "В історії поки немає інших сканувань.",
