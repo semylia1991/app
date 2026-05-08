@@ -6,6 +6,7 @@ import { AnalysisResult, SerializedProfile } from '../services/ai';
 import { UserProfile, translateProfile } from './UserProfile';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { computePersonalScore } from '../lib/personalScore';
 
 const FUNCTION_URL = '/api/gemini';
 
@@ -240,6 +241,54 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
 
   return (
     <div>
+      {/* ── Personal score card ────────────────────────────────────────── */}
+      {(() => {
+        const personalScore = computePersonalScore(result.ingredients, userProfile!);
+        if (personalScore === null) return null;
+
+        const scoreColor = personalScore >= 7.5 ? '#2D9B5A'
+          : personalScore >= 5 ? '#E8A020'
+          : '#D94040';
+
+        const scoreLabel =
+          lang === 'ru' ? (personalScore >= 7.5 ? 'Подходит вам' : personalScore >= 5 ? 'Подходит частично' : 'Не рекомендуется') :
+          lang === 'uk' ? (personalScore >= 7.5 ? 'Підходить вам' : personalScore >= 5 ? 'Підходить частково' : 'Не рекомендується') :
+          lang === 'de' ? (personalScore >= 7.5 ? 'Für Sie geeignet' : personalScore >= 5 ? 'Teilweise geeignet' : 'Nicht empfohlen') :
+          lang === 'es' ? (personalScore >= 7.5 ? 'Adecuado para ti' : personalScore >= 5 ? 'Parcialmente adecuado' : 'No recomendado') :
+          lang === 'fr' ? (personalScore >= 7.5 ? 'Vous convient' : personalScore >= 5 ? 'Partiellement adapté' : 'Non recommandé') :
+          lang === 'it' ? (personalScore >= 7.5 ? 'Adatto a te' : personalScore >= 5 ? 'Parzialmente adatto' : 'Non raccomandato') :
+          lang === 'tr' ? (personalScore >= 7.5 ? 'Size uygun' : personalScore >= 5 ? 'Kısmen uygun' : 'Önerilmez') :
+          (personalScore >= 7.5 ? 'Suits you' : personalScore >= 5 ? 'Partially suitable' : 'Not recommended');
+
+        const sublabel =
+          lang === 'ru' ? 'Персональная оценка состава' :
+          lang === 'uk' ? 'Персональна оцінка складу' :
+          lang === 'de' ? 'Persönliche Formulabewertung' :
+          lang === 'es' ? 'Puntuación personal de fórmula' :
+          lang === 'fr' ? 'Score personnel de la formule' :
+          lang === 'it' ? 'Punteggio personale formula' :
+          lang === 'tr' ? 'Kişisel formül puanı' :
+          'Personal formula score';
+
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', marginBottom: 14, background: 'rgba(255,255,255,0.6)', borderRadius: 14, border: `1.5px solid ${scoreColor}33` }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 60 }}>
+              <span style={{ fontSize: '2rem', fontWeight: 800, color: scoreColor, lineHeight: 1, fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em' }}>
+                {personalScore.toFixed(1)}
+              </span>
+              <span style={{ fontSize: '0.7rem', color: scoreColor, opacity: 0.7, fontFamily: 'var(--font-sans)', marginTop: 1 }}>/10</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ height: 7, background: 'rgba(0,0,0,0.07)', borderRadius: 8, overflow: 'hidden', marginBottom: 5 }}>
+                <div style={{ height: '100%', width: `${personalScore * 10}%`, background: scoreColor, borderRadius: 8, transition: 'width 0.6s ease' }} />
+              </div>
+              <div style={{ fontSize: '0.82rem', color: scoreColor, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>{scoreLabel}</div>
+              <div style={{ fontSize: '0.72rem', color: '#8A8078', fontFamily: 'var(--font-sans)', marginTop: 1 }}>{sublabel}</div>
+            </div>
+          </div>
+        );
+      })()}
+
       {profileChanged && (
         <div className="flex items-center gap-2 mb-3 p-2 bg-[#E8F2EB] border border-[#2D5A3D]/20 rounded-sm">
           <RefreshCw size={12} className="text-[#B8923A]" />
