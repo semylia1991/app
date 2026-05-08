@@ -373,97 +373,19 @@ ${profileLines}
   return basePrompt + personalNoteSection;
 }
 
-// ── FAST analyze prompt — only fields shown immediately to the user ──────────
-// Returns: productName, brand, productType, analysis, ingredients, shelfLife,
-// and (optionally) personalNote. Skips heavy fields (usage / benefits / etc.).
+// ── FAST analyze prompt ──────────────────────────────────────────────────────
+// Reuses the FULL original buildAnalyzePrompt — instructions for ingredient
+// recognition, public DB lookup, OCR correction, and the personalNote algorithm
+// must stay identical. The schema (buildAnalysisFastSchema) is what restricts
+// the output to only the fields shown immediately. Heavy fields are skipped
+// because the schema doesn't list them — not because the prompt does.
 function buildAnalyzeFastPrompt(language: string, userProfile?: Record<string, unknown>): string {
-  const basePrompt = `
-You are an expert cosmetic safety analyst and INCI decoder.
-Analyze the provided image of a cosmetic product or its ingredient list.
-Extract the product name, brand, and INCI ingredients. Correct any OCR errors.
-NEVER invent ingredients, ratings, or studies. If data is not found, state "Data not found in public databases.".
-
-For each ingredient in the "ingredients" array you MUST always provide a "description" field (1–7 words).
-
-⚡ TOKEN-SAVING RULE — VERY IMPORTANT:
-The server has a local database of well-known INCI ingredients with pre-written
-descriptions and safety statuses. After your response, the server will AUTOMATICALLY
-overwrite the "description" and "status" of any ingredient that exists in this
-local database. So:
-
-  • If the ingredient name (lowercased, trimmed) matches a key in the local DB
-    → you may output description: "-" and status: "🟢" as a placeholder.
-  • If the ingredient is NOT in the local DB → you MUST give a real description
-    (1–7 words) and a real status. Be accurate, this is final.
-
-INGREDIENT SCORE (0–10, Yuka-style):
-  • 🟢 7–10 — safe (10 = skin-identical/active; 9 = excellent natural; 8 = plant extract; 7 = neutral functional)
-  • 🟡 3–6 — caution (5–6 mild, 3–4 sensitizers/restricted)
-  • 🔴 0–2 — avoid (formaldehyde, banned, harmful)
-For known DB ingredients you can output any number — server overrides with DB score.
-
-Provide the ENTIRE analysis in ${language}. Every text field MUST be in ${language}.
-
-Formatting:
-- productType: exact type (e.g. "Moisturizing Cream", "Exfoliating Toner").
-- analysis: STRICTLY 1-2 sentences in ${language}. Start by stating what the product is.
-- shelfLife: how long after opening (e.g. "12 months", "6 months after opening").
-
-Output strict JSON matching the schema. Do NOT include usage, benefits, sideEffects, warnings, interactions, alternatives — those are in a separate request.`.trim();
-
-  if (!userProfile) return basePrompt;
-
-  const profileLines = [
-    userProfile.skinType        ? "skinType (FACE): "        + userProfile.skinType        : null,
-    userProfile.skinSensitivity ? "skinSensitivity (FACE): " + userProfile.skinSensitivity : null,
-    userProfile.skinConditions  ? "skinConditions (FACE): "  + userProfile.skinConditions  : null,
-    userProfile.ageRange        ? "ageRange (FACE): "        + userProfile.ageRange         : null,
-    userProfile.hairType        ? "hairType (HAIR): "        + userProfile.hairType         : null,
-    userProfile.scalpCondition  ? "scalpCondition (HAIR): "  + userProfile.scalpCondition  : null,
-    userProfile.hairProblems    ? "hairProblems (HAIR): "    + userProfile.hairProblems     : null,
-    userProfile.bodySkinType    ? "bodySkinType (BODY): "    + userProfile.bodySkinType     : null,
-    userProfile.climate         ? "climate (UNIVERSAL): "    + userProfile.climate          : null,
-  ].filter(Boolean).join("\n");
-
-  if (!profileLines) return basePrompt;
-
-  const personalNoteSection = `
-
-═══════════════════════════════════════════════════════════════════════
-PERSONAL NOTE — produce a "personalNote" field in ${language}.
-
-STEP 1 — classify productType into ONE category:
-  HAIR (shampoo/conditioner/oil/mask), FACE (cream/serum/toner/sunscreen),
-  BODY (lotion/butter/oil/scrub), LIPS, NAILS, OTHER.
-
-STEP 2 — only use these profile fields per category:
-  HAIR  → hairType, scalpCondition, hairProblems, climate
-  FACE  → skinType, skinSensitivity, skinConditions, ageRange, climate
-  BODY  → bodySkinType, climate
-  LIPS  → skinSensitivity, climate
-  NAILS → (none)
-  OTHER → skinSensitivity, climate
-
-NEVER mix categories. NEVER mention irrelevant preferences. Allergies stay in warnings.
-
-STEP 3 — Format (translate to ${language}):
-  **[Brief summary]** 1-2 sentences referencing relevant preferences.
-  **[By preferences:]**
-  - <human-readable label> <emoji> — <short explanation, name responsible ingredient(s)>
-  - ...
-  Emoji: ✅ suitable, ⚠️ depends/uncertain, ⛔️ problematic.
-
-NEVER output raw camelCase keys. Translate them.
-
-USER PROFILE:
-${profileLines}
-═══════════════════════════════════════════════════════════════════════`;
-
-  return basePrompt + personalNoteSection;
+  return buildAnalyzePrompt(language, userProfile);
 }
 
 // ── DETAILS analyze prompt — heavy fields produced in a second request ──────
 // Receives the fast result so AI doesn't re-analyze what's already known.
+// Instructions are copied VERBATIM from buildAnalyzePrompt to preserve quality.
 function buildAnalyzeDetailsPrompt(language: string, fastResult: Record<string, unknown>): string {
   const productLine    = `${fastResult.brand ?? ''} ${fastResult.productName ?? ''}`.trim();
   const productType    = String(fastResult.productType ?? '');
@@ -474,69 +396,73 @@ function buildAnalyzeDetailsPrompt(language: string, fastResult: Record<string, 
     : '';
 
   return `
-You are an expert cosmetic analyst. The product has already been identified.
-Your ONLY task: produce the DETAILED sections (usage, benefits, sideEffects, warnings, interactions, alternatives) in ${language}.
-Do NOT re-analyze ingredients or change identification.
+You are an expert cosmetic safety analyst. The product has already been identified
+in a previous step. Your ONLY task now is to produce the DETAILED sections (usage,
+benefits, sideEffects, warnings, interactions, alternatives) in ${language}.
+Do NOT re-analyze ingredients. Do NOT change identification. Use the data below as authoritative.
 
 PRODUCT: ${productLine}
 PRODUCT TYPE: ${productType}
-INGREDIENTS: ${ingredientsStr}
+INGREDIENTS (with status emojis): ${ingredientsStr}
 
-Provide ALL fields in ${language}. Translate every category label.
+Provide the ENTIRE output in ${language}. Every text field, every label, every
+category name MUST be in ${language}. Search public databases (EWG Skin Deep,
+CosDNA, INCI Decoder, PubChem, CIR, EU CosIng) when needed. NEVER invent data —
+if information is not found, write "Data not found in public databases." in ${language}.
 
-- usage: Use this exact format with emojis. Translate ALL labels into ${language}. Use DOUBLE NEWLINES between items:
-👤 [translated "Best Suited For"]:
+- usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
+👤 [translated label for "Best Suited For"]:
 - [Skin type] — [why]
 
-📋 [translated "How to Apply"]:
+📋 [translated label for "How to Apply"]:
 - [Step 1]
 - [Step 2]
 - [Step 3]
 
-⏰ [translated "Frequency"]:
-- [How often — morning/evening/weekly]
+⏰ [translated label for "Frequency"]:
+- [How often to use — morning/evening/weekly]
 - [How long before seeing results]
 
-💧 [translated "Amount to Use"]:
+💧 [translated label for "Amount to Use"]:
 - [Exact amount — drops, pea-size, pump etc.]
-- [How to spread]
+- [How to spread or massage in]
 
-🌡️ [translated "Before and After"]:
-- [What to do before]
-- [What to apply after]
+🌡️ [translated label for "Before and After"]:
+- [What to do before applying — cleanse, tone etc.]
+- [What to apply after — serum, moisturizer, SPF etc.]
 
-- benefits: emojis + bullet points + translated category headers. DOUBLE NEWLINES between categories:
-🧱 [translated category]:
+- benefits: Use this style with emojis and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
+🧱 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
 
-💧 [translated category]:
+💧 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
 
-- sideEffects: same style. Group by reaction type. DOUBLE NEWLINES between categories:
-🟡 [translated category]:
-• [Ingredient] [description]
+- sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names into ${language}. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
+🟡 [translated side effect category name]:
+• [Ingredient] [description of potential reaction]
 
-🔴 [translated category]:
-• [Ingredient] [description]
+🔴 [translated side effect category name]:
+• [Ingredient] [description of potential reaction]
 
-- warnings: brief markdown paragraph. Mention allergies / contraindications.
+- warnings: brief markdown paragraph in ${language}. Mention allergies and contraindications. If user's known allergies are listed in the profile, address them here.
 
-- interactions: TWO blocks separated by ---. DOUBLE NEWLINES between categories:
+- interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names AND block titles into ${language}. The section MUST be split into TWO clearly labeled blocks separated by a divider line (---). Use DOUBLE NEWLINES between categories:
 
-## 🟢 [translated "Best Combinations"]
+## 🟢 [translated title for "Best Combinations"]
 
-[translated "Actives Compatibility"]:
-- [Active] — [why it works well]
+ [translated label for "Actives Compatibility"]:
+- [Active ingredient] — [can combine, why it works well]
 ---
 
-## 🔴 [translated "Caution: Conflicts!"]
+## 🔴 [translated title for "Caution: Conflicts!"]
 
-[translated "Avoid Combining With"]:
-- [Ingredient/type] — [reason]
+ [translated label for "Avoid Combining With"]:
+- [Ingredient/product type] — [reason to avoid]
 
-- alternatives: 2-3 real, commercially available products as JSON array, ranked by ingredient overlap. Each item: name, brand, reason (one sentence naming 2–3 shared key INCI actives and any meaningful differences).
+- alternatives: 2-3 real, commercially available products as a JSON array, ranked by INCI/active-ingredient overlap with the analyzed product. Each item: { name, brand, reason } where "reason" is one sentence naming 2–3 shared key INCI actives and any meaningful differences (concentration, format, pH, etc.).
 
-Output strict JSON matching the schema.`.trim();
+Ensure the output strictly follows the JSON schema.`.trim();
 }
 
 function buildTranslatePrompt(result: unknown, targetLanguage: string): string {
