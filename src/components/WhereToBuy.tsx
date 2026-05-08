@@ -6,6 +6,7 @@ import { ShopLink } from '../services/ai';
 interface Props {
   lang: Language;
   shopLinks: ShopLink[];
+  productName?: string;
 }
 
 const DISCLAIMER: Record<Language, string> = {
