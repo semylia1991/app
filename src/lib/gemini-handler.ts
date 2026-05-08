@@ -168,61 +168,28 @@ Extract the product name, brand, and INCI ingredients. Correct any OCR errors.
 If data is missing, search your knowledge base (EWG Skin Deep, CosDNA, INCI Decoder, PubChem, CIR, EU CosIng).
 NEVER invent ingredients, ratings, or studies. If data is not found, state "Data not found in public databases.".
 
+RESPOND ENTIRELY IN ${language}. Every text field, every label, every category name MUST be in ${language}.
+
 For each ingredient in the "ingredients" array you MUST always provide a "description" field. It must:
 - Explain what the ingredient IS and what it DOES in this product (function, mechanism)
 - Note any safety concerns, common reactions, or special properties
 - Be 1–7 words. Never leave it empty.
 
-⚡ TOKEN-SAVING RULE — VERY IMPORTANT:
-The server has a local database of well-known INCI ingredients with pre-written
-descriptions and safety statuses. After your response, the server will AUTOMATICALLY
-overwrite the "description" and "status" of any ingredient that exists in this
-local database. So:
+LOCAL DB ENRICHMENT: server has ~1000 known INCI with canonical descriptions/statuses/scores.
+- If common INCI (likely in DB): output description "-" and status "🟢" — server overrides both.
+- If unknown/rare INCI: provide real description (1–7 words) and accurate status.
+When in doubt, write a real description — false placeholders fail, real ones never do.
 
-  • If the ingredient name (lowercased, trimmed) matches a key in the local DB
-    → you may output description: "-" (just a dash) and status: "🟢" as a placeholder.
-       The server will replace both with the canonical values.
-  • If the ingredient is NOT in the local DB → you MUST give a real description
-    (1–7 words) and a real status. Be accurate, this is final.
-
-You do not have the DB list — guess based on commonness. Big well-known INCI like
-"glycerin", "niacinamide", "phenoxyethanol", "tocopherol", "sodium hyaluronate",
-"retinol", "ascorbic acid", common plant oils and extracts, parabens, sulfates,
-silicones, common preservatives and UV filters — all of these are likely in the DB.
-Rare/exotic/proprietary trademark names are likely NOT in the DB.
-
-When in doubt, give a real description — false placeholders cause errors but real
-descriptions never do.
-
-INGREDIENT SCORE — YUKA-STYLE FORMULA:
-For EVERY ingredient, you MUST output a "score" field (integer 0–10).
-This score represents the ingredient's safety/benefit profile.
-
-Scoring guide:
-  • 🟢 Safe ingredients: score 7–10
-    - 10: skin-identical, certified natural, proven beneficial (hyaluronic acid, ceramides, niacinamide, vitamins, aloe vera)
-    - 8–9: well-tolerated functional ingredients (glycerin, plant oils, allantoin, panthenol)
-    - 7: neutral/synthetic but safe (glycols, mild emulsifiers, silicones)
-  • 🟡 Caution ingredients: score 3–6
-    - 5–6: mildly irritating in some users (alcohol denat, SLS, fragrance compounds)
-    - 3–4: restricted by EU, potential sensitizers (some preservatives, certain UV filters)
-  • 🔴 Avoid ingredients: score 0–2
-    - 0–1: proven harmful, banned (formaldehyde releasers, mercury, lead)
-    - 2: high-risk irritants or endocrine disruptors
-
-Note: the server AUTOMATICALLY assigns score from the local DB for known ingredients
-(🟢 → 10, 🟡 → 5, 🔴 → 0). Your score is used ONLY for ingredients NOT in the DB.
-So for known ingredients you may output score: 5 as a placeholder — it will be overwritten.
-For unknown/rare ingredients your score is final — be accurate.
-
-Provide the ENTIRE analysis in ${language}. Every single field — analysis, usage, benefits, sideEffects, warnings, interactions, shelfLife — MUST be written in ${language}. Do NOT use English for any field unless ${language} is English.
+INGREDIENT SCORE (integer 0–10, Yuka-style):
+🟢 7–10 safe · 🟡 3–6 caution · 🔴 0–2 avoid.
+Server overrides score for known DB ingredients. Your score matters only for unknown ones.
 
 Formatting Rules:
 - productType: Identify exactly what the product is (e.g., "Moisturizing Cream", "Exfoliating Toner").
-- analysis: Strictly 1-2 sentences in ${language}. START by stating what the product is. NEVER use English if ${language} is not English.
+- analysis: Strictly 1-2 sentences. START by stating what the product is.
 - alternatives: Return 2-3 real, commercially available products as a JSON array, ranked by ingredient overlap with the analyzed product (highest overlap first). Each item must have: "name" (product name), "brand" (manufacturer), "reason" (one sentence that names 2–3 shared key INCI actives and notes any meaningful differences — e.g. gentler preservative, added niacinamide, lower fragrance load). Only include products you are confident exist and are widely sold.
 
-- usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
+- usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For). Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
 - [Skin type] — [why]
 
@@ -243,21 +210,21 @@ Formatting Rules:
 - [What to do before applying — cleanse, tone etc.]
 - [What to apply after — serum, moisturizer, SPF etc.]
 
-- benefits: Use this style with emojis and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
+- benefits: Use this style with emojis and bullet points. Translate ALL category names. Use DOUBLE NEWLINES between categories:
 🧱 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
 
 💧 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
 
-- sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names into ${language}. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
+- sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
 🟡 [translated side effect category name]:
 • [Ingredient] [description of potential reaction]
 
 🔴 [translated side effect category name]:
 • [Ingredient] [description of potential reaction]
 
-- interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names AND block titles into ${language}. The section MUST be split into TWO clearly labeled blocks separated by a divider line (---). Use DOUBLE NEWLINES between categories:
+- interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names AND block titles. The section MUST be split into TWO clearly labeled blocks separated by a divider line (---). Use DOUBLE NEWLINES between categories:
 
 ## 🟢 [translated title for "Best Combinations"]
 
@@ -396,21 +363,20 @@ function buildAnalyzeDetailsPrompt(language: string, fastResult: Record<string, 
     : '';
 
   return `
-You are an expert cosmetic safety analyst. The product has already been identified
-in a previous step. Your ONLY task now is to produce the DETAILED sections (usage,
-benefits, sideEffects, warnings, interactions, alternatives) in ${language}.
-Do NOT re-analyze ingredients. Do NOT change identification. Use the data below as authoritative.
+You are an expert cosmetic safety analyst. The product has already been identified.
+Your ONLY task now: produce DETAILED sections (usage, benefits, sideEffects, warnings, interactions, alternatives).
+Do NOT re-analyze ingredients. Do NOT change identification.
+
+RESPOND ENTIRELY IN ${language}. Every text field, every label, every category name MUST be in ${language}.
 
 PRODUCT: ${productLine}
 PRODUCT TYPE: ${productType}
 INGREDIENTS (with status emojis): ${ingredientsStr}
 
-Provide the ENTIRE output in ${language}. Every text field, every label, every
-category name MUST be in ${language}. Search public databases (EWG Skin Deep,
-CosDNA, INCI Decoder, PubChem, CIR, EU CosIng) when needed. NEVER invent data —
-if information is not found, write "Data not found in public databases." in ${language}.
+Search public databases (EWG Skin Deep, CosDNA, INCI Decoder, PubChem, CIR, EU CosIng) when needed.
+NEVER invent data — if information is not found, write "Data not found in public databases.".
 
-- usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For) into ${language}. Use DOUBLE NEWLINES between items:
+- usage: Use this exact format with emojis. Translate ALL labels (How to Apply / Frequency / Best Suited For). Use DOUBLE NEWLINES between items:
 👤 [translated label for "Best Suited For"]:
 - [Skin type] — [why]
 
@@ -431,23 +397,23 @@ if information is not found, write "Data not found in public databases." in ${la
 - [What to do before applying — cleanse, tone etc.]
 - [What to apply after — serum, moisturizer, SPF etc.]
 
-- benefits: Use this style with emojis and bullet points. Translate ALL category names into ${language}. Use DOUBLE NEWLINES between categories:
+- benefits: Use this style with emojis and bullet points. Translate ALL category names. Use DOUBLE NEWLINES between categories:
 🧱 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
 
 💧 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
 
-- sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names into ${language}. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
+- sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
 🟡 [translated side effect category name]:
 • [Ingredient] [description of potential reaction]
 
 🔴 [translated side effect category name]:
 • [Ingredient] [description of potential reaction]
 
-- warnings: brief markdown paragraph in ${language}. Mention allergies and contraindications. If user's known allergies are listed in the profile, address them here.
+- warnings: brief markdown paragraph. Mention allergies and contraindications. If user's known allergies are listed in the profile, address them here.
 
-- interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names AND block titles into ${language}. The section MUST be split into TWO clearly labeled blocks separated by a divider line (---). Use DOUBLE NEWLINES between categories:
+- interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names AND block titles. The section MUST be split into TWO clearly labeled blocks separated by a divider line (---). Use DOUBLE NEWLINES between categories:
 
 ## 🟢 [translated title for "Best Combinations"]
 
