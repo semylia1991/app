@@ -72,6 +72,7 @@ const de: Translations = {
     compareColumnName: "Name",
     compareColumnAnalysis: "Analyse",
     compareColumnPreferences: "Nach Vorlieben",
+    formulaScore: "Formelbewertung",
     compareColumnSummary: "Zusammenfassung",
     compareRegisterPrompt: "Registrieren Sie sich, um Scans zu speichern und Produkte zu vergleichen.",
     compareNoHistoryYet: "Noch keine weiteren Scans im Verlauf.",
