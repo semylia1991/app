@@ -520,3 +520,4 @@ export async function analyzeProductImageStream(
 
   return partialResult;
 }
+}
