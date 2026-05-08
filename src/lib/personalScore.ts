@@ -10,6 +10,7 @@
 
 import type { Ingredient } from '../services/ai';
 import type { UserProfile } from '../components/UserProfile';
+import { lookupIngredient } from './ingredients-db';
 
 // ── Ingredient name → penalty/bonus rules ──────────────────────────────────
 
@@ -247,7 +248,17 @@ export function adjustedIngredientScore(
   ing: Ingredient,
   profile: UserProfile,
 ): number {
-  const base = ing.score ?? statusToDefault(ing.status);
+  // Determine the base score for this ingredient — single consistent path:
+  // 1) explicit `score` field (from fresh AI or hydrated cache)
+  // 2) local DB lookup (for old cached scans without score)
+  // 3) fixed fallback by status emoji
+  let base: number;
+  if (typeof ing.score === 'number') {
+    base = ing.score;
+  } else {
+    const dbEntry = lookupIngredient(ing.name);
+    base = dbEntry ? dbEntry.score : statusToDefault(ing.status);
+  }
   const n = ing.name.toLowerCase();
 
   let delta = 0;
