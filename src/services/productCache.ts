@@ -170,6 +170,20 @@ export async function saveToCache(
   const { personalNote, shopLinks, ...cacheable } = result;
   void personalNote; void shopLinks;
 
+  // ── Strip ingredient descriptions before storing ───────────────────────────
+  // Descriptions are language-specific. By dropping them for KNOWN ingredients
+  // (those in our local DB), the cache row becomes truly language-agnostic —
+  // the same record serves users of all 8 languages. On read, hydrate()
+  // refills descriptions from the local DB for the requested language.
+  // For ingredients NOT in the local DB, we KEEP the description (best effort)
+  // so the user sees something rather than nothing on cache hit, even if
+  // it's in another language. The IngredientItem will lazy-fetch a fresh
+  // description in the user's language on click via fetchIngredientDescription.
+  cacheable.ingredients = cacheable.ingredients.map((ing) => {
+    const inDb = !!lookupIngredient(ing.name);
+    return inDb ? { ...ing, description: '' } : ing;
+  });
+
   try {
     const { error } = await supabase.rpc('cache_product', {
       p_cache_key:    cacheKey,
