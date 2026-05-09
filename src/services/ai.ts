@@ -212,10 +212,14 @@ export async function analyzeProductImage(
   language: string,
   userProfile?: SerializedProfile,
 ): Promise<AnalysisResult> {
+  // ── Hash the ORIGINAL image (deterministic across runs) ─────────────────
+  // See note in analyzeProductImageStream — canvas+JPEG re-encoding is not
+  // deterministic and breaks the hash cache. Hash raw input.
+  const imageHash = await hashImage(base64Image).catch(() => null);
+
   const compressed = await compressImage(base64Image);
 
   // ── Уровень 0: поиск по image_hash ────────────────────────────────────────
-  const imageHash = await hashImage(compressed.data);
 
   if (imageHash) {
     const hashCached = await getCachedByHash(imageHash, language);
@@ -408,6 +412,15 @@ export async function analyzeProductImageStream(
   userProfile: SerializedProfile | undefined,
   onLateUpdate: (patch: Partial<AnalysisResult>) => void,
 ): Promise<AnalysisResult> {
+  // ── Hash the ORIGINAL image (not the compressed one) ───────────────────────
+  // Canvas + JPEG re-encoding is NOT deterministic across browsers, GPUs, or
+  // even reloads (driver state, color profile, etc.). The same source image
+  // can produce a different SHA-256 each run if we hash the compressed bytes,
+  // breaking the L1 hash-cache. Hashing the raw input fixes this entirely.
+  // We start hashing in PARALLEL with compression — saves ~100ms on critical path.
+  const hashPromise: Promise<string | null> = hashImage(base64Image)
+    .catch((e) => { console.warn('[ai] hash failed:', e); return null; });
+
   const compressed = await compressImage(base64Image);
 
   const hasProfile = !!userProfile && Object.values(userProfile).some(Boolean);
@@ -420,12 +433,7 @@ export async function analyzeProductImageStream(
       .catch((e) => console.warn('[ai] personalNote failed:', e));
   };
 
-  // ── ALL parallel: hash, cache lookup, identify, analyzeFast ──────────────
-  // All four operations start immediately after compress. Whichever cache
-  // layer hits first wins; the AI requests are wasted but don't delay anything
-  // (they were going to run anyway on cache miss).
-  const hashPromise = hashImage(compressed.data);
-
+  // ── ALL parallel: cache lookup (after hash), identify, analyzeFast ────────
   const hashCachePromise = hashPromise.then((h) =>
     h ? getCachedByHash(h, language) : null,
   ).catch(() => null);
@@ -503,14 +511,24 @@ export async function analyzeProductImageStream(
     ...placeholder,
   };
 
+  // ── Cache the FAST result immediately ──────────────────────────────────────
+  // Why: if the user closes/restarts the app before analyzeDetails completes,
+  // the next scan of the same product would otherwise miss the cache entirely.
+  // The full row is overwritten when details arrive (with `cache_product` upsert).
+  if (fast.productName && fast.brand && imageHash) {
+    saveToCache(fast.productName, fast.brand, language, partialResult, imageHash)
+      .catch((e) => console.warn('[ai] partial cache save failed:', e));
+  }
+
   // Fire details in background — caller uses onLateUpdate to merge into state.
   analyzeDetails(fast, language)
     .then((details) => {
       onLateUpdate(details);
       if (fast.productName && fast.brand) {
         const full: AnalysisResult = { ...partialResult, ...details };
+        // Re-save with full result — overwrites the partial row from above.
         saveToCache(full.productName, full.brand, language, full, imageHash).catch((e) =>
-          console.warn('[ai] cache save failed:', e),
+          console.warn('[ai] full cache save failed:', e),
         );
       }
     })
