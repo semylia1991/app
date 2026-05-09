@@ -368,11 +368,33 @@ Extract the product name, brand, and INCI ingredients. Correct any OCR errors.
 If data is missing, search your knowledge base (EWG Skin Deep, CosDNA, INCI Decoder, PubChem, CIR, EU CosIng).
 NEVER invent ingredients. If not found, state "Data not found in public databases.".
 
-RESPOND ENTIRELY IN ${language}. Every text field MUST be in ${language}.
+RESPOND ENTIRELY IN ${language}. Every text field MUST be in ${language},
+EXCEPT the "ingredients" array — see below.
 
-INGREDIENTS — output an array of INCI NAMES (strings only) in label order
-(highest concentration first). Use the canonical INCI form, lowercase preferred,
-e.g. "aqua", "glycerin", "sodium hyaluronate", "phenoxyethanol".
+INGREDIENTS — CRITICAL RULES (read carefully):
+Output an array of INCI NAMES (strings only) in label order (highest
+concentration first). INCI names are an INTERNATIONAL STANDARD — they are
+the same in every country and must NEVER be translated.
+
+Required format for every ingredient name:
+  • ALWAYS use the canonical English/Latin INCI name, even when ${language} is
+    not English. Examples of CORRECT output regardless of ${language}:
+        "aqua"   "glycerin"   "parfum"   "sodium hyaluronate"   "tocopherol"
+  • NEVER translate or localize:
+        ❌ "вода" / "Wasser" / "agua"        → ✓ "aqua"
+        ❌ "глицерин" / "Glyzerin"           → ✓ "glycerin"
+        ❌ "отдушка" / "Duftstoff" / "Profumo" → ✓ "parfum"
+        ❌ "витамин Е" / "Vitamin E"         → ✓ "tocopherol"
+  • Lowercase preferred. No trailing punctuation, no parentheses, no slashes.
+        ❌ "Aqua/Water" / "Aqua (Water)"     → ✓ "aqua"
+        ❌ "CI 77891"                        → ✓ "ci 77891"
+  • If a label shows "Aqua/Water/Eau", output ONLY "aqua".
+  • If you can't read part of a name, omit it entirely — never guess.
+
+Why this matters: the server matches your output against a database keyed by
+canonical INCI. Localized or hybrid names (like "aqua/water") will fail to
+match and the user will lose the safety rating for that ingredient.
+
 Do NOT include status emojis, descriptions, scores, or any extra fields —
 these are added by the server from a local INCI database.
 
@@ -578,6 +600,114 @@ const LANGUAGE_NAME_TO_CODE: Record<string, string> = {
   spanish: "es", french: "fr", italian: "it", turkish: "tr",
 };
 
+// ── Localized synonym map — last-resort fallback ───────────────────────────
+// If AI accidentally translates an ingredient name (against instructions),
+// we still want to recognize the most common ones. Only the very common
+// ingredients are listed here — for the rest, the AI prompt is the safeguard.
+const LOCALIZED_SYNONYMS: Record<string, string> = {
+  // → aqua
+  'water': 'aqua', 'eau': 'aqua', 'wasser': 'aqua', 'agua': 'aqua',
+  'acqua': 'aqua', 'su': 'aqua', 'su (water)': 'aqua',
+  'вода': 'aqua', 'вода (aqua)': 'aqua',
+  // → glycerin
+  'glycerine': 'glycerin', 'glyzerin': 'glycerin', 'glicerina': 'glycerin',
+  'glicerina vegetale': 'glycerin', 'glicerine': 'glycerin',
+  'глицерин': 'glycerin',
+  // → parfum / fragrance
+  'fragrance': 'parfum', 'duftstoff': 'parfum', 'profumo': 'parfum',
+  'fragancia': 'parfum', 'parfüm': 'parfum',
+  'отдушка': 'parfum', 'аромат': 'parfum',
+  // → alcohol denat
+  'denatured alcohol': 'alcohol denat', 'alcool denat': 'alcohol denat',
+  'denat. alcohol': 'alcohol denat', 'sd alcohol': 'alcohol denat',
+  'денатурированный спирт': 'alcohol denat', 'спирт денат': 'alcohol denat',
+  // → tocopherol
+  'vitamin e': 'tocopherol', 'vit. e': 'tocopherol', 'vitamine e': 'tocopherol',
+  'витамин e': 'tocopherol', 'витамин е': 'tocopherol',
+  // → ascorbic acid
+  'vitamin c': 'ascorbic acid', 'vit. c': 'ascorbic acid', 'vitamine c': 'ascorbic acid',
+  'витамин c': 'ascorbic acid', 'витамин с': 'ascorbic acid',
+  // → retinol
+  'vitamin a': 'retinol', 'vit. a': 'retinol',
+  'витамин а': 'retinol',
+  // → niacinamide
+  'nicotinamide': 'niacinamide', 'vitamin b3': 'niacinamide',
+  'витамин b3': 'niacinamide', 'ниацинамид': 'niacinamide',
+  // → panthenol
+  'pro-vitamin b5': 'panthenol', 'provitamin b5': 'panthenol',
+  'пантенол': 'panthenol',
+  // → sodium hyaluronate
+  'hyaluronic acid sodium salt': 'sodium hyaluronate',
+  'гиалуроновая кислота': 'sodium hyaluronate', 'гиалуронат натрия': 'sodium hyaluronate',
+};
+
+/**
+ * Normalise an ingredient name to a key that matches our local DB.
+ *
+ * Tries multiple strategies in order:
+ *   1. Plain lowercase + trim (90% of cases — AI usually returns clean INCI).
+ *   2. Strip parentheses: "aqua (water)" → "aqua"
+ *   3. Strip slash variants: "aqua/water/eau" → first part "aqua"
+ *   4. Each part of slash split: try "aqua", "water", "eau" individually.
+ *   5. Trailing punctuation cleanup.
+ *   6. Localized synonym lookup for the most common translated names.
+ *
+ * Returns the original key (lowercase trimmed) if nothing matches —
+ * so the ingredient still shows up, just as "unknown".
+ */
+function normalizeIngredientName(raw: string): {
+  matchedKey: string | null;     // key that matched in INGREDIENTS_DB, or null
+  displayName: string;            // cleaned-up name to show user
+} {
+  const lower = raw.toLowerCase().trim();
+  if (!lower) return { matchedKey: null, displayName: raw };
+
+  // Strategy 1: direct match
+  if (INGREDIENTS_DB[lower]) return { matchedKey: lower, displayName: lower };
+
+  // Strategy 2: strip trailing punctuation
+  const cleaned = lower.replace(/[.,;:!?*]+$/g, '').trim();
+  if (cleaned && INGREDIENTS_DB[cleaned]) {
+    return { matchedKey: cleaned, displayName: cleaned };
+  }
+
+  // Strategy 3: strip parentheses "aqua (water)" → "aqua"
+  const noParens = cleaned.replace(/\s*\([^)]*\)\s*/g, '').trim();
+  if (noParens && noParens !== cleaned && INGREDIENTS_DB[noParens]) {
+    return { matchedKey: noParens, displayName: noParens };
+  }
+
+  // Strategy 4: slash split — "aqua/water/eau" → try each part
+  if (cleaned.includes('/')) {
+    const parts = cleaned.split('/').map(s => s.trim()).filter(Boolean);
+    for (const part of parts) {
+      if (INGREDIENTS_DB[part]) {
+        return { matchedKey: part, displayName: part };
+      }
+    }
+    // None matched — display the FIRST part (usually the canonical one),
+    // so users see consistent names across languages.
+    if (parts.length > 0) {
+      return { matchedKey: null, displayName: parts[0] };
+    }
+  }
+
+  // Strategy 5: collapse internal whitespace
+  const collapsed = cleaned.replace(/\s+/g, ' ');
+  if (collapsed !== cleaned && INGREDIENTS_DB[collapsed]) {
+    return { matchedKey: collapsed, displayName: collapsed };
+  }
+
+  // Strategy 6: localized synonym fallback (last resort for translated names)
+  const synonymKey = LOCALIZED_SYNONYMS[cleaned] ?? LOCALIZED_SYNONYMS[lower];
+  if (synonymKey && INGREDIENTS_DB[synonymKey]) {
+    return { matchedKey: synonymKey, displayName: synonymKey };
+  }
+
+  // No match — return the cleaned name so display is at least normalised
+  return { matchedKey: null, displayName: cleaned || lower };
+}
+
 /**
  * Convert ingredients into the canonical { name, status, score, description } form.
  *
@@ -617,11 +747,12 @@ function applyLocalDbEnrichment(
   let knownCount = 0;
   parsed.ingredients = parsed.ingredients.map((ing: any) => {
     // Normalize input: accept string OR object
-    const name = typeof ing === "string" ? ing : (ing?.name ?? "");
-    if (typeof name !== "string" || !name.trim()) return ing;
+    const rawName = typeof ing === "string" ? ing : (ing?.name ?? "");
+    if (typeof rawName !== "string" || !rawName.trim()) return ing;
 
-    const key   = name.toLowerCase().trim();
-    const local = INGREDIENTS_DB[key];
+    // Robust name → DB key resolution (tries lowercase, strips parens, slashes, etc.)
+    const { matchedKey, displayName } = normalizeIngredientName(rawName);
+    const local = matchedKey ? INGREDIENTS_DB[matchedKey] : undefined;
 
     if (local) {
       knownCount++;
@@ -629,25 +760,26 @@ function applyLocalDbEnrichment(
       const description = includeDescriptions
         ? (descObj[langCode] ?? descObj["en"] ?? "")
         : "";
+      // Use the CANONICAL name (matchedKey) — same across languages,
+      // so the same product gives the exact same ingredient list every time.
       return {
-        name,
+        name: matchedKey,
         status: local.status,
         description,
         score:  local.score,
       };
     }
 
-    // Unknown ingredient — emit a placeholder. Client will lazy-fetch description.
-    // For legacy object form we keep AI-supplied fields if any.
+    // Unknown — keep AI-supplied fields if any (legacy object form).
     if (typeof ing === "object" && ing !== null) {
       return {
-        name,
+        name: displayName,
         status:      typeof ing.status === "string"      ? ing.status      : "🟡",
         description: typeof ing.description === "string" ? ing.description : "",
         score:       typeof ing.score === "number"       ? ing.score       : 5,
       };
     }
-    return { name, status: "🟡", description: "", score: 5 };
+    return { name: displayName, status: "🟡", description: "", score: 5 };
   });
 
   if (typeof console !== "undefined" && knownCount > 0) {
