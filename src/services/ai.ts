@@ -293,37 +293,85 @@ export async function translateAnalysisResult(
   result: AnalysisResult,
   targetLanguage: string,
 ): Promise<AnalysisResult> {
-  const translated = await callFunction<AnalysisResult>({
+  // ── Strip ingredients from the translation payload ─────────────────────────
+  // Ingredient descriptions come from the local DB on the client side, so
+  // they don't need to go through AI translation. This shrinks the request
+  // payload by ~50%, makes translation faster, and removes the risk of AI
+  // dropping `score` / changing `status` emojis.
+  const { ingredients, ...toTranslate } = result;
+  void ingredients;
+
+  const translated = await callFunction<Omit<AnalysisResult, 'ingredients'>>({
     action: "translate",
-    result,
+    result: toTranslate,
     targetLanguage,
   });
 
-  // ── PRESERVE numeric and structural fields from the original ──────────────
-  // The translate prompt sometimes mishandles non-text fields (drops `score`,
-  // re-renders status emojis, reorders ingredients). We restore them here from
-  // the original result so the Yuka-style score never drifts on language switch.
-  if (translated.ingredients && result.ingredients) {
-    // Build lookup by lowercased INCI name from the ORIGINAL
-    const byName = new Map(
-      result.ingredients.map((i) => [i.name.trim().toLowerCase(), i]),
+  // Re-localise ingredient descriptions from the local DB on the new language.
+  // For unknown ingredients (not in DB), we keep the original text — better
+  // than nothing, even if it's in the previous language.
+  const langCode = toLangCodeForTranslate(targetLanguage);
+  const localisedIngredients = (result.ingredients ?? []).map((ing) => {
+    const entry = lookupIngredient(ing.name);
+    if (!entry) return ing;
+    const description = getDescriptionForLang(
+      entry as unknown as { description: Record<string, string> },
+      langCode,
     );
-    translated.ingredients = translated.ingredients.map((tIng, idx) => {
-      // First try name match (best — survives reordering)
-      const orig = byName.get(tIng.name.trim().toLowerCase())
-        // Fallback to position match (if AI translated the name itself)
-        ?? result.ingredients[idx];
-      return {
-        ...tIng,
-        // status emoji is data, not text — never let translate change it
-        status: orig?.status ?? tIng.status,
-        // score is numeric — translate often drops it; restore from original
-        score:  orig?.score ?? tIng.score,
-      };
-    });
-  }
+    return {
+      ...ing,
+      status:      entry.status,
+      score:       entry.score,
+      description,
+    };
+  });
 
-  return translated;
+  return {
+    ...translated,
+    ingredients: localisedIngredients,
+  };
+}
+
+// Helper: map full language name OR short code to a LangCode
+function toLangCodeForTranslate(input: string): 'en'|'ru'|'de'|'uk'|'es'|'fr'|'it'|'tr' {
+  const s = input.toLowerCase();
+  // Full names from LANGUAGE_NAMES
+  if (s.startsWith('russ')) return 'ru';
+  if (s.startsWith('germ')) return 'de';
+  if (s.startsWith('ukra')) return 'uk';
+  if (s.startsWith('span')) return 'es';
+  if (s.startsWith('fren')) return 'fr';
+  if (s.startsWith('ital')) return 'it';
+  if (s.startsWith('turk')) return 'tr';
+  // Short codes
+  const c = s.slice(0, 2);
+  if (c === 'ru' || c === 'de' || c === 'uk' || c === 'es' ||
+      c === 'fr' || c === 'it' || c === 'tr') return c as any;
+  return 'en';
+}
+
+function getDescriptionForLang(
+  entry: { description: Record<string, string> },
+  langCode: 'en'|'ru'|'de'|'uk'|'es'|'fr'|'it'|'tr',
+): string {
+  return entry.description[langCode] || entry.description.en || '';
+}
+
+/**
+ * Fetch a one-sentence description for a single ingredient that's NOT in
+ * the local DB. Called lazily when the user expands such an ingredient
+ * in the UI. Result should be cached client-side per (name, language).
+ */
+export async function fetchIngredientDescription(
+  ingredientName: string,
+  language: string,
+): Promise<string> {
+  const data = await callFunction<{ description: string }>({
+    action: 'ingredientDescription',
+    ingredientName,
+    language: LANGUAGE_NAMES[language] || language,
+  });
+  return data.description ?? '';
 }
 
 export async function askFollowUpQuestion(
