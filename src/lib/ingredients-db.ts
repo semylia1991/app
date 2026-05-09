@@ -1113,3 +1113,102 @@ export function lookupIngredient(name: string): IngredientEntry | undefined {
 export function getDescription(entry: IngredientEntry, lang: LangCode = 'en'): string {
   return entry.description[lang] || entry.description.en;
 }
+
+// ── Localized synonym map — last-resort fallback for translated names ──────
+// If something accidentally translates an ingredient name, we still recognize
+// the most common ones. Only very common ingredients are listed.
+export const LOCALIZED_SYNONYMS: Record<string, string> = {
+  // → aqua
+  'water': 'aqua', 'eau': 'aqua', 'wasser': 'aqua', 'agua': 'aqua',
+  'acqua': 'aqua', 'su': 'aqua',
+  'вода': 'aqua', 'вода (aqua)': 'aqua',
+  // → glycerin
+  'glycerine': 'glycerin', 'glyzerin': 'glycerin', 'glicerina': 'glycerin',
+  'glicerina vegetale': 'glycerin', 'glicerine': 'glycerin',
+  'глицерин': 'glycerin',
+  // → parfum / fragrance
+  'fragrance': 'parfum', 'duftstoff': 'parfum', 'profumo': 'parfum',
+  'fragancia': 'parfum', 'parfüm': 'parfum',
+  'отдушка': 'parfum', 'аромат': 'parfum',
+  // → alcohol denat
+  'denatured alcohol': 'alcohol denat', 'alcool denat': 'alcohol denat',
+  'denat. alcohol': 'alcohol denat', 'sd alcohol': 'alcohol denat',
+  'денатурированный спирт': 'alcohol denat', 'спирт денат': 'alcohol denat',
+  // → tocopherol (vitamin E)
+  'vitamin e': 'tocopherol', 'vit. e': 'tocopherol', 'vitamine e': 'tocopherol',
+  'витамин e': 'tocopherol', 'витамин е': 'tocopherol',
+  // → ascorbic acid (vitamin C)
+  'vitamin c': 'ascorbic acid', 'vit. c': 'ascorbic acid', 'vitamine c': 'ascorbic acid',
+  'витамин c': 'ascorbic acid', 'витамин с': 'ascorbic acid',
+  // → retinol (vitamin A)
+  'vitamin a': 'retinol', 'vit. a': 'retinol',
+  'витамин а': 'retinol',
+  // → niacinamide
+  'nicotinamide': 'niacinamide', 'vitamin b3': 'niacinamide',
+  'витамин b3': 'niacinamide', 'ниацинамид': 'niacinamide',
+  // → panthenol
+  'pro-vitamin b5': 'panthenol', 'provitamin b5': 'panthenol',
+  'пантенол': 'panthenol',
+  // → sodium hyaluronate
+  'hyaluronic acid sodium salt': 'sodium hyaluronate',
+  'гиалуроновая кислота': 'sodium hyaluronate', 'гиалуронат натрия': 'sodium hyaluronate',
+};
+
+/**
+ * Robust lookup: tries multiple normalization strategies before giving up.
+ * Returns the matched IngredientEntry and the canonical key, or both null.
+ *
+ * Strategies (in order):
+ *   1. Direct lowercase + trim
+ *   2. Strip trailing punctuation
+ *   3. Strip parentheses: "aqua (water)" → "aqua"
+ *   4. Slash split: "aqua/water/eau" → try each part
+ *   5. Collapse internal whitespace
+ *   6. Localized synonym map (last resort for translated names)
+ */
+export function robustLookupIngredient(rawName: string): {
+  entry: IngredientEntry | undefined;
+  canonicalKey: string | null;
+} {
+  if (!rawName) return { entry: undefined, canonicalKey: null };
+  const lower = rawName.toLowerCase().trim();
+  if (!lower) return { entry: undefined, canonicalKey: null };
+
+  // 1. direct
+  if (INGREDIENTS_DB[lower]) return { entry: INGREDIENTS_DB[lower], canonicalKey: lower };
+
+  // 2. trailing punctuation
+  const cleaned = lower.replace(/[.,;:!?*]+$/g, '').trim();
+  if (cleaned && INGREDIENTS_DB[cleaned]) {
+    return { entry: INGREDIENTS_DB[cleaned], canonicalKey: cleaned };
+  }
+
+  // 3. strip parentheses
+  const noParens = cleaned.replace(/\s*\([^)]*\)\s*/g, '').trim();
+  if (noParens && noParens !== cleaned && INGREDIENTS_DB[noParens]) {
+    return { entry: INGREDIENTS_DB[noParens], canonicalKey: noParens };
+  }
+
+  // 4. slash split
+  if (cleaned.includes('/')) {
+    for (const part of cleaned.split('/').map(s => s.trim()).filter(Boolean)) {
+      if (INGREDIENTS_DB[part]) {
+        return { entry: INGREDIENTS_DB[part], canonicalKey: part };
+      }
+    }
+  }
+
+  // 5. collapse whitespace
+  const collapsed = cleaned.replace(/\s+/g, ' ');
+  if (collapsed !== cleaned && INGREDIENTS_DB[collapsed]) {
+    return { entry: INGREDIENTS_DB[collapsed], canonicalKey: collapsed };
+  }
+
+  // 6. localized synonym fallback
+  const synonym = LOCALIZED_SYNONYMS[cleaned] ?? LOCALIZED_SYNONYMS[lower];
+  if (synonym && INGREDIENTS_DB[synonym]) {
+    return { entry: INGREDIENTS_DB[synonym], canonicalKey: synonym };
+  }
+
+  return { entry: undefined, canonicalKey: null };
+}
