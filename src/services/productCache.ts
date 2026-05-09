@@ -12,9 +12,9 @@
 
 import { supabase } from '../lib/supabase';
 import type { AnalysisResult } from './ai';
-import { lookupIngredient, getDescription, type LangCode } from '../lib/ingredients-db';
+import { getDescription, robustLookupIngredient, type LangCode } from '../lib/ingredients-db';
 
-// ── Hydrate cached results: score + localized description from local DB ─────
+// Hydrate cached results: score + localized description from local DB ─────
 //
 // Cached results store ingredient NAMES + status/score, but the description
 // is intentionally NOT stored (or may be from a different language than the
@@ -22,12 +22,13 @@ import { lookupIngredient, getDescription, type LangCode } from '../lib/ingredie
 // description for the requested language WITHOUT any AI call — making
 // language switches on cached scans nearly free.
 //
-// Also handles backward-compat: older rows written before `score` existed.
+// Also handles backward-compat: older rows written before `score` existed,
+// or with non-canonical names like "Aqua/Water" or "Aqua (Water)".
 function hydrate(result: AnalysisResult, langCode: LangCode = 'en'): AnalysisResult {
   if (!result?.ingredients) return result;
   let mutated = false;
   const ingredients = result.ingredients.map((ing) => {
-    const entry = lookupIngredient(ing.name);
+    const { entry, canonicalKey } = robustLookupIngredient(ing.name);
 
     // Decide score (DB authoritative > existing > status fallback)
     let score: number;
@@ -48,15 +49,20 @@ function hydrate(result: AnalysisResult, langCode: LangCode = 'en'): AnalysisRes
     // Decide status (DB authoritative for known ingredients)
     const status = entry ? entry.status : ing.status;
 
+    // Use the canonical name when matched — guarantees same display across
+    // languages (so "Aqua/Water" cached entries become just "aqua").
+    const name = canonicalKey ?? ing.name;
+
     if (
       score === ing.score
       && description === ing.description
       && status === ing.status
+      && name === ing.name
     ) {
       return ing;
     }
     mutated = true;
-    return { ...ing, status, score, description };
+    return { ...ing, name, status, score, description };
   });
   return mutated ? { ...result, ingredients } : result;
 }
@@ -180,8 +186,8 @@ export async function saveToCache(
   // it's in another language. The IngredientItem will lazy-fetch a fresh
   // description in the user's language on click via fetchIngredientDescription.
   cacheable.ingredients = cacheable.ingredients.map((ing) => {
-    const inDb = !!lookupIngredient(ing.name);
-    return inDb ? { ...ing, description: '' } : ing;
+    const { entry } = robustLookupIngredient(ing.name);
+    return entry ? { ...ing, description: '' } : ing;
   });
 
   try {
