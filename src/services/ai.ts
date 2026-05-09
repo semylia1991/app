@@ -2,7 +2,7 @@
 // The API key is NEVER sent to the browser.
 
 import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage } from './productCache';
-import { lookupIngredient } from '../lib/ingredients-db';
+import { lookupIngredient, robustLookupIngredient } from '../lib/ingredients-db';
 
 const FUNCTION_URL = "/api/gemini";
 
@@ -312,7 +312,7 @@ export async function translateAnalysisResult(
   // than nothing, even if it's in the previous language.
   const langCode = toLangCodeForTranslate(targetLanguage);
   const localisedIngredients = (result.ingredients ?? []).map((ing) => {
-    const entry = lookupIngredient(ing.name);
+    const { entry, canonicalKey } = robustLookupIngredient(ing.name);
     if (!entry) return ing;
     const description = getDescriptionForLang(
       entry as unknown as { description: Record<string, string> },
@@ -320,6 +320,7 @@ export async function translateAnalysisResult(
     );
     return {
       ...ing,
+      name:        canonicalKey ?? ing.name,
       status:      entry.status,
       score:       entry.score,
       description,
