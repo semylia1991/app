@@ -12,29 +12,63 @@
 
 import { supabase } from '../lib/supabase';
 import type { AnalysisResult } from './ai';
-import { lookupIngredient } from '../lib/ingredients-db';
+import { lookupIngredient, getDescription, type LangCode } from '../lib/ingredients-db';
 
-// ── Backward-compat: hydrate score from local DB ─────────────────────────────
+// ── Hydrate cached results: score + localized description from local DB ─────
 //
-// Older cached results were saved BEFORE the `score` field existed.
-// On read, fill in the missing scores from the local INCI DB so the
-// Yuka-style product score is consistent (no value swap on cache hit).
-function hydrateScores(result: AnalysisResult): AnalysisResult {
+// Cached results store ingredient NAMES + status/score, but the description
+// is intentionally NOT stored (or may be from a different language than the
+// user is currently viewing in). This function fills in / refreshes the
+// description for the requested language WITHOUT any AI call — making
+// language switches on cached scans nearly free.
+//
+// Also handles backward-compat: older rows written before `score` existed.
+function hydrate(result: AnalysisResult, langCode: LangCode = 'en'): AnalysisResult {
   if (!result?.ingredients) return result;
   let mutated = false;
   const ingredients = result.ingredients.map((ing) => {
-    if (typeof ing.score === 'number') return ing;
     const entry = lookupIngredient(ing.name);
+
+    // Decide score (DB authoritative > existing > status fallback)
+    let score: number;
     if (entry) {
-      mutated = true;
-      return { ...ing, score: entry.score };
+      score = entry.score;
+    } else if (typeof ing.score === 'number') {
+      score = ing.score;
+    } else {
+      score = ing.status === '🟢' ? 8 : ing.status === '🟡' ? 5 : 1;
     }
-    // Unknown ingredient with no score → fall back from status emoji
-    const fallback = ing.status === '🟢' ? 8 : ing.status === '🟡' ? 5 : 1;
+
+    // Decide description (DB localized for current language is best;
+    // unknown ingredients keep whatever was there — empty or AI-generated)
+    const description = entry
+      ? getDescription(entry, langCode)
+      : (ing.description ?? '');
+
+    // Decide status (DB authoritative for known ingredients)
+    const status = entry ? entry.status : ing.status;
+
+    if (
+      score === ing.score
+      && description === ing.description
+      && status === ing.status
+    ) {
+      return ing;
+    }
     mutated = true;
-    return { ...ing, score: fallback };
+    return { ...ing, status, score, description };
   });
   return mutated ? { ...result, ingredients } : result;
+}
+
+// Map our 8 supported language codes
+function toLangCode(lang: string): LangCode {
+  const c = lang.toLowerCase().slice(0, 2);
+  if (c === 'en' || c === 'ru' || c === 'de' || c === 'uk' ||
+      c === 'es' || c === 'fr' || c === 'it' || c === 'tr') {
+    return c as LangCode;
+  }
+  return 'en';
 }
 
 // ── Хэш изображения ──────────────────────────────────────────────────────────
@@ -82,7 +116,7 @@ export async function getCachedByHash(
     });
     if (error || !data) return null;
     console.log('[cache] HASH HIT:', imageHash.slice(0, 12) + '…');
-    return hydrateScores(data as AnalysisResult);
+    return hydrate(data as AnalysisResult, toLangCode(lang));
   } catch (e) {
     console.warn('[cache] hash lookup error:', e);
     return null;
@@ -114,7 +148,7 @@ export async function getCachedAnalysis(
     );
 
     console.log('[cache] NAME HIT:', cacheKey);
-    return hydrateScores(data.result as AnalysisResult);
+    return hydrate(data.result as AnalysisResult, toLangCode(lang));
   } catch (e) {
     console.warn('[cache] read error:', e);
     return null;
