@@ -2,12 +2,12 @@ import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart, GitCompareArrows } from 'lucide-react';
+import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart, GitCompareArrows, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
 import { t, Language, loadLanguage } from './i18n';
-import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore } from './services/ai';
+import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription } from './services/ai';
 import { computePersonalScore } from './lib/personalScore';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -64,6 +64,120 @@ function ScoreBadge({ score }: { score: number | null }) {
 }
 
 /* ── helpers ── */
+
+// Module-level cache for lazy-fetched descriptions: name+lang → description.
+// Survives re-renders within a session; resets on full page reload.
+const ingredientDescriptionCache = new Map<string, string>();
+
+interface IngredientItemProps {
+  ing: { name: string; status: string; score?: number; description: string };
+  lang: Language;
+}
+
+function IngredientItem({ ing, lang }: IngredientItemProps) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  // Locally-fetched description for unknown-to-DB ingredients. Always overrides
+  // the prop description when present and non-empty.
+  const [fetched, setFetched] = useState<string | null>(null);
+
+  const cacheKey = `${ing.name.toLowerCase().trim()}|${lang}`;
+
+  // Reset locally-fetched description when language changes — the new value
+  // for this language will be picked up from the session cache or re-fetched.
+  useEffect(() => {
+    const sessionHit = ingredientDescriptionCache.get(cacheKey);
+    setFetched(sessionHit ?? null);
+  }, [cacheKey]);
+
+  // The description shown to the user: prop description if present (from local
+  // DB hydration), otherwise fetched, otherwise empty.
+  const shownDescription = ing.description || fetched || '';
+
+  // When opened: if no description anywhere, kick off a lazy AI fetch.
+  useEffect(() => {
+    if (!open) return;
+    if (shownDescription) return;
+    // Already cached for this lang? use it
+    const cached = ingredientDescriptionCache.get(cacheKey);
+    if (cached) {
+      setFetched(cached);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetchIngredientDescription(ing.name, lang)
+      .then((desc) => {
+        if (cancelled) return;
+        ingredientDescriptionCache.set(cacheKey, desc);
+        setFetched(desc);
+      })
+      .catch(() => { /* keep empty */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, shownDescription, cacheKey, ing.name, lang]);
+
+  return (
+    <li
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '7px 0',
+        borderBottom: '0.5px solid rgba(221,213,200,0.5)',
+        cursor: 'pointer',
+      }}
+      onClick={() => setOpen((o) => !o)}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
+        <span
+          style={{
+            flex: 1,
+            fontSize: '0.85rem',
+            letterSpacing: '0.04em',
+            color: '#1A1410',
+            fontWeight: 500,
+            fontFamily: 'var(--font-sans)',
+            marginTop: 1,
+          }}
+        >
+          {ing.name}
+        </span>
+        <ChevronDown
+          size={14}
+          style={{
+            color: '#8A8078',
+            flexShrink: 0,
+            marginTop: 4,
+            transition: 'transform 0.2s',
+            transform: open ? 'rotate(180deg)' : 'rotate(0)',
+          }}
+        />
+      </div>
+      {open && (
+        <div style={{ paddingLeft: 26, marginTop: 4 }}>
+          {loading && !shownDescription ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: '#8A8078', fontStyle: 'italic', fontFamily: 'var(--font-serif)' }}>
+              <Loader2 size={12} className="animate-spin" />
+              {lang === 'ru' ? 'Загружаем описание…' :
+               lang === 'uk' ? 'Завантажуємо опис…' :
+               lang === 'de' ? 'Beschreibung wird geladen…' :
+               lang === 'es' ? 'Cargando descripción…' :
+               lang === 'fr' ? 'Chargement de la description…' :
+               lang === 'it' ? 'Caricamento descrizione…' :
+               lang === 'tr' ? 'Açıklama yükleniyor…' :
+                              'Loading description…'}
+            </span>
+          ) : (
+            <span style={{ fontSize: '1rem', color: '#5A5550', lineHeight: 1.6, fontFamily: 'var(--font-serif)' }}>
+              {shownDescription || '—'}
+            </span>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
 function splitParagraphs(text: string): string[] {
   return text.split('\n\n').map(s => s.trim()).filter(Boolean);
 }
@@ -879,18 +993,9 @@ export default function App() {
                               </div>
                             )}
                             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                              {result.ingredients.map((ing, idx) => {
-                                return (
-                                  <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '7px 0', borderBottom: '0.5px solid rgba(221,213,200,0.5)' }}>
-                                    <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: 1 }}>{ing.status}</span>
-                                    <div style={{ flex: 1 }}>
-                                      <span style={{ display: 'block', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#1A1410', fontWeight: 500, marginBottom: 2, fontFamily: 'var(--font-sans)' }}>{ing.name}</span>
-                                      <span style={{ fontSize: '1.05rem', color: '#8A8078', lineHeight: 1.65, fontFamily: 'var(--font-serif)' }}>{ing.description}</span>
-                                    </div>
-                                    
-                                  </li>
-                                );
-                              })}
+                              {result.ingredients.map((ing, idx) => (
+                                <IngredientItem key={`${ing.name}-${idx}`} ing={ing} lang={lang} />
+                              ))}
                             </ul>
                           </>
                         );
