@@ -6,6 +6,99 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { INGREDIENTS_DB } from "./ingredients-db.js";
 
+// ── Supabase REST helpers (for ingredient_extras community cache) ──────────
+// Uses fetch() directly — no @supabase/supabase-js dependency in the server.
+// Env vars required:
+//   SUPABASE_URL (or VITE_SUPABASE_URL)
+//   SUPABASE_SERVICE_ROLE_KEY (or VITE_SUPABASE_ANON_KEY as fallback)
+function getSupabaseConfig(): { url: string; key: string } | null {
+  // process is available in Node.js (Vercel/server). Guard for browser bundles.
+  if (typeof process === 'undefined' || !process.env) return null;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+           || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return { url, key };
+}
+
+interface IngredientExtraRow {
+  inci_name:   string;
+  status:      string;
+  score:       number;
+  description: string;
+}
+
+/**
+ * Batch lookup unknown ingredient names in the Supabase community cache.
+ * Returns a map name → row for ingredients found. Failures are silent.
+ */
+async function fetchIngredientExtras(
+  names: string[],
+  langCode: string,
+): Promise<Map<string, IngredientExtraRow>> {
+  const out = new Map<string, IngredientExtraRow>();
+  if (names.length === 0) return out;
+  const cfg = getSupabaseConfig();
+  if (!cfg) return out;
+
+  try {
+    const res = await fetch(`${cfg.url}/rest/v1/rpc/get_ingredient_extras`, {
+      method: 'POST',
+      headers: {
+        'apikey': cfg.key,
+        'Authorization': `Bearer ${cfg.key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_names: names, p_lang: langCode }),
+    });
+    if (!res.ok) return out;
+    const rows = await res.json() as IngredientExtraRow[];
+    for (const r of rows) {
+      if (r?.inci_name) out.set(r.inci_name, r);
+    }
+  } catch (e) {
+    console.warn('[ingredient_extras] fetch failed:', e);
+  }
+  return out;
+}
+
+/**
+ * Upsert a new AI-generated description into the community cache.
+ * Fire-and-forget — failures don't block the user response.
+ */
+async function saveIngredientExtra(
+  name: string,
+  status: string,
+  score: number,
+  langCode: string,
+  description: string,
+): Promise<void> {
+  const cfg = getSupabaseConfig();
+  if (!cfg) return;
+  // Filter out placeholder descriptions
+  if (!description || description.trim().length <= 1) return;
+
+  try {
+    await fetch(`${cfg.url}/rest/v1/rpc/upsert_ingredient_extra`, {
+      method: 'POST',
+      headers: {
+        'apikey': cfg.key,
+        'Authorization': `Bearer ${cfg.key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        p_inci_name:   name,
+        p_status:      status,
+        p_score:       Math.round(score),
+        p_lang:        langCode,
+        p_description: description.trim(),
+      }),
+    });
+  } catch (e) {
+    console.warn('[ingredient_extras] save failed:', e);
+  }
+}
+
 // ── Available models (updated April 2026) ─────────────────────────────────────
 const MODELS = [
   "gemini-2.0-flash",          // Основная модель: быстрее 2.5 Flash, хорошее качество
@@ -711,28 +804,117 @@ function normalizeIngredientName(raw: string): {
 /**
  * Convert ingredients into the canonical { name, status, score, description } form.
  *
+ * Tiered lookup:
+ *   L0 (local, instant):    INGREDIENTS_DB shipped with the code (~1025 well-known INCI)
+ *   L1 (Supabase, ~150ms):  ingredient_extras — community cache of rare ingredients
+ *                            populated by previous AI scans
+ *   L2 (AI fallback):        if neither has it, keep AI-supplied fields (status/score/desc)
+ *                            AND save them to L1 for future users (auto-grow the cache)
+ *
  * Accepts BOTH new and legacy formats:
  *   - New: ingredients = ["aqua", "glycerin", ...]   (array of strings)
  *   - Legacy: ingredients = [{ name, status?, description?, score? }, ...]
  *
- * For each ingredient:
- *   - Known in local DB (~1025 entries) → use authoritative status/score and
- *     localized description for the requested language.
- *   - Unknown → set status='🟡', score=5, description='' (will be filled
- *     lazily by extractIngredientDescription action when user expands it).
- *
- * @param includeDescriptions — when true, fills `description` from local DB.
- *   When false, leaves it empty. Use false when you want to defer descriptions
- *   until the user actually expands an ingredient (saves response size).
+ * @param includeDescriptions — when true, fills `description` from DB.
+ *   When false, leaves it empty.
  */
-function applyLocalDbEnrichment(
+/**
+ * Background task: generate descriptions for ingredients NOT found in
+ * either L0 (local DB) or L1 (Supabase community cache), then save them
+ * to L1 so future users get them instantly without AI.
+ *
+ * Fire-and-forget — called AFTER the user response is sent, so it doesn't
+ * add latency. Uses MODEL_LITE (cheapest tier) and one batch request.
+ */
+async function enrichUnknownsInBackground(
+  ai: GoogleGenAI,
+  unknownNames: string[],
+  langCode: string,
+): Promise<void> {
+  if (unknownNames.length === 0) return;
+  if (unknownNames.length > 20) unknownNames = unknownNames.slice(0, 20); // safety cap
+
+  // Use the full language name for the AI prompt (more reliable than codes)
+  const langName = Object.entries(LANGUAGE_NAME_TO_CODE).find(([, c]) => c === langCode)?.[0] ?? 'english';
+  const langNameCapitalized = langName.charAt(0).toUpperCase() + langName.slice(1);
+
+  const prompt = `
+For each INCI ingredient below, output a single JSON object with this exact shape:
+{
+  "items": [
+    { "name": "<lowercase INCI as given>", "status": "🟢|🟡|🔴", "score": <0-10 integer>, "description": "<1-7 words in ${langNameCapitalized}>" },
+    ...
+  ]
+}
+
+Rules:
+- status: 🟢 safe (7-10), 🟡 caution (3-6), 🔴 avoid (0-2).
+- score: integer 0-10 matching status range.
+- description: 1-7 words in ${langNameCapitalized}, explaining function and any safety note.
+- If unknown, skip the item (do not invent).
+- Output ONLY valid JSON, no markdown.
+
+INGREDIENTS:
+${unknownNames.map(n => `- ${n}`).join('\n')}
+`.trim();
+
+  try {
+    const response = await generateWithRetry(ai, {
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            items: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name:        { type: Type.STRING },
+                  status:      { type: Type.STRING, enum: ['🟢', '🟡', '🔴'] },
+                  score:       { type: Type.NUMBER },
+                  description: { type: Type.STRING },
+                },
+                required: ['name', 'status', 'score', 'description'],
+              },
+            },
+          },
+          required: ['items'],
+        },
+        temperature: 0.2,
+      },
+    }, 'enrichUnknowns', MODEL_LITE);
+
+    const parsed = JSON.parse(response.text ?? '{}');
+    const items = (parsed?.items ?? []) as Array<{
+      name: string; status: string; score: number; description: string;
+    }>;
+
+    // Save each to Supabase community cache (parallel, fire-and-forget)
+    await Promise.allSettled(items.map(it => {
+      if (!['🟢', '🟡', '🔴'].includes(it.status)) return Promise.resolve();
+      if (typeof it.score !== 'number' || it.score < 0 || it.score > 10) return Promise.resolve();
+      if (!it.description || it.description.trim().length <= 1) return Promise.resolve();
+      return saveIngredientExtra(it.name, it.status, Math.round(it.score), langCode, it.description.trim());
+    }));
+
+    if (items.length > 0) {
+      console.log(`[ingredient_extras] background-enriched ${items.length} new ingredients`);
+    }
+  } catch (e) {
+    console.warn('[ingredient_extras] background enrichment failed:', e);
+  }
+}
+
+async function applyLocalDbEnrichment(
   rawJson: string,
   language?: string,
   includeDescriptions = true,
-): string {
+  ai?: GoogleGenAI,
+): Promise<string> {
   if (!rawJson) return rawJson;
 
-  // Map full language name (e.g. "Russian") to code (e.g. "ru"), default "en"
   const langCode = LANGUAGE_NAME_TO_CODE[(language ?? "").toLowerCase()] ?? "en";
 
   let parsed: any;
@@ -744,47 +926,117 @@ function applyLocalDbEnrichment(
 
   if (!parsed || !Array.isArray(parsed.ingredients)) return rawJson;
 
-  let knownCount = 0;
-  parsed.ingredients = parsed.ingredients.map((ing: any) => {
-    // Normalize input: accept string OR object
+  // ── Pass 1: try L0 (local DB) for every ingredient ──────────────────────
+  // Collect names that miss locally — we'll batch-query L1 (Supabase) for them.
+  type Normalised = {
+    rawIng: any;
+    matchedKey: string | null;
+    displayName: string;
+  };
+  const normalised: Normalised[] = parsed.ingredients.map((ing: any) => {
     const rawName = typeof ing === "string" ? ing : (ing?.name ?? "");
-    if (typeof rawName !== "string" || !rawName.trim()) return ing;
-
-    // Robust name → DB key resolution (tries lowercase, strips parens, slashes, etc.)
+    if (typeof rawName !== "string" || !rawName.trim()) {
+      return { rawIng: ing, matchedKey: null, displayName: "" };
+    }
     const { matchedKey, displayName } = normalizeIngredientName(rawName);
-    const local = matchedKey ? INGREDIENTS_DB[matchedKey] : undefined;
-
-    if (local) {
-      knownCount++;
-      const descObj = local.description as unknown as Record<string, string>;
-      const description = includeDescriptions
-        ? (descObj[langCode] ?? descObj["en"] ?? "")
-        : "";
-      // Use the CANONICAL name (matchedKey) — same across languages,
-      // so the same product gives the exact same ingredient list every time.
-      return {
-        name: matchedKey,
-        status: local.status,
-        description,
-        score:  local.score,
-      };
-    }
-
-    // Unknown — keep AI-supplied fields if any (legacy object form).
-    if (typeof ing === "object" && ing !== null) {
-      return {
-        name: displayName,
-        status:      typeof ing.status === "string"      ? ing.status      : "🟡",
-        description: typeof ing.description === "string" ? ing.description : "",
-        score:       typeof ing.score === "number"       ? ing.score       : 5,
-      };
-    }
-    return { name: displayName, status: "🟡", description: "", score: 5 };
+    return { rawIng: ing, matchedKey, displayName };
   });
 
-  if (typeof console !== "undefined" && knownCount > 0) {
+  // Names we need to look up in Supabase (not in local DB but have a displayName)
+  const missingNames = normalised
+    .filter(n => !n.matchedKey && n.displayName)
+    .map(n => n.displayName.toLowerCase().trim());
+
+  // ── L1: batch-fetch unknown names from Supabase community cache ─────────
+  const extras = missingNames.length > 0
+    ? await fetchIngredientExtras([...new Set(missingNames)], langCode)
+    : new Map<string, IngredientExtraRow>();
+
+  // ── Pass 2: build the final enriched list ───────────────────────────────
+  let knownLocalCount = 0;
+  let knownExtraCount = 0;
+  const newAiEntries: Array<{ name: string; status: string; score: number; description: string }> = [];
+  // Names that fell through ALL tiers and came in as strings (no AI fields) —
+  // these need a background AI enrichment so the cache grows.
+  const stringUnknowns: string[] = [];
+
+  parsed.ingredients = normalised.map((n) => {
+    if (!n.displayName) return n.rawIng; // skip empty input
+
+    // L0 — local DB hit
+    if (n.matchedKey) {
+      const local = INGREDIENTS_DB[n.matchedKey];
+      if (local) {
+        knownLocalCount++;
+        const descObj = local.description as unknown as Record<string, string>;
+        const description = includeDescriptions
+          ? (descObj[langCode] ?? descObj["en"] ?? "")
+          : "";
+        return {
+          name: n.matchedKey,
+          status: local.status,
+          description,
+          score:  local.score,
+        };
+      }
+    }
+
+    // L1 — Supabase community cache hit
+    const extra = extras.get(n.displayName.toLowerCase().trim());
+    if (extra) {
+      knownExtraCount++;
+      // If the description for the current language is missing (row exists
+      // but only has translations for other langs), queue background AI
+      // enrich so the language coverage grows over time.
+      if (includeDescriptions && (!extra.description || extra.description.trim().length <= 1)) {
+        stringUnknowns.push(n.displayName);
+      }
+      return {
+        name: n.displayName,
+        status:      extra.status,
+        score:       extra.score,
+        description: includeDescriptions ? extra.description : "",
+      };
+    }
+
+    // L2 — neither has it. Keep AI-supplied fields and queue for save.
+    if (typeof n.rawIng === "object" && n.rawIng !== null) {
+      const status      = typeof n.rawIng.status === "string"      ? n.rawIng.status      : "🟡";
+      const description = typeof n.rawIng.description === "string" ? n.rawIng.description : "";
+      const score       = typeof n.rawIng.score === "number"       ? n.rawIng.score       : 5;
+      if (description.trim().length > 1) {
+        newAiEntries.push({ name: n.displayName, status, score, description });
+      } else {
+        // Object form but no description → still need background enrich
+        stringUnknowns.push(n.displayName);
+      }
+      return { name: n.displayName, status, description, score };
+    }
+    // String form (new schema): AI returned just a name. Queue for background AI fill.
+    stringUnknowns.push(n.displayName);
+    return { name: n.displayName, status: "🟡", description: "", score: 5 };
+  });
+
+  // ── Fire-and-forget: write new entries to community cache (no await) ────
+  // This makes the AI's findings available to ALL future users instantly.
+  if (newAiEntries.length > 0) {
+    Promise.allSettled(
+      newAiEntries.map(e => saveIngredientExtra(e.name, e.status, e.score, langCode, e.description))
+    ).catch(() => {});
+  }
+
+  // ── Background AI enrich for string-array unknowns ─────────────────────
+  // When AI returns string[] (new schema), we have no descriptions/scores
+  // for ingredients NOT in L0 or L1. Run a single batch AI call for them
+  // and save results to the community cache. Fire-and-forget — user response
+  // is not blocked.
+  if (ai && stringUnknowns.length > 0) {
+    void enrichUnknownsInBackground(ai, [...new Set(stringUnknowns)], langCode);
+  }
+
+  if (typeof console !== "undefined" && (knownLocalCount > 0 || knownExtraCount > 0)) {
     console.log(
-      `[ingredients-db] Enriched ${knownCount} of ${parsed.ingredients.length} ingredients from local DB`,
+      `[ingredients] Enriched: L0=${knownLocalCount}, L1=${knownExtraCount}, AI-saved=${newAiEntries.length}, bg-queue=${stringUnknowns.length} of ${parsed.ingredients.length}`,
     );
   }
 
@@ -935,7 +1187,7 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
     // ↑ MODEL_LITE (gemini-2.5-flash-lite) — ~2× faster than Flash 2.0 for this task.
     // Auto-falls back to Flash 2.0 / 2.5 from MODELS list on any failure.
 
-    const enrichedText = applyLocalDbEnrichment(response.text ?? "", language);
+    const enrichedText = await applyLocalDbEnrichment(response.text ?? "", language, true, ai);
     return { status: 200, rawText: enrichedText };
   }
 
@@ -1003,7 +1255,7 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
     // Override AI descriptions/statuses for ingredients known in our local DB.
     // This guarantees deterministic results for ~1000 well-known INCI and lets
     // the AI focus its tokens on truly unknown ingredients.
-    const enrichedText = applyLocalDbEnrichment(response.text ?? "", language);
+    const enrichedText = await applyLocalDbEnrichment(response.text ?? "", language, true, ai);
     return { status: 200, rawText: enrichedText };
   }
 
