@@ -416,16 +416,6 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
           lang === 'tr' ? (personalScore >= 7.5 ? 'Size uygun' : personalScore >= 5 ? 'Kısmen uygun' : 'Önerilmez') :
           (personalScore >= 7.5 ? 'Suits you' : personalScore >= 5 ? 'Partially suitable' : 'Not recommended');
 
-        const sublabel =
-          lang === 'ru' ? 'Персональная оценка состава' :
-          lang === 'uk' ? 'Персональна оцінка складу' :
-          lang === 'de' ? 'Persönliche Formulabewertung' :
-          lang === 'es' ? 'Puntuación personal de fórmula' :
-          lang === 'fr' ? 'Score personnel de la formule' :
-          lang === 'it' ? 'Punteggio personale formula' :
-          lang === 'tr' ? 'Kişisel formül puanı' :
-          'Personal formula score';
-
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', marginBottom: 14, background: 'rgba(255,255,255,0.6)', borderRadius: 14, border: `1.5px solid ${scoreColor}33` }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 60 }}>
