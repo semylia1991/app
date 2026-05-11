@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Crown, RefreshCw, LogIn, Settings } from 'lucide-react';
+import { Crown, RefreshCw, LogIn, Settings, Loader2, ChevronDown } from 'lucide-react';
 import { t, Language } from '../i18n';
-import { AnalysisResult, SerializedProfile } from '../services/ai';
+import { AnalysisResult, SerializedProfile, fetchPreferenceExplanation } from '../services/ai';
 import { UserProfile, translateProfile } from './UserProfile';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { computePersonalScore } from '../lib/personalScore';
+import { computePersonalScore, scoreForSinglePreference } from '../lib/personalScore';
 
 const FUNCTION_URL = '/api/gemini';
 
@@ -108,6 +108,142 @@ const FILL_PROFILE_BTN: Record<Language, string> = {
   it: 'Compila le preferenze',
   tr: 'Tercihleri doldur',
 };
+
+// ── Preference chip ────────────────────────────────────────────────────────
+// Module-level cache: key = `${preferenceKey}|${productKey}|${lang}` → text
+const preferenceExplanationCache = new Map<string, string>();
+
+interface PreferenceChipProps {
+  preferenceKey: string;     // e.g. 'skinCombination', 'sensFragrances'
+  preferenceLabel: string;   // localized label e.g. "Комбинированная кожа"
+  ingredients: AnalysisResult['ingredients'];
+  lang: Language;
+  productKey: string;        // unique cache key per product (brand+productName)
+}
+
+function PreferenceChip({ preferenceKey, preferenceLabel, ingredients, lang, productKey }: PreferenceChipProps) {
+  const [open, setOpen] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Local score for THIS preference — used to colour the chip
+  const score = scoreForSinglePreference(ingredients, preferenceKey);
+  const color = score === null
+    ? '#8A8078'
+    : score >= 7.5 ? '#2D9B5A'
+    : score >= 5   ? '#E8A020'
+    :                '#D94040';
+
+  const cacheKey = `${preferenceKey}|${productKey}|${lang}`;
+
+  // When opened: lazy-fetch explanation
+  useEffect(() => {
+    if (!open) return;
+    if (explanation) return;
+    if (!ingredients || ingredients.length === 0) return; // nothing to explain
+    const cached = preferenceExplanationCache.get(cacheKey);
+    if (cached) { setExplanation(cached); return; }
+
+    let cancelled = false;
+    setLoading(true);
+    fetchPreferenceExplanation(ingredients, preferenceLabel, lang)
+      .then((text) => {
+        if (cancelled) return;
+        preferenceExplanationCache.set(cacheKey, text);
+        setExplanation(text);
+      })
+      .catch(() => { /* keep null */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, explanation, cacheKey, preferenceLabel, ingredients, lang]);
+
+  // Reset on language switch — pick up cache for new lang or refetch
+  useEffect(() => {
+    const cached = preferenceExplanationCache.get(cacheKey);
+    setExplanation(cached ?? null);
+  }, [cacheKey]);
+
+  const loadingText =
+    lang === 'ru' ? 'Загружаем…' :
+    lang === 'uk' ? 'Завантажуємо…' :
+    lang === 'de' ? 'Wird geladen…' :
+    lang === 'es' ? 'Cargando…' :
+    lang === 'fr' ? 'Chargement…' :
+    lang === 'it' ? 'Caricamento…' :
+    lang === 'tr' ? 'Yükleniyor…' :
+                    'Loading…';
+
+  return (
+    <div
+      style={{
+        background: `${color}10`,
+        border: `1px solid ${color}40`,
+        borderRadius: 10,
+        padding: '8px 12px',
+        cursor: 'pointer',
+        transition: 'background 0.15s',
+      }}
+      onClick={() => setOpen((o) => !o)}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 999, background: color, flexShrink: 0 }} />
+        <span style={{ flex: 1, fontSize: '0.85rem', color: '#1A1410', fontFamily: 'var(--font-sans)' }}>
+          {preferenceLabel}
+        </span>
+        <ChevronDown
+          size={13}
+          style={{
+            color, flexShrink: 0,
+            transition: 'transform 0.2s',
+            transform: open ? 'rotate(180deg)' : 'rotate(0)',
+          }}
+        />
+      </div>
+      {open && (
+        <div style={{ paddingLeft: 16, marginTop: 6, fontSize: '0.95rem', color: '#5A5550', lineHeight: 1.5, fontFamily: 'var(--font-serif)' }}>
+          {loading && !explanation ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontStyle: 'italic', color: '#8A8078' }}>
+              <Loader2 size={11} className="animate-spin" />
+              {loadingText}
+            </span>
+          ) : (
+            explanation || '—'
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Helper: list of (key, label) pairs from a UserProfile, in display order ──
+//
+// Filters out "None" and "Unknown" placeholder values — the user selected them
+// to indicate ABSENCE of a property (e.g. "No sensitivities", "Unknown skin
+// type"), and showing them as expandable chips would yield no useful info.
+function listSelectedPreferences(profile: UserProfile, lang: Language): Array<{ key: string; label: string }> {
+  const tr = (key: string): string =>
+    (t[lang] as unknown as Record<string, string>)[key] ?? key;
+
+  const isNoneish = (k: string) =>
+    /(?:None|Unknown)$/i.test(k) || k === 'climateAny';
+
+  const push = (out: Array<{ key: string; label: string }>, k: string) => {
+    if (k && !isNoneish(k)) out.push({ key: k, label: tr(k) });
+  };
+
+  const out: Array<{ key: string; label: string }> = [];
+  profile.skinType.forEach        (k => push(out, k));
+  profile.skinConditions.forEach  (k => push(out, k));
+  profile.skinSensitivity.forEach (k => push(out, k));
+  if (profile.ageRange)             push(out, profile.ageRange);
+  profile.hairType.forEach        (k => push(out, k));
+  profile.scalpCondition.forEach  (k => push(out, k));
+  profile.hairProblems.forEach    (k => push(out, k));
+  (profile.bodySkinType ?? []).forEach(k => push(out, k));
+  (profile.climate      ?? []).forEach(k => push(out, k));
+  return out;
+}
+
 
 export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, onLimitReached, onUsed, onOpenProfile }: Props) {
   const T = t[lang];
@@ -285,6 +421,28 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
               <div style={{ fontSize: '0.82rem', color: scoreColor, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>{scoreLabel}</div>
               <div style={{ fontSize: '0.72rem', color: '#8A8078', fontFamily: 'var(--font-sans)', marginTop: 1 }}>{sublabel}</div>
             </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Preference chips — quick view + lazy explanations ─────────────── */}
+      {(() => {
+        if (!userProfile) return null;
+        const prefs = listSelectedPreferences(userProfile, lang);
+        if (prefs.length === 0) return null;
+        const productKey = `${result.brand}|${result.productName}`.toLowerCase();
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+            {prefs.map((p) => (
+              <PreferenceChip
+                key={p.key}
+                preferenceKey={p.key}
+                preferenceLabel={p.label}
+                ingredients={result.ingredients}
+                lang={lang}
+                productKey={productKey}
+              />
+            ))}
           </div>
         );
       })()}
