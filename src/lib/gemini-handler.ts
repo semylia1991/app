@@ -1045,6 +1045,41 @@ If you don't recognize the ingredient, return "Data not found in public database
     return { status: 200, body: { description: (response.text ?? "").trim() } };
   }
 
+  // ── Lazy explanation for ONE preference chip ───────────────────────────────
+  // When the user expands a preference chip in the personal note section, we
+  // fetch a short 1-sentence explanation of how this product relates to that
+  // specific preference, naming the responsible ingredient(s).
+  if (action === "explainPreference") {
+    const { ingredients, preference, language } = body as {
+      ingredients?: Array<{ name: string; status?: string; score?: number }>;
+      preference?: string;
+      language?: string;
+    };
+    if (!Array.isArray(ingredients) || !preference || !language) {
+      return { status: 400, body: { error: "ingredients, preference, and language are required." } };
+    }
+    const ingredientList = ingredients
+      .map((i) => `${i.status ?? ''} ${i.name}`.trim())
+      .join(', ');
+
+    const prompt = `
+You are a cosmetic safety expert.
+For the user preference "${preference}", explain in ${language} whether this
+product is suitable, in 1 short sentence (max ~15 words). Name 1–3 specific
+ingredient(s) responsible. Use impersonal phrasing — describe the property,
+not the user (e.g. "soothes redness (centella + panthenol)" — not "soothes
+your redness"). Use mild phrasing: may, can, tends to. No greeting, no markdown.
+End with ONE emoji: ✅ if suitable, ⚠️ if depends/uncertain, ⛔️ if problematic.
+
+INGREDIENTS: ${ingredientList}
+`.trim();
+
+    const response = await generateWithRetry(ai, {
+      contents: [{ parts: [{ text: prompt }] }],
+    }, "explainPreference", MODEL_LITE);
+    return { status: 200, body: { explanation: (response.text ?? "").trim() } };
+  }
+
   // ── Ask ─────────────────────────────────────────────────────────────────────
   if (action === "ask") {
     const { question, context, language } = body as {
