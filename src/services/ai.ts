@@ -1,8 +1,8 @@
 // All Gemini calls go through the Netlify Function /api/gemini.
 // The API key is NEVER sent to the browser.
 
-import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage } from './productCache';
-import { lookupIngredient, robustLookupIngredient } from '../lib/ingredients-db';
+import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage, hydrate, toLangCode } from './productCache';
+import { lookupIngredient } from '../lib/ingredients-db';
 
 const FUNCTION_URL = "/api/gemini";
 
@@ -294,10 +294,10 @@ export async function translateAnalysisResult(
   targetLanguage: string,
 ): Promise<AnalysisResult> {
   // ── Strip ingredients from the translation payload ─────────────────────────
-  // Ingredient descriptions come from the local DB on the client side, so
-  // they don't need to go through AI translation. This shrinks the request
-  // payload by ~50%, makes translation faster, and removes the risk of AI
-  // dropping `score` / changing `status` emojis.
+  // Ingredient descriptions come from the local DB / ingredient_extras on the
+  // client side, so they don't need to go through AI translation. This shrinks
+  // the request payload by ~50%, makes translation faster, and removes the risk
+  // of AI dropping `score` / changing `status` emojis.
   const { ingredients, ...toTranslate } = result;
   void ingredients;
 
@@ -307,55 +307,15 @@ export async function translateAnalysisResult(
     targetLanguage,
   });
 
-  // Re-localise ingredient descriptions from the local DB on the new language.
-  // For unknown ingredients (not in DB), we keep the original text — better
-  // than nothing, even if it's in the previous language.
-  const langCode = toLangCodeForTranslate(targetLanguage);
-  const localisedIngredients = (result.ingredients ?? []).map((ing) => {
-    const { entry, canonicalKey } = robustLookupIngredient(ing.name);
-    if (!entry) return ing;
-    const description = getDescriptionForLang(
-      entry as unknown as { description: Record<string, string> },
-      langCode,
-    );
-    return {
-      ...ing,
-      name:        canonicalKey ?? ing.name,
-      status:      entry.status,
-      score:       entry.score,
-      description,
-    };
-  });
-
-  return {
+  // Re-localise ingredient descriptions on the new language via hydrate().
+  // This consults local DB (L0) first, then Supabase ingredient_extras (L1)
+  // for unknown INCI. The whole call is async because L1 may fetch.
+  const fullResult: AnalysisResult = {
     ...translated,
-    ingredients: localisedIngredients,
+    ingredients: result.ingredients,
   };
-}
-
-// Helper: map full language name OR short code to a LangCode
-function toLangCodeForTranslate(input: string): 'en'|'ru'|'de'|'uk'|'es'|'fr'|'it'|'tr' {
-  const s = input.toLowerCase();
-  // Full names from LANGUAGE_NAMES
-  if (s.startsWith('russ')) return 'ru';
-  if (s.startsWith('germ')) return 'de';
-  if (s.startsWith('ukra')) return 'uk';
-  if (s.startsWith('span')) return 'es';
-  if (s.startsWith('fren')) return 'fr';
-  if (s.startsWith('ital')) return 'it';
-  if (s.startsWith('turk')) return 'tr';
-  // Short codes
-  const c = s.slice(0, 2);
-  if (c === 'ru' || c === 'de' || c === 'uk' || c === 'es' ||
-      c === 'fr' || c === 'it' || c === 'tr') return c as any;
-  return 'en';
-}
-
-function getDescriptionForLang(
-  entry: { description: Record<string, string> },
-  langCode: 'en'|'ru'|'de'|'uk'|'es'|'fr'|'it'|'tr',
-): string {
-  return entry.description[langCode] || entry.description.en || '';
+  const langCode = toLangCode(targetLanguage);
+  return await hydrate(fullResult, langCode);
 }
 
 /**
