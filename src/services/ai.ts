@@ -375,6 +375,29 @@ export async function fetchIngredientDescription(
   return data.description ?? '';
 }
 
+/**
+ * Lazy explanation for ONE preference chip in the personal-note section.
+ * Returns one short sentence (with trailing emoji) describing whether the
+ * product is suitable for that specific preference.
+ */
+export async function fetchPreferenceExplanation(
+  ingredients: Ingredient[],
+  preference: string,
+  language: string,
+): Promise<string> {
+  const data = await callFunction<{ explanation: string }>({
+    action: 'explainPreference',
+    ingredients: ingredients.map((i) => ({
+      name: i.name,
+      status: i.status,
+      score: i.score,
+    })),
+    preference,
+    language: LANGUAGE_NAMES[language] || language,
+  });
+  return data.explanation ?? '';
+}
+
 export async function askFollowUpQuestion(
   question: string,
   context: AnalysisResult,
