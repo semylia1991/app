@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { Crown, RefreshCw, LogIn, Settings, Loader2, ChevronDown } from 'lucide-react';
 import { t, Language } from '../i18n';
 import { AnalysisResult, SerializedProfile, fetchPreferenceExplanation } from '../services/ai';
@@ -215,32 +214,53 @@ function PreferenceChip({ preferenceKey, preferenceLabel, ingredients, lang, pro
   );
 }
 
-// ── Helper: list of (key, label) pairs from a UserProfile, in display order ──
-//
-// Filters out "None" and "Unknown" placeholder values — the user selected them
-// to indicate ABSENCE of a property (e.g. "No sensitivities", "Unknown skin
-// type"), and showing them as expandable chips would yield no useful info.
-function listSelectedPreferences(profile: UserProfile, lang: Language): Array<{ key: string; label: string }> {
+// ── Detect product category from productType string ───────────────────────
+type ProductCategory = 'HAIR' | 'FACE' | 'BODY' | 'LIPS' | 'NAILS' | 'OTHER';
+
+function detectCategory(productType: string): ProductCategory {
+  const t = productType.toLowerCase();
+  if (/shampoo|conditioner|hair (oil|mask|serum|cream|spray|rinse|balm)|scalp|dry shampoo|leave.in|haarspülung|haarmaske|shampooing|acondicionador|balsamo capelli/.test(t)) return 'HAIR';
+  if (/lip (balm|gloss|stick|oil|butter|mask)|lippenstift|baume lèvres|labial|balsamo labbra|dudak/.test(t)) return 'LIPS';
+  if (/nail|vernis|nagel|esmalte|smalto|tırnak/.test(t)) return 'NAILS';
+  if (/body (lotion|butter|oil|cream|scrub|wash|milk)|lotion corps|körper|crema corpo|leche corporal|vücut/.test(t)) return 'BODY';
+  if (/cream|serum|toner|moisturis|sunscreen|spf|primer|foundation|face|gesicht|visage|viso|rostro|yüz|cleanser|micellar|eye cream|retinol|vitamin c/.test(t)) return 'FACE';
+  return 'OTHER';
+}
+
+// ── Fields shown per category ─────────────────────────────────────────────
+const CATEGORY_FIELDS: Record<ProductCategory, (keyof UserProfile)[]> = {
+  HAIR:  ['hairType', 'scalpCondition', 'hairProblems', 'climate'],
+  FACE:  ['skinType', 'skinSensitivity', 'skinConditions', 'ageRange', 'climate'],
+  BODY:  ['bodySkinType', 'climate'],
+  LIPS:  ['skinSensitivity', 'climate'],
+  NAILS: [],
+  OTHER: ['skinSensitivity', 'climate'],
+};
+
+// ── Helper: list of (key, label) pairs filtered by product category ────────
+function listCategoryPreferences(
+  profile: UserProfile,
+  lang: Language,
+  productType: string,
+): Array<{ key: string; label: string }> {
   const tr = (key: string): string =>
     (t[lang] as unknown as Record<string, string>)[key] ?? key;
 
   const isNoneish = (k: string) =>
     /(?:None|Unknown)$/i.test(k) || k === 'climateAny';
 
-  const push = (out: Array<{ key: string; label: string }>, k: string) => {
-    if (k && !isNoneish(k)) out.push({ key: k, label: tr(k) });
-  };
-
+  const category = detectCategory(productType);
+  const fields = CATEGORY_FIELDS[category];
   const out: Array<{ key: string; label: string }> = [];
-  profile.skinType.forEach        (k => push(out, k));
-  profile.skinConditions.forEach  (k => push(out, k));
-  profile.skinSensitivity.forEach (k => push(out, k));
-  if (profile.ageRange)             push(out, profile.ageRange);
-  profile.hairType.forEach        (k => push(out, k));
-  profile.scalpCondition.forEach  (k => push(out, k));
-  profile.hairProblems.forEach    (k => push(out, k));
-  (profile.bodySkinType ?? []).forEach(k => push(out, k));
-  (profile.climate      ?? []).forEach(k => push(out, k));
+
+  for (const field of fields) {
+    const val = profile[field];
+    if (Array.isArray(val)) {
+      val.forEach(k => { if (k && !isNoneish(k)) out.push({ key: k, label: tr(k) }); });
+    } else if (typeof val === 'string' && val && !isNoneish(val)) {
+      out.push({ key: val, label: tr(val) });
+    }
+  }
   return out;
 }
 
@@ -425,14 +445,14 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
         );
       })()}
 
-      {/* ── Preference chips — quick view + lazy explanations ─────────────── */}
+      {/* ── Category preference chips — filtered by product type ─────────── */}
       {(() => {
         if (!userProfile) return null;
-        const prefs = listSelectedPreferences(userProfile, lang);
+        const prefs = listCategoryPreferences(userProfile, lang, result.productType ?? '');
         if (prefs.length === 0) return null;
         const productKey = `${result.brand}|${result.productName}`.toLowerCase();
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {prefs.map((p) => (
               <PreferenceChip
                 key={p.key}
@@ -446,26 +466,6 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
           </div>
         );
       })()}
-
-      {profileChanged && (
-        <div className="flex items-center gap-2 mb-3 p-2 bg-[#E8F2EB] border border-[#2D5A3D]/20 rounded-sm">
-          <RefreshCw size={12} className="text-[#B8923A]" />
-          <p className="text-xs text-[#B8923A] flex-1">Preferences changed</p>
-          <button onClick={regenerate} className="text-xs text-[#1A1410] underline font-medium">
-            Update analysis
-          </button>
-        </div>
-      )}
-      <div className="prose prose-base prose-stone max-w-none
-        [&_strong]:text-[#1A1410] [&_strong]:font-semibold
-        [&_p]:text-[#5A5550] [&_p]:leading-relaxed [&_p]:mb-1
-        [&_ul]:pl-4 [&_ul]:space-y-1 [&_ul]:mt-1
-        [&_li]:text-[#5A5550] [&_li]:leading-relaxed
-        [&_hr]:border-[#DDD5C8]/50 [&_hr]:my-3
-        [&_em]:text-xs [&_em]:text-[#B8923A] [&_em]:not-italic [&_em]:block [&_em]:mt-2"
-        style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem' }}>
-        <ReactMarkdown>{note}</ReactMarkdown>
-      </div>
     </div>
   );
 }
