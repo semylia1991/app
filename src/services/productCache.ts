@@ -14,6 +14,53 @@ import { supabase } from '../lib/supabase';
 import type { AnalysisResult } from './ai';
 import { getDescription, robustLookupIngredient, type LangCode } from '../lib/ingredients-db';
 
+// ── Tier 1.5: Supabase community cache of rare ingredients ──────────────────
+// For ingredients NOT in the local DB, we consult an ingredient_extras table
+// that is auto-populated from AI scans. Cross-session, cross-user.
+// Cached in memory per session to avoid repeated queries.
+interface ExtraRow {
+  inci_name:   string;
+  status:      '🟢' | '🟡' | '🔴';  // matches SQL CHECK constraint
+  score:       number;
+  description: string;
+}
+const extrasMemoryCache = new Map<string, ExtraRow>(); // key = `${name}|${lang}`
+
+async function fetchExtrasFromSupabase(
+  names: string[],
+  langCode: string,
+): Promise<Map<string, ExtraRow>> {
+  const result = new Map<string, ExtraRow>();
+  if (names.length === 0) return result;
+
+  // Check memory cache first
+  const toFetch: string[] = [];
+  for (const n of names) {
+    const cached = extrasMemoryCache.get(`${n}|${langCode}`);
+    if (cached) result.set(n, cached);
+    else toFetch.push(n);
+  }
+  if (toFetch.length === 0) return result;
+
+  try {
+    const { data, error } = await supabase.rpc('get_ingredient_extras', {
+      p_names: toFetch,
+      p_lang:  langCode,
+    });
+    if (error || !data) return result;
+    for (const row of data as ExtraRow[]) {
+      if (row?.inci_name) {
+        extrasMemoryCache.set(`${row.inci_name}|${langCode}`, row);
+        result.set(row.inci_name, row);
+      }
+    }
+  } catch (e) {
+    console.warn('[ingredient_extras] client fetch failed:', e);
+  }
+  return result;
+}
+
+
 // Hydrate cached results: score + localized description from local DB ─────
 //
 // Cached results store ingredient NAMES + status/score, but the description
@@ -24,51 +71,65 @@ import { getDescription, robustLookupIngredient, type LangCode } from '../lib/in
 //
 // Also handles backward-compat: older rows written before `score` existed,
 // or with non-canonical names like "Aqua/Water" or "Aqua (Water)".
-function hydrate(result: AnalysisResult, langCode: LangCode = 'en'): AnalysisResult {
+export async function hydrate(result: AnalysisResult, langCode: LangCode = 'en'): Promise<AnalysisResult> {
   if (!result?.ingredients) return result;
-  let mutated = false;
-  const ingredients = result.ingredients.map((ing) => {
+
+  // ── Pass 1: try L0 (local DB). Collect L0 misses for batch L1 lookup. ───
+  const passOne = result.ingredients.map((ing) => {
     const { entry, canonicalKey } = robustLookupIngredient(ing.name);
+    return { ing, entry, canonicalKey };
+  });
 
-    // Decide score (DB authoritative > existing > status fallback)
-    let score: number;
+  const missingNames = passOne
+    .filter(p => !p.entry && p.ing.name)
+    .map(p => p.ing.name.toLowerCase().trim());
+
+  // ── L1: batch fetch unknowns from Supabase community cache ──────────────
+  const extras = missingNames.length > 0
+    ? await fetchExtrasFromSupabase([...new Set(missingNames)], langCode)
+    : new Map<string, ExtraRow>();
+
+  // ── Pass 2: build final list ────────────────────────────────────────────
+  let mutated = false;
+  const ingredients = passOne.map(({ ing, entry, canonicalKey }) => {
+    // L0 hit
     if (entry) {
-      score = entry.score;
-    } else if (typeof ing.score === 'number') {
-      score = ing.score;
-    } else {
-      score = ing.status === '🟢' ? 8 : ing.status === '🟡' ? 5 : 1;
+      const score       = entry.score;
+      const description = getDescription(entry, langCode);
+      const status      = entry.status;
+      const name        = canonicalKey ?? ing.name;
+      if (score === ing.score && description === ing.description
+          && status === ing.status && name === ing.name) return ing;
+      mutated = true;
+      return { ...ing, name, status, score, description };
     }
 
-    // Decide description (DB localized for current language is best;
-    // unknown ingredients keep whatever was there — empty or AI-generated)
-    const description = entry
-      ? getDescription(entry, langCode)
-      : (ing.description ?? '');
-
-    // Decide status (DB authoritative for known ingredients)
-    const status = entry ? entry.status : ing.status;
-
-    // Use the canonical name when matched — guarantees same display across
-    // languages (so "Aqua/Water" cached entries become just "aqua").
-    const name = canonicalKey ?? ing.name;
-
-    if (
-      score === ing.score
-      && description === ing.description
-      && status === ing.status
-      && name === ing.name
-    ) {
-      return ing;
+    // L1 hit (Supabase community cache)
+    const extra = extras.get(ing.name.toLowerCase().trim());
+    if (extra) {
+      mutated = true;
+      return {
+        ...ing,
+        // Don't overwrite name — community-cache rows already use canonical
+        status:      extra.status,
+        score:       extra.score,
+        description: extra.description || ing.description || '',
+      };
     }
+
+    // L2 — nothing found anywhere. Use whatever was cached/AI-supplied.
+    let score: number;
+    if (typeof ing.score === 'number') score = ing.score;
+    else score = ing.status === '🟢' ? 8 : ing.status === '🟡' ? 5 : 1;
+    if (score === ing.score) return ing;
     mutated = true;
-    return { ...ing, name, status, score, description };
+    return { ...ing, score };
   });
   return mutated ? { ...result, ingredients } : result;
 }
 
 // Map our 8 supported language codes
-function toLangCode(lang: string): LangCode {
+export function toLangCode(lang: string): LangCode {
   const c = lang.toLowerCase().slice(0, 2);
   if (c === 'en' || c === 'ru' || c === 'de' || c === 'uk' ||
       c === 'es' || c === 'fr' || c === 'it' || c === 'tr') {
@@ -122,7 +183,7 @@ export async function getCachedByHash(
     });
     if (error || !data) return null;
     console.log('[cache] HASH HIT:', imageHash.slice(0, 12) + '…');
-    return hydrate(data as AnalysisResult, toLangCode(lang));
+    return await hydrate(data as AnalysisResult, toLangCode(lang));
   } catch (e) {
     console.warn('[cache] hash lookup error:', e);
     return null;
@@ -154,7 +215,7 @@ export async function getCachedAnalysis(
     );
 
     console.log('[cache] NAME HIT:', cacheKey);
-    return hydrate(data.result as AnalysisResult, toLangCode(lang));
+    return await hydrate(data.result as AnalysisResult, toLangCode(lang));
   } catch (e) {
     console.warn('[cache] read error:', e);
     return null;
