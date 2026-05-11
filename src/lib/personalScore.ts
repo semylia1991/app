@@ -311,3 +311,42 @@ function statusToDefault(status: string): number {
   if (status === '🟡') return 5;
   return 1;
 }
+
+/**
+ * Compute a Yuka-style score (0-10) considering ONLY one specific preference
+ * value (e.g. just "skinDry" or just "sensFragrances"), with all other
+ * preferences ignored. Used to colour individual preference chips in the
+ * personal-note section.
+ */
+export function scoreForSinglePreference(
+  ingredients: Ingredient[],
+  preferenceValue: string,
+): number | null {
+  if (!ingredients || ingredients.length === 0) return null;
+
+  // Build a synthetic profile that has ONLY this one preference set.
+  // We try every relevant field — only the matching ones in PROFILE_RULES
+  // will fire (others will simply not match).
+  const synthetic: UserProfile = {
+    skinType:        [preferenceValue],
+    skinSensitivity: [preferenceValue],
+    skinConditions:  [preferenceValue],
+    ageRange:        preferenceValue,
+    hairType:        [preferenceValue],
+    scalpCondition:  [preferenceValue],
+    hairProblems:    [preferenceValue],
+    bodySkinType:    [preferenceValue],
+    climate:         [preferenceValue],
+    consentGiven:    true,
+  };
+
+  let weightedSum = 0;
+  let totalWeight = 0;
+  ingredients.forEach((ing, idx) => {
+    const weight = 1 / (idx + 1);
+    weightedSum += adjustedIngredientScore(ing, synthetic) * weight;
+    totalWeight += weight;
+  });
+  if (totalWeight === 0) return null;
+  return Math.round((weightedSum / totalWeight) * 10) / 10;
+}
