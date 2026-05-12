@@ -38,6 +38,8 @@ import { FirstScanModal, useFirstScanModal } from './components/FirstScanModal';
 // for the Ingredients and Personal Note rows.
 function ScoreBadge({ score }: { score: number | null }) {
   if (score === null) return null;
+  // Standard mathematical rounding: 3.3→3, 5.7→6
+  const rounded = Math.round(score);
   const color = score >= 7.5 ? '#2D9B5A' : score >= 5 ? '#E8A020' : '#D94040';
   return (
     <span
@@ -57,7 +59,7 @@ function ScoreBadge({ score }: { score: number | null }) {
         whiteSpace: 'nowrap',
       }}
     >
-      {score.toFixed(1)}
+      {rounded}
       <span style={{ fontSize: '0.62rem', opacity: 0.75, fontWeight: 600 }}>/10</span>
     </span>
   );
@@ -928,10 +930,10 @@ export default function App() {
                 <ProductHeroImage name={result.productName} brand={result.brand} userPhoto={scanPhotoUrl} />
 
                 <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 300, color: '#1A1410', marginBottom: 6, letterSpacing: '0.04em' }}>
-                  {result.productName}
+                  {originalResult.current?.productName ?? result.productName}
                 </h3>
                 <p style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic', letterSpacing: '0.08em', fontFamily: 'var(--font-serif)' }}>
-                  {result.brand}
+                  {originalResult.current?.brand ?? result.brand}
                 </p>
 
                 {isTranslating && (
@@ -967,6 +969,8 @@ export default function App() {
                         </p>
                       ) : (() => {
                         const productScore = computeProductScore(result.ingredients);
+                        // Standard mathematical rounding: 3.3→3, 5.7→6
+                        const productScoreRounded = productScore !== null ? Math.round(productScore) : null;
                         const scoreColor = productScore === null ? '#8A8078'
                           : productScore >= 7.5 ? '#2D9B5A'
                           : productScore >= 5 ? '#E8A020'
@@ -986,7 +990,7 @@ export default function App() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', marginBottom: 12, background: 'rgba(255,255,255,0.6)', borderRadius: 14, border: `1.5px solid ${scoreColor}22` }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 64 }}>
                                   <span style={{ fontSize: '2rem', fontWeight: 800, color: scoreColor, lineHeight: 1, fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em' }}>
-                                    {productScore.toFixed(1)}
+                                    {productScoreRounded}
                                   </span>
                                   <span style={{ fontSize: '0.72rem', color: scoreColor, opacity: 0.75, fontFamily: 'var(--font-sans)', marginTop: 1 }}>/10</span>
                                 </div>
