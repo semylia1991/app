@@ -8,7 +8,6 @@ import type { User } from '@supabase/supabase-js';
 
 import { t, Language, loadLanguage } from './i18n';
 import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription, fetchPreferenceExplanation, fetchDetails } from './services/ai';
-import { computePersonalScore } from './lib/personalScore';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -578,6 +577,23 @@ export default function App() {
       setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
+
+      // ── Load details in background immediately after fast result ──────────
+      // User can see ingredients/analysis right away while details load.
+      // When ready they appear in «Інформація про продукт» without any click.
+      const langAtDetails = lang;
+      fetchDetails(analysisWithShops, langAtDetails)
+        .then((details) => {
+          setDetailsFetched(true);
+          setResult(prev => {
+            if (!prev) return prev;
+            const merged: AnalysisResult = { ...prev, ...details };
+            originalResult.current = merged;
+            translationCache.current.set(langAtDetails, merged);
+            return merged;
+          });
+        })
+        .catch((e) => console.warn('[scan] background details failed:', e));
       // Initial save with the fast subset; will be re-saved when details arrive.
       await saveScanToHistory(analysis);
       await subscription.incrementScans();
@@ -1016,15 +1032,6 @@ export default function App() {
                   title={t[lang].noteSection}
                   icon={<NotebookPen size={15} />}
                   collapseLabel={cl}
-                  headerBadge={
-                    <ScoreBadge
-                      score={
-                        userProfile && result.personalNote
-                          ? computePersonalScore(result.ingredients, userProfile)
-                          : null
-                      }
-                    />
-                  }
                 >
                   <PersonalAnalysis
                     lang={lang} result={result} user={user} userProfile={userProfile}
