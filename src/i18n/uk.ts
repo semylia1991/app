@@ -137,6 +137,7 @@ const uk: Translations = {
     condIrritation: "Подразнення",
     condRedness: "Почервоніння",
     condDarkSpots: "Темні плями",
+    condPigmentation: "Пігментація",
     condDullness: "Тьмяний колір обличчя",
     condFlaking: "Лущення",
     condTightness: "Відчуття стягнутості",
