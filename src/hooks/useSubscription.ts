@@ -52,10 +52,6 @@ function todayKey() {
 }
 
 // ── Tamper-resistant localStorage ────────────────────────────────────────────
-// Signs usage data with a daily HMAC key derived from the date + a static salt.
-// Not cryptographically bulletproof (key is in JS bundle), but stops casual
-// DevTools edits — anyone who clears storage simply resets to 0 anyway.
-
 const SALT = 'glowki-usage-v1';
 
 async function signData(data: UsageToday, date: string): Promise<string> {
@@ -85,7 +81,6 @@ async function loadLocalUsage(date: string): Promise<UsageToday> {
     const { data, sig } = JSON.parse(raw);
     const valid = await verifyData(data, date, sig);
     if (!valid) {
-      // Tampering detected — reset
       localStorage.removeItem(`usage_${date}`);
       return empty;
     }
@@ -107,7 +102,6 @@ export function useSubscription(user: User | null): SubscriptionState {
 
   const fetchData = useCallback(async () => {
     if (!user) {
-      // Non-logged-in users — use signed localStorage for usage, always free
       const parsed = await loadLocalUsage(todayKey());
       setUsage(parsed);
       setPlan('free');
@@ -117,7 +111,6 @@ export function useSubscription(user: User | null): SubscriptionState {
 
     setLoading(true);
     try {
-      // 1. Check subscription status
       const { data: sub } = await supabase
         .from('subscriptions')
         .select('status, expires_at')
@@ -131,7 +124,6 @@ export function useSubscription(user: User | null): SubscriptionState {
 
       setPlan(isPremiumActive ? 'premium' : 'free');
 
-      // 2. Fetch today's usage
       const today = todayKey();
       const { data: usageRow } = await supabase
         .from('usage_tracking')
@@ -159,19 +151,19 @@ export function useSubscription(user: User | null): SubscriptionState {
       const dbField = field === 'noteAnalysis' ? 'pay_attention' : field === 'askAi' ? 'ask_ai' : 'scans';
       const today = todayKey();
 
-      setUsage(prev => ({ ...prev, [field]: prev[field] + 1 }));
-
       if (!user) {
-        // persist to signed localStorage
+        // ── Anonymous: update state ONCE and persist to localStorage ─────────
         setUsage(prev => {
           const next = { ...prev, [field]: prev[field] + 1 };
-          saveLocalUsage(next, today);
+          // Fire-and-forget persist (async, non-blocking)
+          saveLocalUsage(next, today).catch(() => {});
           return next;
         });
         return;
       }
 
-      // Upsert to Supabase
+      // ── Authenticated: optimistic update + Supabase upsert ────────────────
+      setUsage(prev => ({ ...prev, [field]: prev[field] + 1 }));
       await supabase.rpc('increment_usage', {
         p_user_id: user.id,
         p_date: today,
