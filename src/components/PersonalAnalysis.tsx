@@ -172,6 +172,9 @@ function PreferenceChip({ preferenceKey, preferenceLabel, ingredients, lang, pro
     lang === 'tr' ? 'Yükleniyor…' :
                     'Loading…';
 
+  // Emoji based on score (shown before the label, always visible)
+  const emoji = score === null ? '⚠️' : score >= 7.5 ? '✅' : score >= 5 ? '⚠️' : '⛔️';
+
   return (
     <div
       style={{
@@ -185,7 +188,7 @@ function PreferenceChip({ preferenceKey, preferenceLabel, ingredients, lang, pro
       onClick={() => setOpen((o) => !o)}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 999, background: color, flexShrink: 0 }} />
+        <span style={{ fontSize: '1rem', flexShrink: 0, lineHeight: 1 }}>{emoji}</span>
         <span style={{ flex: 1, fontSize: '0.85rem', color: '#1A1410', fontFamily: 'var(--font-sans)' }}>
           {preferenceLabel}
         </span>
