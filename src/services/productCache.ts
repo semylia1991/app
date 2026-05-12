@@ -266,3 +266,53 @@ export async function saveToCache(
     console.warn('[cache] write exception:', e);
   }
 }
+
+// ── Canonical product score ──────────────────────────────────────────────────
+// Fetches the authoritative score from product_scores table.
+// Returns null if this product has never been scored before.
+export async function getCanonicalScore(
+  brand: string,
+  productName: string,
+): Promise<{ score: number; ingredients: Array<{ name: string; status: string; score: number }> } | null> {
+  if (!brand || !productName) return null;
+  try {
+    const { data, error } = await supabase.rpc('get_product_score', {
+      p_brand:        brand,
+      p_product_name: productName,
+    });
+    if (error || !data || !data.length) return null;
+    const row = data[0];
+    return {
+      score:       Number(row.score),
+      ingredients: (row.ingredients ?? []) as Array<{ name: string; status: string; score: number }>,
+    };
+  } catch (e) {
+    console.warn('[product_scores] get failed:', e);
+    return null;
+  }
+}
+
+// Saves the canonical score on FIRST scan only (INSERT ... ON CONFLICT DO NOTHING).
+// Subsequent calls for the same product are no-ops — first writer wins.
+export async function saveCanonicalScore(
+  brand: string,
+  productName: string,
+  score: number,
+  ingredients: Array<{ name: string; status: string; score: number }>,
+): Promise<void> {
+  if (!brand || !productName || score == null) return;
+  // Strip descriptions before storing — language-agnostic
+  const stripped = ingredients.map(({ name, status, score: s }) => ({ name, status, score: s }));
+  try {
+    const { error } = await supabase.rpc('save_product_score', {
+      p_brand:        brand,
+      p_product_name: productName,
+      p_score:        score,
+      p_ingredients:  stripped,
+    });
+    if (error) console.warn('[product_scores] save error:', error.message);
+    else console.log('[product_scores] SAVED:', brand, productName, score);
+  } catch (e) {
+    console.warn('[product_scores] save exception:', e);
+  }
+}
