@@ -651,7 +651,7 @@ NEVER invent data — if information is not found, write "Data not found in publ
  [translated label for "Avoid Combining With"]:
 - [Ingredient/product type] — [reason to avoid]
 
-- alternatives: 2-3 real, commercially available products as a JSON array, ranked by INCI/active-ingredient overlap with the analyzed product. Each item: { name, brand, reason } where "reason" is one sentence naming 2–3 shared key INCI actives and any meaningful differences (concentration, format, pH, etc.).
+- alternatives: 1-2 real, commercially available products as a JSON array, ranked by INCI/active-ingredient overlap with the analyzed product. Each item: { name, brand, reason } where "reason" is one sentence naming 2–3 shared key INCI actives and any meaningful differences (concentration, format, pH, etc.).
 
 Ensure the output strictly follows the JSON schema.`.trim();
 }
@@ -832,7 +832,7 @@ async function enrichUnknownsInBackground(
   langCode: string,
 ): Promise<void> {
   if (unknownNames.length === 0) return;
-  if (unknownNames.length > 20) unknownNames = unknownNames.slice(0, 20); // safety cap
+  if (unknownNames.length > 10) unknownNames = unknownNames.slice(0, 10); // cap=10 to stay well under Vercel 10s timeout
 
   // Use the full language name for the AI prompt (more reliable than codes)
   const langName = Object.entries(LANGUAGE_NAME_TO_CODE).find(([, c]) => c === langCode)?.[0] ?? 'english';
@@ -1321,7 +1321,7 @@ product is suitable, in 1 short sentence (max ~15 words). Name 1–3 specific
 ingredient(s) responsible. Use impersonal phrasing — describe the property,
 not the user (e.g. "soothes redness (centella + panthenol)" — not "soothes
 your redness"). Use mild phrasing: may, can, tends to. No greeting, no markdown.
-End with ONE emoji: ✅ if suitable, ⚠️ if depends/uncertain, ⛔️ if problematic.
+End the sentence with ONE emoji on the same line: ✅ if suitable, ⚠️ if uncertain, ⛔️ if problematic.
 
 INGREDIENTS: ${ingredientList}
 `.trim();
@@ -1369,7 +1369,7 @@ INGREDIENTS: ${ingredientList}
     // Hair keys
     const hairKeys = ["hairType", "scalpCondition", "hairProblems"];
     // Always relevant
-    const universalKeys = ["climate", "allergies"];
+    const universalKeys = ["climate"];
 
     let relevantKeys: string[];
     if (isHairProduct) {
@@ -1409,58 +1409,38 @@ INGREDIENTS:
 ${ingredients}
 
 Return ONLY valid JSON with a single field "personalNote" (string, in ${language}).
-Structure (translate all headings to ${language}):
 
- **[Brief summary]** — 1-2 sentences referencing the SELECTED PREFERENCES.
-  Use ONLY impersonal phrasing — never address the user directly.
-    ✅ "Based on the selected preferences..."
-    ✅ "According to the chosen preferences..."
-    ✅ "Given the indicated skin type..."
-  NEVER use second-person / possessive phrasing:
-    ❌ "suits your skin" / "your skin will love it" / "perfect for you"
-    ❌ "good for you" / "matches your needs" / "ideal for your hair"
-  Translate templates into ${language}, e.g.:
-    RU: "Исходя из указанных предпочтений..."
-    DE: "Basierend auf den ausgewählten Präferenzen..."
-    UK: "Виходячи з обраних переваг..."
-    FR: "Selon les préférences sélectionnées..."
-    ES: "Según las preferencias seleccionadas..."
-    IT: "In base alle preferenze selezionate..."
-    TR: "Seçilen tercihlere göre..."
+Structure (translate ALL text to ${language}):
 
-**[By preferences:]**
-- <preference value> <color emoji> — <one short sentence explanation>
-- <preference value> <color emoji> — <one short sentence explanation>
-...
+**[1-sentence summary referencing the selected preferences — impersonal]**
+Use ONLY impersonal phrasing tied to the preferences themselves:
+   "Виходячи з обраних переваг..." / "Based on the selected preferences..."
+   "Selon les préférences sélectionnées..." / "Basierend auf den ausgewählten Präferenzen..."
+NEVER: "suits your skin" / "your skin will love" / "perfect for you" / "your dryness"
 
-In bullet explanations the same impersonal rule applies — describe the
-ingredient's property, not "your skin". Good: "soothes redness (centella + panthenol)".
-Bad: "soothes your redness". Bad: "good for your skin".
+✅ <Preference label in ${language}> — <1 short sentence, max ~12 words, name ingredient(s)>
+⚠️ <Preference label in ${language}> — <1 short sentence, max ~12 words, name ingredient(s)>
+⛔️ <Preference label in ${language}> — <1 short sentence, max ~12 words, name ingredient(s)>
 
 ---
-🟡 *[Automated analysis based on selected preferences. Not medical advice.]*
+🟡 *[${language === 'Ukrainian' ? 'Автоматизований аналіз на основі обраних переваг. Не є медичною порадою.' : language === 'Russian' ? 'Автоматический анализ на основе выбранных предпочтений. Не является медицинской консультацией.' : 'Automated analysis based on selected preferences. Not medical advice.'}]*
 
-COLOR MARKERS — use EXACTLY these emojis:
-- ✅ if the product's ingredients are likely suitable / beneficial for this preference
-- ⚠️ if the effect is unclear, mixed, or depends on individual reaction
-- ⛔️ if the product's ingredients are likely problematic / unsuitable for this preference
+EMOJI RULES — place emoji BEFORE the preference label:
+✅ — ingredients likely suitable/beneficial for this preference
+⚠️ — effect unclear, mixed, or depends on individual reaction (use as default when uncertain)
+⛔️ — ingredients likely problematic/unsuitable for this preference
 
 FORMAT RULES:
-- List EVERY user preference relevant to this product type as its own bullet.
-- Each bullet: "<preference name/value in ${language}> <color emoji> — <one short sentence, max ~12 words, name responsible ingredient(s)>"
-- NEVER output raw camelCase keys like "condPigmentation", "oilySkin", "skinType".
-  Always translate to human-readable ${language} text:
-  condPigmentation → "Uneven skin tone" / "Неровный тон кожи" / "Ungleichmäßiger Hautton"
-  Use the preference VALUE as the label, not the field key.
-- Use the user's preference value as the label (e.g. "Oily skin ✅ — …", "Nut allergy ⚠️ — …", "Humid climate ⛔️ — …").
-- Default to ⚠️ when evidence is weak or the effect depends on the person.
-- Use mild phrasing in explanations (may cause, can be, tends to) — no medical advice.
-- Each explanation must name the responsible ingredient(s) where possible.
+- Each line: <emoji> <preference label in ${language}> — <explanation>
+- NEVER put emoji after the label or at end of line
+- NEVER output raw camelCase keys. Translate: condPigmentation → "Пігментація" / "Pigmentation", oilySkin → "Жирна шкіра", etc.
+- Use the preference VALUE as label, not the field key name
+- Name responsible ingredient(s) in each explanation
+- Use mild phrasing: may, can, tends to — no medical advice
+- List EVERY preference relevant to this product type. One line per preference.
 
-Rules: no medical advice, tie every bullet to a preference, do not invent ingredients.
-PRODUCT TYPE RELEVANCE — CRITICAL: For hair/scalp products (shampoo, conditioner, hair mask, hair oil, etc.) ONLY list hair-related preferences (hairType, scalpCondition, hairProblems) as bullets. Do NOT include skin conditions like enlarged pores, pigmentation, acne — they are irrelevant to hair products. For skincare products ONLY list skin-related preferences. Ignore hair preferences for face/body products.
-CLIMATE: If climate is specified, include it as a bullet — apply it only in the context of the product's use area (scalp/hair for hair products, skin for skincare).
-ALLERGIES: Each listed allergy MUST be its own bullet. If a matching ingredient or close derivative is found → ⛔️ with a clear warning. If no match found → 🟢 with "no matching ingredient detected" or similar.`;
+PRODUCT TYPE RELEVANCE: For hair products → only hair preferences (hairType, scalpCondition, hairProblems). For face/body → only skin preferences. For all → include climate if specified. NEVER mix categories.
+ALLERGIES: Each allergy = its own line. Matching ingredient found → ⛔️ with warning. No match → ✅ "no matching ingredient detected".`;
 
     const response = await generateWithRetry(ai, {
       contents: [{ parts: [{ text: prompt }] }],
