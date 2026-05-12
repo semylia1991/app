@@ -1,7 +1,7 @@
 // All Gemini calls go through the Netlify Function /api/gemini.
 // The API key is NEVER sent to the browser.
 
-import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage, hydrate, toLangCode } from './productCache';
+import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage, hydrate, toLangCode, getCanonicalScore, saveCanonicalScore } from './productCache';
 import { lookupIngredient } from '../lib/ingredients-db';
 
 const FUNCTION_URL = "/api/gemini";
@@ -80,6 +80,8 @@ export interface AnalysisResult {
   shopLinks?: ShopLink[];
   // Optional: populated when userProfile is passed to analyzeProductImage
   personalNote?: string;
+  // Internal: image hash for lazy details cache lookup (not persisted)
+  _imageHash?: string | null;
 }
 
 // Subset returned by the fast first-paint request.
@@ -358,6 +360,54 @@ export async function fetchPreferenceExplanation(
   return data.explanation ?? '';
 }
 
+/**
+ * Fetch details (usage/benefits/sideEffects/warnings/interactions/alternatives)
+ * for a product that was already identified. Called lazily when the user
+ * opens the «Product info» section.
+ *
+ * Strategy:
+ *   1. Check product_cache (Supabase) — if full result already stored, return it.
+ *   2. Otherwise run analyzeDetails AI request and save to cache.
+ */
+export async function fetchDetails(
+  fast: AnalysisFastResult | AnalysisResult,
+  language: string,
+  imageHash?: string | null,
+): Promise<AnalysisDetails> {
+  // L1: check Supabase product_cache for already-stored full result
+  const cached = await getCachedAnalysis(fast.productName, fast.brand, language).catch(() => null);
+  if (cached?.usage || cached?.benefits) {
+    console.log('[details] CACHE HIT:', fast.productName);
+    return {
+      usage:        cached.usage        ?? '',
+      benefits:     cached.benefits     ?? '',
+      sideEffects:  cached.sideEffects  ?? '',
+      warnings:     cached.warnings     ?? '',
+      interactions: cached.interactions ?? '',
+      alternatives: cached.alternatives ?? [],
+    };
+  }
+
+  // L2: run AI
+  console.log('[details] AI fetch:', fast.productName);
+  const details = await analyzeDetails(fast as AnalysisFastResult, language);
+
+  // Save full result to cache so next open is instant
+  const full: AnalysisResult = {
+    productName: fast.productName,
+    brand:       fast.brand,
+    productType: fast.productType,
+    analysis:    fast.analysis,
+    ingredients: fast.ingredients,
+    shelfLife:   fast.shelfLife,
+    ...details,
+  };
+  const hash = imageHash ?? ('_imageHash' in fast ? fast._imageHash : null);
+  saveToCache(fast.productName, fast.brand, language, full, hash).catch(() => {});
+
+  return details;
+}
+
 export async function askFollowUpQuestion(
   question: string,
   context: AnalysisResult,
@@ -483,6 +533,18 @@ export async function analyzeProductImageStream(
   // Step 1: race the fastest path — hash cache (cheapest, ~150ms)
   const hashCached = await hashCachePromise;
   if (hashCached) {
+    // Apply canonical scores even to cached results — in case this product
+    // was cached before product_scores table existed, or scored differently.
+    if (hashCached.productName && hashCached.brand) {
+      const canonical = await getCanonicalScore(hashCached.brand, hashCached.productName).catch(() => null);
+      if (canonical) {
+        const sm = new Map<string, number>(canonical.ingredients.map(i => [i.name.toLowerCase(), Number(i.score)]));
+        hashCached.ingredients = hashCached.ingredients.map(ing => {
+          const s = sm.get(ing.name.toLowerCase());
+          return s !== undefined ? { ...ing, score: s } : ing;
+        });
+      }
+    }
     queueMicrotask(() => onLateUpdate({
       usage:        hashCached.usage,
       benefits:     hashCached.benefits,
@@ -506,6 +568,15 @@ export async function analyzeProductImageStream(
       language,
     ).catch(() => null);
     if (nameCached) {
+      // Apply canonical scores (same as hash hit path)
+      const canonical2 = await getCanonicalScore(nameCached.brand, nameCached.productName).catch(() => null);
+      if (canonical2) {
+        const sm = new Map<string, number>(canonical2.ingredients.map(i => [i.name.toLowerCase(), Number(i.score)]));
+        nameCached.ingredients = nameCached.ingredients.map(ing => {
+          const s = sm.get(ing.name.toLowerCase());
+          return s !== undefined ? { ...ing, score: s } : ing;
+        });
+      }
       if (imageHash) {
         saveToCache(nameCached.productName, nameCached.brand, language, nameCached, imageHash).catch(() => {});
       }
@@ -532,41 +603,58 @@ export async function analyzeProductImageStream(
     interactions: '', alternatives: [],
   };
 
+  // ── Canonical score: same product always shows the same score ─────────────
+  // On FIRST scan: compute score from ingredients, save to product_scores.
+  // On SUBSEQUENT scans: product_scores already has a value → first writer wins,
+  // so the score never changes even if AI produces slightly different ingredients.
+  let canonicalIngredients = fast.ingredients;
+  if (fast.productName && fast.brand) {
+    const existing = await getCanonicalScore(fast.brand, fast.productName).catch(() => null);
+    if (existing) {
+      // Restore canonical ingredient scores from the stored authoritative row.
+      // This ensures the score badge is identical across all languages/scans.
+      const scoreMap = new Map<string, number>(
+        existing.ingredients.map(i => [i.name.toLowerCase(), Number(i.score)])
+      );
+      canonicalIngredients = fast.ingredients.map(ing => {
+        const s = scoreMap.get(ing.name.toLowerCase());
+        return s !== undefined ? { ...ing, score: s } : ing;
+      });
+      console.log('[product_scores] HIT:', fast.brand, fast.productName, '→', existing.score);
+    } else {
+      // First scan — save the score so future scans use this value.
+      const computedScore = computeProductScore(fast.ingredients);
+      if (computedScore !== null) {
+        saveCanonicalScore(
+          fast.brand,
+          fast.productName,
+          computedScore,
+          fast.ingredients.map(i => ({ name: i.name, status: i.status, score: i.score ?? 5 })),
+        ).catch(() => {});
+      }
+    }
+  }
+
   const partialResult: AnalysisResult = {
-    productName: fast.productName,
-    brand:       fast.brand,
-    productType: fast.productType,
-    analysis:    fast.analysis,
-    ingredients: fast.ingredients,
-    shelfLife:   fast.shelfLife,
+    productName:  fast.productName,
+    brand:        fast.brand,
+    productType:  fast.productType,
+    analysis:     fast.analysis,
+    ingredients:  canonicalIngredients,
+    shelfLife:    fast.shelfLife,
     personalNote: fast.personalNote,
+    _imageHash:   imageHash,
     ...placeholder,
   };
 
   // ── Cache the FAST result immediately ──────────────────────────────────────
-  // Why: if the user closes/restarts the app before analyzeDetails completes,
-  // the next scan of the same product would otherwise miss the cache entirely.
-  // The full row is overwritten when details arrive (with `cache_product` upsert).
   if (fast.productName && fast.brand && imageHash) {
     saveToCache(fast.productName, fast.brand, language, partialResult, imageHash)
       .catch((e) => console.warn('[ai] partial cache save failed:', e));
   }
 
-  // Fire details in background — caller uses onLateUpdate to merge into state.
-  analyzeDetails(fast, language)
-    .then((details) => {
-      onLateUpdate(details);
-      if (fast.productName && fast.brand) {
-        const full: AnalysisResult = { ...partialResult, ...details };
-        // Re-save with full result — overwrites the partial row from above.
-        saveToCache(full.productName, full.brand, language, full, imageHash).catch((e) =>
-          console.warn('[ai] full cache save failed:', e),
-        );
-      }
-    })
-    .catch((e) => {
-      console.warn('[ai] analyzeDetails failed:', e);
-    });
-
+  // Details (usage/benefits/etc.) are now loaded LAZILY when the user opens
+  // the «Product info» section — see fetchDetails() and the onOpen handler
+  // on the productInfo CollapsibleSection in App.tsx.
   return partialResult;
 }
