@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
 import { t, Language, loadLanguage } from './i18n';
-import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription } from './services/ai';
+import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription, fetchPreferenceExplanation, fetchDetails } from './services/ai';
 import { computePersonalScore } from './lib/personalScore';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -363,6 +363,10 @@ export default function App() {
   // Defer mounting of Compare & WhereToBuy blocks until the browser is idle —
   // they're not on the critical path, so let the main analysis paint first.
   const [secondaryReady, setSecondaryReady] = useState(false);
+  // Track whether details have been fetched (lazy — only when productInfo opens)
+  const [detailsFetched, setDetailsFetched] = useState(false);
+  // Store image hash so fetchDetails can use it for cache write
+  const imageHashRef = useRef<string | null>(null);
   const [error, setError]             = useState<string | null>(null);
   const [user, setUser]               = useState<User | null>(null);
   const [sharedLoading, setSharedLoading] = useState(false);
@@ -518,6 +522,8 @@ export default function App() {
     if (!subscription.canScan) { setPaywallReason('scans'); return; }
     setIsAnalyzing(true);
     setError(null);
+    setDetailsFetched(false);
+    imageHashRef.current = null;
     posthog.capture('scan_started', { lang });
     try {
       const match = previewUrl.match(/^data:(image\/[a-zA-Z+]+);base64,(.+)$/);
@@ -1025,7 +1031,30 @@ export default function App() {
                   />
                 </CollapsibleSection>
 
-                <CollapsibleSection title={t[lang].productInfo} icon={<Info size={15} />} collapseLabel={cl}>
+                <CollapsibleSection
+                  title={t[lang].productInfo}
+                  icon={<Info size={15} />}
+                  collapseLabel={cl}
+                  onOpen={() => {
+                    if (detailsFetched || !result) return;
+                    if (result.usage && result.benefits) {
+                      setDetailsFetched(true);
+                      return;
+                    }
+                    setDetailsFetched(true);
+                    fetchDetails(result, lang)
+                      .then((details) => {
+                        setResult(prev => {
+                          if (!prev) return prev;
+                          const merged: AnalysisResult = { ...prev, ...details };
+                          originalResult.current = merged;
+                          translationCache.current.set(lang, merged);
+                          return merged;
+                        });
+                      })
+                      .catch((e) => console.warn('[productInfo] fetchDetails failed:', e));
+                  }}
+                >
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <CollapsibleSection title={t[lang].usage} icon={<Info size={15} />} collapseLabel={cl}>
                       {result.usage
