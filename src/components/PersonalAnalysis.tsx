@@ -404,6 +404,8 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
       {(() => {
         const personalScore = computePersonalScore(result.ingredients, userProfile!);
         if (personalScore === null) return null;
+        // Round DOWN (floor): 3.8→3, 7.9→7 — conservative for personal assessment
+        const personalScoreRounded = Math.floor(personalScore);
 
         const scoreColor = personalScore >= 7.5 ? '#2D9B5A'
           : personalScore >= 5 ? '#E8A020'
@@ -433,7 +435,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', marginBottom: 14, background: 'rgba(255,255,255,0.6)', borderRadius: 14, border: `1.5px solid ${scoreColor}33` }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 60 }}>
               <span style={{ fontSize: '2rem', fontWeight: 800, color: scoreColor, lineHeight: 1, fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em' }}>
-                {personalScore.toFixed(1)}
+                {personalScoreRounded}
               </span>
               <span style={{ fontSize: '0.7rem', color: scoreColor, opacity: 0.7, fontFamily: 'var(--font-sans)', marginTop: 1 }}>/10</span>
             </div>
