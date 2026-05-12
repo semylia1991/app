@@ -28,7 +28,7 @@ const EMPTY_PROFILE: UserProfile = {
 
 const SKIN_TYPE_KEYS      = ['skinOily', 'skinDry', 'skinCombination', 'skinUnknown'] as const;
 const SENSITIVITY_KEYS    = ['sensIrritationAfterCare', 'sensReactionNewProducts', 'sensSunSensitivity', 'sensItching', 'sensTingling', 'sensFragrances', 'sensAlcohol', 'sensEssentialOils', 'sensNone'] as const;
-const SKIN_CONDITION_KEYS = ['condEnlargedPores', 'condBreakouts', 'condBlackheads', 'condUnevenTone', 'condIrritation', 'condRedness', 'condDarkSpots', 'condDullness', 'condFlaking', 'condTightness', 'condUnevenTexture', 'condPuffiness', 'condDarkCircles', 'condVisibleVessels', 'condNone'] as const;
+const SKIN_CONDITION_KEYS = ['condEnlargedPores', 'condBreakouts', 'condBlackheads', 'condUnevenTone', 'condIrritation', 'condRedness', 'condPigmentation', 'condDarkSpots', 'condDullness', 'condFlaking', 'condTightness', 'condUnevenTexture', 'condPuffiness', 'condDarkCircles', 'condVisibleVessels', 'condNone'] as const;
 const AGE_RANGE_KEYS      = ['ageUnder25', 'age2535', 'age3545', 'age4550', 'age50plus'] as const;
 const HAIR_TYPE_KEYS      = ['hairStraight', 'hairWavy', 'hairCurly', 'hairCoily', 'hairBrittle', 'hairUnknown'] as const;
 const SCALP_COND_KEYS     = ['scalpDry', 'scalpOily', 'scalpNormal', 'scalpUnknown'] as const;
