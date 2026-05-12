@@ -137,6 +137,7 @@ const it: Translations = {
     condIrritation: "Irritazione",
     condRedness: "Rossori",
     condDarkSpots: "Macchie scure",
+    condPigmentation: "Pigmentazione",
     condDullness: "Incarnato spento",
     condFlaking: "Desquamazione",
     condTightness: "Sensazione di tensione",
