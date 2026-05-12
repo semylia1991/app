@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Crown, RefreshCw, LogIn, Settings, Loader2, ChevronDown } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import { Crown, RefreshCw, LogIn, Settings, Loader2 } from 'lucide-react';
 import { t, Language } from '../i18n';
-import { AnalysisResult, SerializedProfile, fetchPreferenceExplanation } from '../services/ai';
+import { AnalysisResult, SerializedProfile } from '../services/ai';
 import { UserProfile, translateProfile } from './UserProfile';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { computePersonalScore, scoreForSinglePreference } from '../lib/personalScore';
 
 const FUNCTION_URL = '/api/gemini';
 
@@ -107,166 +107,6 @@ const FILL_PROFILE_BTN: Record<Language, string> = {
   it: 'Compila le preferenze',
   tr: 'Tercihleri doldur',
 };
-
-// ── Preference chip ────────────────────────────────────────────────────────
-// Module-level cache: key = `${preferenceKey}|${productKey}|${lang}` → text
-const preferenceExplanationCache = new Map<string, string>();
-
-interface PreferenceChipProps {
-  preferenceKey: string;     // e.g. 'skinCombination', 'sensFragrances'
-  preferenceLabel: string;   // localized label e.g. "Комбинированная кожа"
-  ingredients: AnalysisResult['ingredients'];
-  lang: Language;
-  productKey: string;        // unique cache key per product (brand+productName)
-}
-
-function PreferenceChip({ preferenceKey, preferenceLabel, ingredients, lang, productKey }: PreferenceChipProps) {
-  const [open, setOpen] = useState(false);
-  const [explanation, setExplanation] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Local score for THIS preference — used to colour the chip
-  const score = scoreForSinglePreference(ingredients, preferenceKey);
-  const color = score === null
-    ? '#8A8078'
-    : score >= 7.5 ? '#2D9B5A'
-    : score >= 5   ? '#E8A020'
-    :                '#D94040';
-
-  const cacheKey = `${preferenceKey}|${productKey}|${lang}`;
-
-  // When opened: lazy-fetch explanation
-  useEffect(() => {
-    if (!open) return;
-    if (explanation) return;
-    if (!ingredients || ingredients.length === 0) return; // nothing to explain
-    const cached = preferenceExplanationCache.get(cacheKey);
-    if (cached) { setExplanation(cached); return; }
-
-    let cancelled = false;
-    setLoading(true);
-    fetchPreferenceExplanation(ingredients, preferenceLabel, lang)
-      .then((text) => {
-        if (cancelled) return;
-        preferenceExplanationCache.set(cacheKey, text);
-        setExplanation(text);
-      })
-      .catch(() => { /* keep null */ })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [open, explanation, cacheKey, preferenceLabel, ingredients, lang]);
-
-  // Reset on language switch — pick up cache for new lang or refetch
-  useEffect(() => {
-    const cached = preferenceExplanationCache.get(cacheKey);
-    setExplanation(cached ?? null);
-  }, [cacheKey]);
-
-  const loadingText =
-    lang === 'ru' ? 'Загружаем…' :
-    lang === 'uk' ? 'Завантажуємо…' :
-    lang === 'de' ? 'Wird geladen…' :
-    lang === 'es' ? 'Cargando…' :
-    lang === 'fr' ? 'Chargement…' :
-    lang === 'it' ? 'Caricamento…' :
-    lang === 'tr' ? 'Yükleniyor…' :
-                    'Loading…';
-
-  // Emoji based on score (shown before the label, always visible)
-  const emoji = score === null ? '⚠️' : score >= 7.5 ? '✅' : score >= 5 ? '⚠️' : '⛔️';
-
-  return (
-    <div
-      style={{
-        background: `${color}10`,
-        border: `1px solid ${color}40`,
-        borderRadius: 10,
-        padding: '8px 12px',
-        cursor: 'pointer',
-        transition: 'background 0.15s',
-      }}
-      onClick={() => setOpen((o) => !o)}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: '1rem', flexShrink: 0, lineHeight: 1 }}>{emoji}</span>
-        <span style={{ flex: 1, fontSize: '0.85rem', color: '#1A1410', fontFamily: 'var(--font-sans)' }}>
-          {preferenceLabel}
-        </span>
-        <ChevronDown
-          size={13}
-          style={{
-            color, flexShrink: 0,
-            transition: 'transform 0.2s',
-            transform: open ? 'rotate(180deg)' : 'rotate(0)',
-          }}
-        />
-      </div>
-      {open && (
-        <div style={{ paddingLeft: 16, marginTop: 6, fontSize: '0.95rem', color: '#5A5550', lineHeight: 1.5, fontFamily: 'var(--font-serif)' }}>
-          {loading && !explanation ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontStyle: 'italic', color: '#8A8078' }}>
-              <Loader2 size={11} className="animate-spin" />
-              {loadingText}
-            </span>
-          ) : (
-            explanation || '—'
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Detect product category from productType string ───────────────────────
-type ProductCategory = 'HAIR' | 'FACE' | 'BODY' | 'LIPS' | 'NAILS' | 'OTHER';
-
-function detectCategory(productType: string): ProductCategory {
-  const t = productType.toLowerCase();
-  if (/shampoo|conditioner|hair (oil|mask|serum|cream|spray|rinse|balm)|scalp|dry shampoo|leave.in|haarspülung|haarmaske|shampooing|acondicionador|balsamo capelli/.test(t)) return 'HAIR';
-  if (/lip (balm|gloss|stick|oil|butter|mask)|lippenstift|baume lèvres|labial|balsamo labbra|dudak/.test(t)) return 'LIPS';
-  if (/nail|vernis|nagel|esmalte|smalto|tırnak/.test(t)) return 'NAILS';
-  if (/body (lotion|butter|oil|cream|scrub|wash|milk)|lotion corps|körper|crema corpo|leche corporal|vücut/.test(t)) return 'BODY';
-  if (/cream|serum|toner|moisturis|sunscreen|spf|primer|foundation|face|gesicht|visage|viso|rostro|yüz|cleanser|micellar|eye cream|retinol|vitamin c/.test(t)) return 'FACE';
-  return 'OTHER';
-}
-
-// ── Fields shown per category ─────────────────────────────────────────────
-const CATEGORY_FIELDS: Record<ProductCategory, (keyof UserProfile)[]> = {
-  HAIR:  ['hairType', 'scalpCondition', 'hairProblems', 'climate'],
-  FACE:  ['skinType', 'skinSensitivity', 'skinConditions', 'ageRange', 'climate'],
-  BODY:  ['bodySkinType', 'climate'],
-  LIPS:  ['skinSensitivity', 'climate'],
-  NAILS: [],
-  OTHER: ['skinSensitivity', 'climate'],
-};
-
-// ── Helper: list of (key, label) pairs filtered by product category ────────
-function listCategoryPreferences(
-  profile: UserProfile,
-  lang: Language,
-  productType: string,
-): Array<{ key: string; label: string }> {
-  const tr = (key: string): string =>
-    (t[lang] as unknown as Record<string, string>)[key] ?? key;
-
-  const isNoneish = (k: string) =>
-    /(?:None|Unknown)$/i.test(k) || k === 'climateAny';
-
-  const category = detectCategory(productType);
-  const fields = CATEGORY_FIELDS[category];
-  const out: Array<{ key: string; label: string }> = [];
-
-  for (const field of fields) {
-    const val = profile[field];
-    if (Array.isArray(val)) {
-      val.forEach(k => { if (k && !isNoneish(k)) out.push({ key: k, label: tr(k) }); });
-    } else if (typeof val === 'string' && val && !isNoneish(val)) {
-      out.push({ key: val, label: tr(val) });
-    }
-  }
-  return out;
-}
-
 
 export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, onLimitReached, onUsed, onOpenProfile }: Props) {
   const T = t[lang];
@@ -400,77 +240,17 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
 
   return (
     <div>
-      {/* ── Personal score card ────────────────────────────────────────── */}
-      {(() => {
-        const personalScore = computePersonalScore(result.ingredients, userProfile!);
-        if (personalScore === null) return null;
-        // Round DOWN (floor): 3.8→3, 7.9→7 — conservative for personal assessment
-        const personalScoreRounded = Math.floor(personalScore);
-
-        const scoreColor = personalScore >= 7.5 ? '#2D9B5A'
-          : personalScore >= 5 ? '#E8A020'
-          : '#D94040';
-
-        const scoreLabel =
-          lang === 'ru' ? (personalScore >= 7.5 ? 'Подходит вам' : personalScore >= 5 ? 'Подходит частично' : 'Не рекомендуется') :
-          lang === 'uk' ? (personalScore >= 7.5 ? 'Підходить вам' : personalScore >= 5 ? 'Підходить частково' : 'Не рекомендується') :
-          lang === 'de' ? (personalScore >= 7.5 ? 'Für Sie geeignet' : personalScore >= 5 ? 'Teilweise geeignet' : 'Nicht empfohlen') :
-          lang === 'es' ? (personalScore >= 7.5 ? 'Adecuado para ti' : personalScore >= 5 ? 'Parcialmente adecuado' : 'No recomendado') :
-          lang === 'fr' ? (personalScore >= 7.5 ? 'Vous convient' : personalScore >= 5 ? 'Partiellement adapté' : 'Non recommandé') :
-          lang === 'it' ? (personalScore >= 7.5 ? 'Adatto a te' : personalScore >= 5 ? 'Parzialmente adatto' : 'Non raccomandato') :
-          lang === 'tr' ? (personalScore >= 7.5 ? 'Size uygun' : personalScore >= 5 ? 'Kısmen uygun' : 'Önerilmez') :
-          (personalScore >= 7.5 ? 'Suits you' : personalScore >= 5 ? 'Partially suitable' : 'Not recommended');
-
-        const sublabel =
-          lang === 'ru' ? 'Персональная оценка состава' :
-          lang === 'uk' ? 'Персональна оцінка складу' :
-          lang === 'de' ? 'Persönliche Formulabewertung' :
-          lang === 'es' ? 'Puntuación personal de fórmula' :
-          lang === 'fr' ? 'Score personnel de la formule' :
-          lang === 'it' ? 'Punteggio personale formula' :
-          lang === 'tr' ? 'Kişisel formül puanı' :
-          'Personal formula score';
-
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', marginBottom: 14, background: 'rgba(255,255,255,0.6)', borderRadius: 14, border: `1.5px solid ${scoreColor}33` }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 60 }}>
-              <span style={{ fontSize: '2rem', fontWeight: 800, color: scoreColor, lineHeight: 1, fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em' }}>
-                {personalScoreRounded}
-              </span>
-              <span style={{ fontSize: '0.7rem', color: scoreColor, opacity: 0.7, fontFamily: 'var(--font-sans)', marginTop: 1 }}>/10</span>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ height: 7, background: 'rgba(0,0,0,0.07)', borderRadius: 8, overflow: 'hidden', marginBottom: 5 }}>
-                <div style={{ height: '100%', width: `${personalScore * 10}%`, background: scoreColor, borderRadius: 8, transition: 'width 0.6s ease' }} />
-              </div>
-              <div style={{ fontSize: '0.82rem', color: scoreColor, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>{scoreLabel}</div>
-              <div style={{ fontSize: '0.72rem', color: '#8A8078', fontFamily: 'var(--font-sans)', marginTop: 1 }}>{sublabel}</div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ── Category preference chips — filtered by product type ─────────── */}
-      {(() => {
-        if (!userProfile) return null;
-        const prefs = listCategoryPreferences(userProfile, lang, result.productType ?? '');
-        if (prefs.length === 0) return null;
-        const productKey = `${result.brand}|${result.productName}`.toLowerCase();
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {prefs.map((p) => (
-              <PreferenceChip
-                key={p.key}
-                preferenceKey={p.key}
-                preferenceLabel={p.label}
-                ingredients={result.ingredients}
-                lang={lang}
-                productKey={productKey}
-              />
-            ))}
-          </div>
-        );
-      })()}
+      {/* ── AI personalNote markdown ─────────────────────────────────────── */}
+      <div className="prose prose-base prose-stone max-w-none
+        [&_strong]:text-[#1A1410] [&_strong]:font-semibold
+        [&_p]:text-[#5A5550] [&_p]:leading-relaxed [&_p]:mb-1
+        [&_ul]:pl-4 [&_ul]:space-y-1 [&_ul]:mt-1
+        [&_li]:text-[#5A5550] [&_li]:leading-relaxed
+        [&_hr]:border-[#DDD5C8]/50 [&_hr]:my-3
+        [&_em]:text-xs [&_em]:text-[#B8923A] [&_em]:not-italic [&_em]:block [&_em]:mt-2"
+        style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem' }}>
+        <ReactMarkdown>{note}</ReactMarkdown>
+      </div>
     </div>
   );
 }
