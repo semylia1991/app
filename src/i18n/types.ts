@@ -134,6 +134,7 @@ export interface Translations {
   condUnevenTone: string;
   condIrritation: string;
   condRedness: string;
+  condPigmentation: string;
   condDarkSpots: string;
   condDullness: string;
   condFlaking: string;
