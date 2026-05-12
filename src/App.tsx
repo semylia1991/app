@@ -562,7 +562,6 @@ export default function App() {
             const merged: AnalysisResult = { ...prev, ...patch };
             originalResult.current = merged;
             translationCache.current.set(langAtScan, merged);
-            saveScanToHistory(merged).catch(() => {});
             return merged;
           });
         },
