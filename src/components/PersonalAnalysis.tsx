@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Crown, RefreshCw, LogIn, Settings, Loader2 } from 'lucide-react';
+import { Crown, RefreshCw, LogIn, Settings, Zap, AlertTriangle } from 'lucide-react';
 import { t, Language } from '../i18n';
 import { AnalysisResult, SerializedProfile } from '../services/ai';
 import { UserProfile, translateProfile } from './UserProfile';
+import { computeQuantumScore, QuantumScore } from '../lib/personalScore';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -108,6 +109,174 @@ const FILL_PROFILE_BTN: Record<Language, string> = {
   tr: 'Tercihleri doldur',
 };
 
+// ── Quantum Score Widget ───────────────────────────────────────────────────
+
+const QUANTUM_LABELS: Record<Language, {
+  title: string; certain: string; uncertain: string;
+  synBoost: string; synConflict: string; unknownHint: string;
+}> = {
+  en: { title: 'Personal Score', certain: 'Certain', uncertain: 'Uncertain',
+        synBoost: 'Synergy boost', synConflict: 'Synergy conflict', unknownHint: 'ingredients without data' },
+  ru: { title: 'Персональная оценка', certain: 'Определённость', uncertain: 'Неопределённость',
+        synBoost: 'Синергия', synConflict: 'Конфликт', unknownHint: 'ингредиентов без данных' },
+  de: { title: 'Persönliche Bewertung', certain: 'Sicher', uncertain: 'Unsicher',
+        synBoost: 'Synergie', synConflict: 'Konflikt', unknownHint: 'Inhaltsstoffe ohne Daten' },
+  uk: { title: 'Персональна оцінка', certain: 'Визначеність', uncertain: 'Невизначеність',
+        synBoost: 'Синергія', synConflict: 'Конфлікт', unknownHint: 'інгредієнтів без даних' },
+  es: { title: 'Puntuación personal', certain: 'Cierto', uncertain: 'Incierto',
+        synBoost: 'Sinergia', synConflict: 'Conflicto', unknownHint: 'ingredientes sin datos' },
+  fr: { title: 'Score personnel', certain: 'Certain', uncertain: 'Incertain',
+        synBoost: 'Synergie', synConflict: 'Conflit', unknownHint: 'ingrédients sans données' },
+  it: { title: 'Punteggio personale', certain: 'Certo', uncertain: 'Incerto',
+        synBoost: 'Sinergia', synConflict: 'Conflitto', unknownHint: 'ingredienti senza dati' },
+  tr: { title: 'Kişisel Puan', certain: 'Kesin', uncertain: 'Belirsiz',
+        synBoost: 'Sinerji', synConflict: 'Çatışma', unknownHint: 'veri olmayan bileşenler' },
+};
+
+function QuantumScoreWidget({ qs, lang }: { qs: QuantumScore; lang: Language }) {
+  const L = QUANTUM_LABELS[lang] ?? QUANTUM_LABELS.en;
+
+  const color = qs.value >= 7.5 ? '#2D9B5A' : qs.value >= 5 ? '#E8A020' : '#D94040';
+  const bgColor = qs.value >= 7.5 ? 'rgba(45,155,90,0.07)' : qs.value >= 5 ? 'rgba(232,160,32,0.07)' : 'rgba(217,64,64,0.07)';
+
+  // Bar geometry
+  const minPct  = qs.min  * 10;
+  const maxPct  = qs.max  * 10;
+  const valPct  = qs.value * 10;
+  const rangePct = maxPct - minPct;
+
+  const boosts    = qs.synergyNotes.filter(n => n.delta > 0);
+  const conflicts = qs.synergyNotes.filter(n => n.delta < 0);
+
+  return (
+    <div style={{
+      background: bgColor,
+      border: `1.5px solid ${color}22`,
+      borderRadius: 14,
+      padding: '14px 16px',
+      marginBottom: 14,
+    }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <span style={{ fontSize: '0.72rem', color: '#8A8078', fontFamily: 'var(--font-sans)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          {L.title}
+        </span>
+        {qs.uncertainty > 0.25 && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.65rem', color: '#B8923A' }}>
+            <AlertTriangle size={10} />
+            {qs.unknownCount} {L.unknownHint}
+          </span>
+        )}
+      </div>
+
+      {/* Score value + range label */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
+        <span style={{ fontSize: '2.2rem', fontWeight: 800, color, lineHeight: 1, fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em' }}>
+          {qs.value.toFixed(1)}
+        </span>
+        <span style={{ fontSize: '0.72rem', color, opacity: 0.7, fontFamily: 'var(--font-sans)' }}>/10</span>
+        <span style={{ marginLeft: 4, fontSize: '0.72rem', color: '#8A8078', fontFamily: 'var(--font-sans)' }}>
+          ({qs.min.toFixed(1)} – {qs.max.toFixed(1)})
+        </span>
+      </div>
+
+      {/* Quantum bar: grey track → range highlight → uncertainty wave → value dot */}
+      <div style={{ position: 'relative', height: 8, borderRadius: 8, background: '#E8E0D6', marginBottom: 10, overflow: 'visible' }}>
+        {/* Range band */}
+        <div style={{
+          position: 'absolute',
+          left: `${minPct}%`,
+          width: `${rangePct}%`,
+          height: '100%',
+          borderRadius: 8,
+          background: `${color}30`,
+        }} />
+        {/* Uncertainty shimmer — wider = more unknown */}
+        {qs.uncertainty > 0.1 && (
+          <div style={{
+            position: 'absolute',
+            left: `${minPct}%`,
+            width: `${rangePct}%`,
+            height: '100%',
+            borderRadius: 8,
+            background: `linear-gradient(90deg, transparent 0%, ${color}55 50%, transparent 100%)`,
+            animation: 'quantumShimmer 2.2s ease-in-out infinite',
+          }} />
+        )}
+        {/* Filled bar up to value */}
+        <div style={{
+          position: 'absolute',
+          left: 0,
+          width: `${valPct}%`,
+          height: '100%',
+          borderRadius: 8,
+          background: color,
+          opacity: 0.85,
+          transition: 'width 0.8s cubic-bezier(.22,1,.36,1)',
+        }} />
+        {/* Value dot */}
+        <div style={{
+          position: 'absolute',
+          left: `${valPct}%`,
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 14, height: 14,
+          borderRadius: '50%',
+          background: color,
+          border: '2.5px solid white',
+          boxShadow: `0 0 0 2px ${color}44`,
+        }} />
+      </div>
+
+      {/* Uncertainty label */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: synergies_exist(qs) ? 10 : 0 }}>
+        <span style={{ fontSize: '0.62rem', color: '#8A8078', fontFamily: 'var(--font-sans)' }}>
+          {L.certain}
+        </span>
+        <span style={{ fontSize: '0.62rem', color: '#8A8078', fontFamily: 'var(--font-sans)' }}>
+          {L.uncertain}
+        </span>
+      </div>
+
+      {/* Synergy notes */}
+      {synergies_exist(qs) && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+          {boosts.map((n, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Zap size={10} color="#2D9B5A" fill="#2D9B5A" />
+              <span style={{ fontSize: '0.68rem', color: '#2D9B5A', fontFamily: 'var(--font-sans)' }}>
+                {L.synBoost}: {n.label} (+{n.delta.toFixed(1)})
+              </span>
+            </div>
+          ))}
+          {conflicts.map((n, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <AlertTriangle size={10} color="#D94040" />
+              <span style={{ fontSize: '0.68rem', color: '#D94040', fontFamily: 'var(--font-sans)' }}>
+                {L.synConflict}: {n.label} ({n.delta.toFixed(1)})
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* CSS keyframe injected once */}
+      <style>{`
+        @keyframes quantumShimmer {
+          0%, 100% { opacity: 0.3; }
+          50%       { opacity: 1;   }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function synergies_exist(qs: QuantumScore): boolean {
+  return qs.synergyNotes.length > 0;
+}
+
+// ── PersonalAnalysis ───────────────────────────────────────────────────────
+
 export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, onLimitReached, onUsed, onOpenProfile }: Props) {
   const T = t[lang];
 
@@ -131,6 +300,12 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
     (userProfile.climate ?? []).length > 0 ||
     !!userProfile.ageRange
   );
+
+  // Quantum score — must be above early returns (React hooks rule)
+  const quantumScore = React.useMemo(() => {
+    if (!userProfile || !result?.ingredients?.length) return null;
+    return computeQuantumScore(result.ingredients, userProfile);
+  }, [result?.ingredients, userProfile]);
 
   useEffect(() => {
     if (!hasProfile || !profileChanged || !canUseNote) return;
@@ -240,6 +415,9 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
 
   return (
     <div>
+      {/* ── Quantum personal score widget ────────────────────────────────── */}
+      {quantumScore && <QuantumScoreWidget qs={quantumScore} lang={lang} />}
+
       {/* ── AI personalNote markdown ─────────────────────────────────────── */}
       <div className="prose prose-base prose-stone max-w-none
         [&_strong]:text-[#1A1410] [&_strong]:font-semibold
