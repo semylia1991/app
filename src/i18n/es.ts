@@ -170,6 +170,7 @@ const es: Translations = {
     noteSection: "Presta atención",
     noteNoProfile: "Completa tu perfil para recibir una nota personalizada.",
     noteRescan: "Vuelve a escanear el producto para obtener una nota personalizada.",
+    noteGenerate: "Generar análisis personal",
     personalAnalysisTitle: "Análisis personal",
     personalAnalysisLoading: "Analizando para tu perfil...",
     personalAnalysisLang: "Spanish",
@@ -237,4 +238,4 @@ const es: Translations = {
     tierSupportBtn: "Apoyar",
 };
 
-export default es;;
+export default es;
