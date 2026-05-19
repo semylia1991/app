@@ -6,6 +6,20 @@ import { lookupIngredient } from '../lib/ingredients-db';
 
 const FUNCTION_URL = "/api/gemini";
 
+/**
+ * Normalise an INCI ingredient name for canonical score lookup.
+ * Strips parenthetical synonyms, slash variants, and extra whitespace so
+ * "Aqua (Water)", "Aqua/Water" and "aqua" all map to the same key.
+ */
+function normalizeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s*\/.*$/, '')          // "Aqua/Water"   → "aqua"
+    .replace(/\s*\(.*?\)\s*/g, ' ')   // "Aqua (Water)" → "aqua"
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export interface Ingredient {
   name: string;
   status: "🟢" | "🟡" | "🔴";
@@ -538,9 +552,9 @@ export async function analyzeProductImageStream(
     if (hashCached.productName && hashCached.brand) {
       const canonical = await getCanonicalScore(hashCached.brand, hashCached.productName).catch(() => null);
       if (canonical) {
-        const sm = new Map<string, number>(canonical.ingredients.map(i => [i.name.toLowerCase(), Number(i.score)]));
+        const sm = new Map<string, number>(canonical.ingredients.map(i => [normalizeName(i.name), Number(i.score)]));
         hashCached.ingredients = hashCached.ingredients.map(ing => {
-          const s = sm.get(ing.name.toLowerCase());
+          const s = sm.get(normalizeName(ing.name));
           return s !== undefined ? { ...ing, score: s } : ing;
         });
       }
@@ -571,9 +585,9 @@ export async function analyzeProductImageStream(
       // Apply canonical scores (same as hash hit path)
       const canonical2 = await getCanonicalScore(nameCached.brand, nameCached.productName).catch(() => null);
       if (canonical2) {
-        const sm = new Map<string, number>(canonical2.ingredients.map(i => [i.name.toLowerCase(), Number(i.score)]));
+        const sm = new Map<string, number>(canonical2.ingredients.map(i => [normalizeName(i.name), Number(i.score)]));
         nameCached.ingredients = nameCached.ingredients.map(ing => {
-          const s = sm.get(ing.name.toLowerCase());
+          const s = sm.get(normalizeName(ing.name));
           return s !== undefined ? { ...ing, score: s } : ing;
         });
       }
@@ -614,10 +628,10 @@ export async function analyzeProductImageStream(
       // Restore canonical ingredient scores from the stored authoritative row.
       // This ensures the score badge is identical across all languages/scans.
       const scoreMap = new Map<string, number>(
-        existing.ingredients.map(i => [i.name.toLowerCase(), Number(i.score)])
+        existing.ingredients.map(i => [normalizeName(i.name), Number(i.score)])
       );
       canonicalIngredients = fast.ingredients.map(ing => {
-        const s = scoreMap.get(ing.name.toLowerCase());
+        const s = scoreMap.get(normalizeName(ing.name));
         return s !== undefined ? { ...ing, score: s } : ing;
       });
       console.log('[product_scores] HIT:', fast.brand, fast.productName, '→', existing.score);
@@ -648,8 +662,13 @@ export async function analyzeProductImageStream(
   };
 
   // ── Cache the FAST result immediately ──────────────────────────────────────
+  // Strip personalNote before caching: MODEL_LITE sometimes silently drops it,
+  // and a cached undefined would prevent regeneration on future scans.
+  // The note is always generated fresh per-profile via schedulePersonalNote.
   if (fast.productName && fast.brand && imageHash) {
-    saveToCache(fast.productName, fast.brand, language, partialResult, imageHash)
+    const { personalNote: _drop, ...toCache } = partialResult;
+    void _drop;
+    saveToCache(fast.productName, fast.brand, language, toCache as AnalysisResult, imageHash)
       .catch((e) => console.warn('[ai] partial cache save failed:', e));
   }
 
