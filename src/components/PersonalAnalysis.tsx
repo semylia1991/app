@@ -285,9 +285,36 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
   const [error, setError]     = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
 
+  // Track which product the current note belongs to so we can detect product changes
+  const noteProductKey = useRef<string>(result.productName + '|' + result.brand);
+  // Track whether note was manually generated (so onLateUpdate doesn't overwrite it)
+  const noteIsManual = useRef<boolean>(false);
+
   const noteProfileKey = useRef<string>(profileKey(userProfile));
   const currentKey = profileKey(userProfile);
   const profileChanged = !!userProfile && currentKey !== noteProfileKey.current;
+
+  // ── Sync note when result.personalNote arrives via onLateUpdate ────────────
+  // useState initialises once — when App.tsx patches result via setResult({...patch}),
+  // the new result prop arrives here but note state stays stale.
+  // This effect keeps note in sync, but never overwrites a manually-generated note.
+  useEffect(() => {
+    const incomingProductKey = result.productName + '|' + result.brand;
+    const productChanged = incomingProductKey !== noteProductKey.current;
+
+    if (productChanged) {
+      // New product scanned — reset everything
+      noteProductKey.current = incomingProductKey;
+      noteIsManual.current = false;
+      setNote(result.personalNote ?? null);
+      return;
+    }
+
+    // Same product: only sync if we don't have a manual note and incoming has one
+    if (!noteIsManual.current && result.personalNote) {
+      setNote(result.personalNote);
+    }
+  }, [result.personalNote, result.productName, result.brand]);
 
   const hasProfile = !!userProfile && (
     userProfile.skinType.length > 0 ||
@@ -321,6 +348,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
     try {
       const fresh = await fetchPersonalNote(result, userProfile, lang);
       setNote(fresh);
+      noteIsManual.current = true;
       noteProfileKey.current = profileKey(userProfile);
       await onUsed();
     } catch (e: any) {
@@ -410,7 +438,20 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
   }
 
   if (!note) {
-    return <p className="text-xs text-[#B8923A]/70 py-2 italic">{T.noteRescan}</p>;
+    return (
+      <div className="flex flex-col gap-3 py-2">
+        <p className="text-base text-[#5A5550] leading-relaxed">
+          {T.noteRescan}
+        </p>
+        <button
+          onClick={regenerate}
+          className="inline-flex items-center gap-2 self-start px-4 py-2 bg-[#2D5A3D] text-white text-[11px] font-semibold rounded-sm hover:bg-[#3D7A55] transition-all"
+        >
+          <RefreshCw size={13} />
+          {T.noteGenerate}
+        </button>
+      </div>
+    );
   }
 
   return (
