@@ -167,6 +167,7 @@ export interface Translations {
   noteSection: string;
   noteNoProfile: string;
   noteRescan: string;
+  noteGenerate: string;
   personalAnalysisTitle: string;
   personalAnalysisLoading: string;
   personalAnalysisLang: string;
