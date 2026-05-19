@@ -169,7 +169,8 @@ const fr: Translations = {
     personalAnalysisButton: "Analyse personnelle",
     noteSection: "Fais attention",
     noteNoProfile: "Complétez votre profil pour recevoir une note personnalisée.",
-    noteRescan: "Scannez à nouveau le produit pour recevoir une note personnalisée.",
+    noteRescan: "La note personnelle pour ce produit n'a pas encore été générée.",
+    noteGenerate: "Générer l'analyse personnelle",
     personalAnalysisTitle: "Analyse personnelle",
     personalAnalysisLoading: "Analyse en cours pour votre profil...",
     personalAnalysisLang: "French",
@@ -227,6 +228,17 @@ const fr: Translations = {
     tierCustomError: "Merci d'entrer un montant entre 1€ et 99€.",
     tierPerWeek: "/ semaine",
     tierDonationOf: "Sur cela,",
+    tierDonationGoes: "va à Malteser Hilfsdienst chaque semaine.",
+    tierPremiumDesc: "100 scans par jour + jusqu'à 10 questions à l'IA par jour + 100 analyses 'Attention' par jour.",
+    tierCancelEasy: "Annule à tout moment en 2 taps.",
+    tierBenefitsLabel: "Avec Premium",
+    tierBenefit1: "100 scans par jour",
+    tierBenefit2: "100 analyses 'Attention' par jour",
+    tierBenefit3: "10 questions à l'IA par jour",
+    tierSupportBtn: "Soutenir",
+};
+
+export default fr;
     tierDonationGoes: "va à Malteser Hilfsdienst chaque semaine.",
     tierPremiumDesc: "100 scans par jour + jusqu'à 10 questions à l'IA par jour + 100 analyses 'Attention' par jour.",
     tierCancelEasy: "Annule à tout moment en 2 taps.",
