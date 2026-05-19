@@ -239,14 +239,3 @@ const fr: Translations = {
 };
 
 export default fr;
-    tierDonationGoes: "va à Malteser Hilfsdienst chaque semaine.",
-    tierPremiumDesc: "100 scans par jour + jusqu'à 10 questions à l'IA par jour + 100 analyses 'Attention' par jour.",
-    tierCancelEasy: "Annule à tout moment en 2 taps.",
-    tierBenefitsLabel: "Avec Premium",
-    tierBenefit1: "100 scans par jour",
-    tierBenefit2: "100 analyses 'Attention' par jour",
-    tierBenefit3: "10 questions à l'IA par jour",
-    tierSupportBtn: "Soutenir",
-};
-
-export default fr;
