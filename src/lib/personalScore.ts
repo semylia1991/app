@@ -350,3 +350,220 @@ export function scoreForSinglePreference(
   if (totalWeight === 0) return null;
   return Math.round((weightedSum / totalWeight) * 10) / 10;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUANTUM PERSONAL SCORE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface QuantumScore {
+  /** Most probable value (profile-adjusted weighted average) */
+  value: number;
+  /** Pessimistic bound — all uncertain ingredients score poorly */
+  min: number;
+  /** Optimistic bound — all uncertain ingredients score well */
+  max: number;
+  /** 0–1: 0 = fully certain, 1 = fully unknown */
+  uncertainty: number;
+  /** How many ingredients had no DB record (drove the uncertainty) */
+  unknownCount: number;
+  /** Synergy delta applied on top of base score */
+  synergyDelta: number;
+  /** Human-readable synergy pairs found */
+  synergyNotes: SynergyNote[];
+}
+
+export interface SynergyNote {
+  /** Short label shown in UI, e.g. "Vitamin C + Niacinamide" */
+  label: string;
+  /** Positive = boost, negative = conflict */
+  delta: number;
+}
+
+// ── Synergy table (ingredient-pair interactions) ──────────────────────────
+// delta > 0 = beneficial synergy, delta < 0 = antagonism / reduced efficacy.
+// match arrays use the same substring rules as PROFILE_RULES.
+
+interface SynergyRule {
+  a: string[];   // ingredient A patterns
+  b: string[];   // ingredient B patterns
+  delta: number; // applied to personal score
+  label: string; // shown in UI
+}
+
+const SYNERGY_RULES: SynergyRule[] = [
+  // ── Proven boosts ──────────────────────────────────────────────────────
+  {
+    a: ['vitamin c', 'ascorbic acid', 'ascorbyl'],
+    b: ['vitamin e', 'tocopherol'],
+    delta: +0.6,
+    label: 'Vitamin C + Vitamin E',
+  },
+  {
+    a: ['vitamin c', 'ascorbic acid', 'ascorbyl'],
+    b: ['ferulic acid'],
+    delta: +0.5,
+    label: 'Vitamin C + Ferulic Acid',
+  },
+  {
+    a: ['niacinamide'],
+    b: ['zinc', 'zinc pca', 'zinc gluconate'],
+    delta: +0.4,
+    label: 'Niacinamide + Zinc',
+  },
+  {
+    a: ['retinol', 'retinal', 'retinyl'],
+    b: ['peptide', 'argireline', 'matrixyl', 'palmitoyl'],
+    delta: +0.3,
+    label: 'Retinol + Peptides',
+  },
+  {
+    a: ['hyaluronic acid', 'sodium hyaluronate'],
+    b: ['glycerin'],
+    delta: +0.3,
+    label: 'Hyaluronic Acid + Glycerin',
+  },
+  {
+    a: ['salicylic acid'],
+    b: ['niacinamide'],
+    delta: +0.4,
+    label: 'Salicylic Acid + Niacinamide',
+  },
+  {
+    a: ['ceramide'],
+    b: ['cholesterol'],
+    delta: +0.5,
+    label: 'Ceramides + Cholesterol',
+  },
+  {
+    a: ['centella', 'madecassoside', 'asiaticoside'],
+    b: ['panthenol', 'allantoin'],
+    delta: +0.3,
+    label: 'Centella + Panthenol',
+  },
+
+  // ── Conflicts / antagonisms ────────────────────────────────────────────
+  {
+    a: ['retinol', 'retinal', 'retinyl'],
+    b: ['vitamin c', 'ascorbic acid', 'l-ascorbic acid'],
+    delta: -0.4,
+    label: 'Retinol + Vitamin C (pH conflict)',
+  },
+  {
+    a: ['benzoyl peroxide'],
+    b: ['retinol', 'retinal', 'retinyl'],
+    delta: -0.5,
+    label: 'Benzoyl Peroxide + Retinol (oxidation)',
+  },
+  {
+    a: ['glycolic acid', 'lactic acid', 'mandelic acid'],
+    b: ['retinol', 'retinal', 'retinyl'],
+    delta: -0.4,
+    label: 'AHA + Retinol (over-exfoliation)',
+  },
+  {
+    a: ['niacinamide'],
+    b: ['vitamin c', 'ascorbic acid', 'l-ascorbic acid'],
+    delta: -0.2,
+    label: 'Niacinamide + Vitamin C (mild)',
+  },
+  {
+    a: ['salicylic acid'],
+    b: ['glycolic acid', 'lactic acid'],
+    delta: -0.3,
+    label: 'BHA + AHA (stacking acids)',
+  },
+  {
+    a: ['copper peptide', 'copper tripeptide'],
+    b: ['vitamin c', 'ascorbic acid'],
+    delta: -0.4,
+    label: 'Copper Peptides + Vitamin C',
+  },
+];
+
+function matchesName(name: string, patterns: string[]): boolean {
+  return patterns.some(p => matchesIngredient(name, p));
+}
+
+/**
+ * Find all synergy pairs present in the ingredient list.
+ * Each rule fires at most once (first pair found).
+ */
+function detectSynergies(ingredients: Ingredient[]): SynergyNote[] {
+  const names = ingredients.map(i => i.name.toLowerCase());
+  const found: SynergyNote[] = [];
+
+  for (const rule of SYNERGY_RULES) {
+    const hasA = names.some(n => matchesName(n, rule.a));
+    const hasB = names.some(n => matchesName(n, rule.b));
+    if (hasA && hasB) {
+      found.push({ label: rule.label, delta: rule.delta });
+    }
+  }
+  return found;
+}
+
+/**
+ * Quantum personal score.
+ *
+ * Returns value/min/max/uncertainty so the UI can show:
+ *   - a deterministic point (value) — same weighted-average as before
+ *   - a probability range (min–max) — driven by DB-unknown ingredients
+ *   - synergy bonuses/penalties on top of both
+ *   - uncertainty ratio for the "wave" animation width
+ */
+export function computeQuantumScore(
+  ingredients: Ingredient[],
+  profile: UserProfile,
+): QuantumScore | null {
+  if (!ingredients || ingredients.length === 0) return null;
+
+  let weightedSum = 0;
+  let weightedSumMin = 0;
+  let weightedSumMax = 0;
+  let totalWeight = 0;
+  let unknownCount = 0;
+
+  ingredients.forEach((ing, idx) => {
+    const weight = 1 / (idx + 1);
+    const adjusted = adjustedIngredientScore(ing, profile);
+
+    // Uncertainty: if the ingredient has no explicit score AND no DB entry,
+    // it was assigned a fallback — it could realistically be ±2 points off.
+    const hasKnownScore =
+      typeof ing.score === 'number' ||
+      !!lookupIngredient(ing.name);
+
+    const spread = hasKnownScore ? 0.5 : 2.0;
+    if (!hasKnownScore) unknownCount++;
+
+    weightedSum    += adjusted * weight;
+    weightedSumMin += Math.max(0,  adjusted - spread) * weight;
+    weightedSumMax += Math.min(10, adjusted + spread) * weight;
+    totalWeight    += weight;
+  });
+
+  if (totalWeight === 0) return null;
+
+  const value = Math.round((weightedSum    / totalWeight) * 10) / 10;
+  const min   = Math.round((weightedSumMin / totalWeight) * 10) / 10;
+  const max   = Math.round((weightedSumMax / totalWeight) * 10) / 10;
+
+  // Synergies shift the whole range uniformly
+  const synergies = detectSynergies(ingredients);
+  const synergyDelta = Math.round(
+    synergies.reduce((s, n) => s + n.delta, 0) * 10,
+  ) / 10;
+
+  const clamp = (v: number) => Math.min(10, Math.max(0, v));
+  const uncertainty = unknownCount / ingredients.length;
+
+  return {
+    value:        clamp(Math.round((value + synergyDelta) * 10) / 10),
+    min:          clamp(Math.round((min   + synergyDelta) * 10) / 10),
+    max:          clamp(Math.round((max   + synergyDelta) * 10) / 10),
+    uncertainty,
+    unknownCount,
+    synergyDelta,
+    synergyNotes: synergies,
+  };
+}
