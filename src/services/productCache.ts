@@ -160,10 +160,39 @@ export async function hashImage(base64: string): Promise<string | null> {
 
 // ── Cache key (по имени продукта) ─────────────────────────────────────────────
 
+/**
+ * Normalise a brand or product name for cache-key matching.
+ *
+ * Improvements over the original single-pass regex:
+ *  - Strip diacritics (é→e, ö→o) so "L'Oréal" == "Loreal"
+ *  - Remove apostrophes/curly-quotes
+ *  - Collapse hyphens and dots to spaces (La Roche-Posay == La Roche Posay,
+ *    Dr. Jart == Dr Jart)
+ *  - For brands: also collapse + and & (Dr. Jart+ == Dr Jart)
+ *  - For product names: strip volume suffixes like (30ml) / (50g) but keep %
+ *    and + which are semantically significant (Niacinamide 10% + Zinc 1%)
+ */
+function normCacheSegment(s: string, type: 'brand' | 'name'): string {
+  let r = s
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // diacritics: é→e
+    .replace(/['''`]/g, '')                            // apostrophes
+    .replace(/[-\.]+/g, ' ');                          // hyphens/dots → space
+
+  if (type === 'brand') {
+    r = r.replace(/[+&]+/g, ' ');                      // Dr. Jart+ → dr jart
+  } else {
+    // strip volume/size suffixes in parentheses: (30ml), (50g), (EU)
+    r = r.replace(/\s*\(\s*\d+\s*(?:ml|g|oz|fl\.?oz|мл|гр?)\.?\s*\)/gi, '');
+    r = r.replace(/\s*\(\s*(?:EU|UK|US|DE|INT)\s*\)/gi, '');
+    r = r.replace(/\s*\+\s*/g, '+');                   // normalise spaces around +
+  }
+
+  return r.replace(/\s+/g, ' ').trim();
+}
+
 export function buildCacheKey(productName: string, brand: string, lang: string): string {
-  const norm = (s: string) =>
-    s.toLowerCase().trim().replace(/\s+/g, ' ').replace(/^[^\w]+|[^\w]+$/g, '');
-  return `${norm(brand)}|${norm(productName)}|${lang}`;
+  return `${normCacheSegment(brand, 'brand')}|${normCacheSegment(productName, 'name')}|${lang}`;
 }
 
 // ── Уровень 1: поиск по image_hash ───────────────────────────────────────────
