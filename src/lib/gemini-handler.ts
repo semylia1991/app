@@ -1332,7 +1332,32 @@ INGREDIENTS: ${ingredientList}
     return { status: 200, body: { explanation: (response.text ?? "").trim() } };
   }
 
-  // ── Ask ─────────────────────────────────────────────────────────────────────
+  // ── Short per-ingredient preference note (max ~12 words) ──────────────────
+  // Triggered when user expands a preference row in the personal score widget.
+  // Receives ONE ingredient name + ONE preference label.
+  if (action === "ingredientPreferenceNote") {
+    const { ingredientName, preferenceLabel, language } = body as {
+      ingredientName?: string;
+      preferenceLabel?: string;
+      language?: string;
+    };
+    if (!ingredientName || !preferenceLabel || !language) {
+      return { status: 400, body: { error: "ingredientName, preferenceLabel, and language are required." } };
+    }
+
+    const prompt = `
+You are a cosmetic safety expert.
+Explain in ${language} how "${ingredientName}" relates to the user preference "${preferenceLabel}".
+Write exactly ONE short sentence, max 12 words.
+Use impersonal phrasing (no "you", no "your"). No greeting, no markdown.
+End with one emoji: ✅ beneficial, ⚠️ caution, ⛔️ problematic.
+`.trim();
+
+    const response = await generateWithRetry(ai, {
+      contents: [{ parts: [{ text: prompt }] }],
+    }, "ingredientPreferenceNote", MODEL_LITE);
+    return { status: 200, body: { note: (response.text ?? "").trim() } };
+  }
   if (action === "ask") {
     const { question, context, language } = body as {
       question?: string; context?: unknown; language?: string;
