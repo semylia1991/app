@@ -545,6 +545,7 @@ export async function analyzeProductImageStream(
   // Helper: kick off personalNote fetch in background, deliver via onLateUpdate
   const schedulePersonalNote = (full: AnalysisResult) => {
     if (!hasProfile) return;
+    if (!full.ingredients || full.ingredients.length === 0) return; // no ingredients — skip
     generatePersonalNote(full, userProfile!, language)
       .then((note) => onLateUpdate({ personalNote: note }))
       .catch((e) => console.warn('[ai] personalNote failed:', e));
