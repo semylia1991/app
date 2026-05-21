@@ -375,6 +375,27 @@ export async function fetchPreferenceExplanation(
 }
 
 /**
+ * Fetch a short ingredient-preference explanation (~12 words) for the
+ * personal-score row expansion. Called lazily on row open.
+ *
+ * Example: ingredientName="Alcohol Denat", preferenceLabel="Dry skin"
+ * → "Dries out skin barrier, worsens moisture loss for dry skin."
+ */
+export async function fetchIngredientPreferenceNote(
+  ingredientName: string,
+  preferenceLabel: string,
+  language: string,
+): Promise<string> {
+  const data = await callFunction<{ note: string }>({
+    action: 'ingredientPreferenceNote',
+    ingredientName,
+    preferenceLabel,
+    language: LANGUAGE_NAMES[language] || language,
+  });
+  return data.note ?? '';
+}
+
+/**
  * Fetch details (usage/benefits/sideEffects/warnings/interactions/alternatives)
  * for a product that was already identified. Called lazily when the user
  * opens the «Product info» section.
