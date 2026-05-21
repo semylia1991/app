@@ -9,6 +9,7 @@ import type { User } from '@supabase/supabase-js';
 import { t, Language, loadLanguage } from './i18n';
 import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription, fetchPreferenceExplanation, fetchDetails } from './services/ai';
 import { getCanonicalScore, normalizeIngredientName } from './services/productCache';
+import { computeAutonomousScore } from './lib/personalScore';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -1049,6 +1050,11 @@ export default function App() {
                   title={t[lang].noteSection}
                   icon={<NotebookPen size={15} />}
                   collapseLabel={cl}
+                  headerBadge={(() => {
+                    if (!userProfile || !result?.ingredients?.length) return null;
+                    const as = computeAutonomousScore(result.ingredients, userProfile, lang);
+                    return as ? <ScoreBadge score={as.value} /> : null;
+                  })()}
                 >
                   <PersonalAnalysis
                     lang={lang} result={result} user={user} userProfile={userProfile}
