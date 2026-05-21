@@ -195,6 +195,19 @@ export function buildCacheKey(productName: string, brand: string, lang: string):
   return `${normCacheSegment(brand, 'brand')}|${normCacheSegment(productName, 'name')}|${lang}`;
 }
 
+/**
+ * Normalise an INCI ingredient name for canonical score matching.
+ * Exported so App.tsx and other consumers can apply the same logic.
+ */
+export function normalizeIngredientName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s*\/.*$/, '')
+    .replace(/\s*\(.*?\)\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // ── Уровень 1: поиск по image_hash ───────────────────────────────────────────
 
 /**
