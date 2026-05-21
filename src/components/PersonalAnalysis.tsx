@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Crown, RefreshCw, LogIn, Settings, Zap, AlertTriangle } from 'lucide-react';
+import { Crown, RefreshCw, LogIn, Settings, Zap, AlertTriangle, ChevronDown } from 'lucide-react';
 import { t, Language } from '../i18n';
-import { AnalysisResult, SerializedProfile } from '../services/ai';
+import { AnalysisResult, SerializedProfile, fetchIngredientPreferenceNote } from '../services/ai';
 import { UserProfile, translateProfile } from './UserProfile';
 import { computeAutonomousScore, AutonomousScore, IngredientMatch, SynergyNote } from '../lib/personalScore';
 import type { User } from '@supabase/supabase-js';
@@ -109,55 +109,86 @@ const FILL_PROFILE_BTN: Record<Language, string> = {
   tr: 'Tercihleri doldur',
 };
 
-// ── Autonomous Score Widget ───────────────────────────────────────────────
+// ── Preference row — clickable, lazy-loads ingredient explanation ─────────
 
-const SCORE_TITLE: Record<string, string> = {
-  en:'Personal Score', ru:'Персональная оценка', de:'Persönliche Bewertung',
-  uk:'Персональна оцінка', es:'Puntuación personal', fr:'Score personnel',
-  it:'Punteggio personale', tr:'Kişisel Puan',
-};
 
-function AutonomousScoreWidget({ qs, lang }: { qs: AutonomousScore; lang: Language }) {
-  const color   = qs.value >= 7 ? '#2D9B5A' : qs.value >= 5 ? '#E8A020' : '#D94040';
-  const bgColor = qs.value >= 7 ? 'rgba(45,155,90,0.07)' : qs.value >= 5 ? 'rgba(232,160,32,0.07)' : 'rgba(217,64,64,0.07)';
-  const valPct  = qs.value * 10;
-  const title   = SCORE_TITLE[lang] ?? SCORE_TITLE.en;
+
+const prefExplanationCache = new Map<string, string>();
+
+function PreferenceRow({ m, lang }: { m: IngredientMatch; lang: Language }) {
+  const [open, setOpen]       = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
+
+  const cacheKey = `${m.name.toLowerCase()}|${lang}`;
+
+  useEffect(() => {
+    const hit = prefExplanationCache.get(cacheKey);
+    if (hit) setExplanation(hit);
+  }, [cacheKey]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (explanation) return;
+    const cached = prefExplanationCache.get(cacheKey);
+    if (cached) { setExplanation(cached); return; }
+    let cancelled = false;
+    setLoading(true);
+    fetchIngredientPreferenceNote(m.name, m.label, lang)
+      .then(desc => {
+        if (cancelled) return;
+        prefExplanationCache.set(cacheKey, desc);
+        setExplanation(desc);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, explanation, cacheKey, m.name, m.label, lang]);
+
+  const loadingLabel: Record<string, string> = {
+    en:'Loading…', ru:'Загружаем…', de:'Laden…', uk:'Завантажуємо…',
+    es:'Cargando…', fr:'Chargement…', it:'Caricamento…', tr:'Yükleniyor…',
+  };
 
   return (
-    <div style={{ background: bgColor, border: `1.5px solid ${color}22`, borderRadius: 14, padding: '13px 15px', marginBottom: 13 }}>
-
-      {/* Header: label */}
-      <div style={{ fontSize: '0.6rem', letterSpacing: '0.07em', textTransform: 'uppercase', color: '#8A8078', fontFamily: 'var(--font-sans)', marginBottom: 8 }}>
-        {title}
-      </div>
-
-      {/* Score number — integer */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 9 }}>
-        <span style={{ fontSize: '2.1rem', fontWeight: 800, color, lineHeight: 1, letterSpacing: '-0.03em', fontFamily: 'var(--font-sans)' }}>
-          {qs.value}
+    <div
+      onClick={() => setOpen(o => !o)}
+      style={{ cursor: 'pointer', paddingBottom: open ? 6 : 0 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <span style={{ fontSize: '0.82rem', lineHeight: 1, flexShrink: 0 }}>{m.emoji}</span>
+        <span style={{ flex: 1, fontSize: '0.78rem', color: '#3A3530', fontFamily: 'var(--font-sans)', fontWeight: 500 }}>
+          {m.label}
         </span>
-        <span style={{ fontSize: '0.65rem', color, opacity: 0.72, fontFamily: 'var(--font-sans)' }}>/10</span>
+        <ChevronDown size={12} style={{ color: '#8A8078', flexShrink: 0, transition: 'transform 0.18s', transform: open ? 'rotate(180deg)' : 'rotate(0)' }} />
       </div>
-
-      {/* Bar */}
-      <div style={{ position: 'relative', height: 7, borderRadius: 7, background: '#E5DDD5', marginBottom: 10 }}>
-        <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${valPct}%`, borderRadius: 7, background: color, opacity: 0.88, transition: 'width 0.8s cubic-bezier(.22,1,.36,1)' }} />
-        <div style={{ position: 'absolute', left: `${valPct}%`, top: '50%', transform: 'translate(-50%,-50%)', width: 13, height: 13, borderRadius: '50%', background: color, border: '2.5px solid white', boxShadow: `0 0 0 2.5px ${color}28` }} />
-      </div>
-
-      {/* Per-ingredient preference rows */}
-      {qs.matches.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 2 }}>
-          {qs.matches.map((m, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: '0.78rem', lineHeight: 1 }}>{m.emoji}</span>
-              <span style={{ fontSize: '0.65rem', color: '#5A5550', fontFamily: 'var(--font-sans)' }}>
-                {m.label}
-              </span>
-            </div>
-          ))}
+      {open && (
+        <div style={{ paddingLeft: 22, marginTop: 4 }}>
+          {loading && !explanation ? (
+            <span style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic', fontFamily: 'var(--font-serif)' }}>
+              {loadingLabel[lang] ?? loadingLabel.en}
+            </span>
+          ) : (
+            <span style={{ fontSize: '0.78rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.55 }}>
+              {explanation}
+            </span>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Autonomous Score Widget ───────────────────────────────────────────────
+
+function AutonomousScoreWidget({ qs, lang }: { qs: AutonomousScore; lang: Language }) {
+  if (qs.matches.length === 0) return null;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+      {qs.matches.map((m, i) => (
+        <PreferenceRow key={i} m={m} lang={lang} />
+      ))}
     </div>
   );
 }
