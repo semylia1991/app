@@ -567,3 +567,245 @@ export function computeQuantumScore(
     synergyNotes: synergies,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTONOMOUS PERSONAL SCORE
+// Полностью независимая от общей оценки персональная оценка.
+// Считается только на основе:
+//   1. Профиля пользователя (PROFILE_RULES — совпадения и конфликты)
+//   2. Синергий между ингредиентами (SYNERGY_RULES)
+//   3. Статуса ингредиента (🟢/🟡/🔴) как нейтральной базы
+// НЕ использует ing.score, AI-оценку или DB-score.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Per-ingredient profile match for the UI list */
+export interface IngredientMatch {
+  name: string;
+  /** ✅ benefit / ⚠️ caution / ⛔️ conflict */
+  emoji: '✅' | '⚠️' | '⛔️';
+  /** Human-readable preference label in the user's language */
+  label: string;
+}
+
+export interface AutonomousScore {
+  /** Итоговая персональная оценка 0–10, округлённая до целого */
+  value: number;
+  /** Пессимистичный вариант */
+  min: number;
+  /** Оптимистичный вариант */
+  max: number;
+  /** 0–1: доля ингредиентов без правил профиля */
+  uncertainty: number;
+  /** Дельта от синергий (итого) */
+  synergyDelta: number;
+  /** Расшифровка синергий */
+  synergyNotes: SynergyNote[];
+  /** Сколько ингредиентов дали хотя бы одно совпадение с профилем */
+  profileMatchCount: number;
+  /** Сколько ингредиентов — конфликт с профилем (delta < 0) */
+  conflictCount: number;
+  /** Сколько — выгода для профиля (delta > 0) */
+  benefitCount: number;
+  /** Per-ingredient matches for the expanded UI list */
+  matches: IngredientMatch[];
+}
+
+/**
+ * Нейтральная база ингредиента по статусу — без привязки к AI/DB score.
+ * 🟢 = 7 (хороший ингредиент, чуть ниже отличного — мы не знаем насколько хорош)
+ * 🟡 = 5 (нейтральный — ни плохой ни хороший)
+ * 🔴 = 2 (проблемный — но не ноль, есть нюансы)
+ */
+// ── Preference labels per language ────────────────────────────────────────
+// Maps condition field+value → localized label shown in per-ingredient list
+type LangMap = Record<string, string>;
+const PREFERENCE_LABELS: Record<string, Record<string, LangMap>> = {
+  skinType: {
+    skinOily:        { en:'Oily skin',        ru:'Жирная кожа',        de:'Fettige Haut',       uk:'Жирна шкіра',        es:'Piel grasa',       fr:'Peau grasse',       it:'Pelle grassa',       tr:'Yağlı cilt' },
+    skinDry:         { en:'Dry skin',          ru:'Сухая кожа',         de:'Trockene Haut',      uk:'Суха шкіра',         es:'Piel seca',        fr:'Peau sèche',        it:'Pelle secca',        tr:'Kuru cilt' },
+    skinCombination: { en:'Combination skin',  ru:'Комбинированная',    de:'Mischhaut',          uk:'Комбінована',        es:'Piel mixta',       fr:'Peau mixte',        it:'Pelle mista',        tr:'Karma cilt' },
+  },
+  skinSensitivity: {
+    sensFragrances:         { en:'Fragrance sensitivity',  ru:'Чувствительность к отдушкам', de:'Duftstoff-Empf.',   uk:'Чутливість до ароматів', es:'Sensibilidad a fragancias', fr:'Sensibilité parfums', it:'Sensibilità profumi', tr:'Parfüm hassasiyeti' },
+    sensAlcohol:            { en:'Alcohol sensitivity',    ru:'Чувствительность к спирту',  de:'Alkohol-Empf.',     uk:'Чутливість до спирту',   es:'Sensibilidad alcohol',      fr:'Sensibilité alcool',  it:'Sensibilità alcol',   tr:'Alkol hassasiyeti' },
+    sensEssentialOils:      { en:'Essential oil sensitivity', ru:'Эфирные масла',          de:'Ätherische Öle',    uk:'Ефірні олії',            es:'Aceites esenciales',        fr:'Huiles essentielles', it:'Oli essenziali',      tr:'Uçucu yağ hassas.' },
+    sensIrritationAfterCare:{ en:'Post-care irritation',  ru:'Раздражение после ухода',    de:'Reizung nach Pflege',uk:'Подразнення після догляду', es:'Irritación post-cuidado',  fr:'Irritation post-soin',it:'Irritazione post-cura',tr:'Bakım sonrası tahriş' },
+    sensReactionNewProducts:{ en:'New product reactions',  ru:'Реакция на новые средства', de:'Reaktion Neuprodukte',uk:'Реакція на нові засоби', es:'Reacciones a nuevos prod.',fr:'Réact. nouveaux prod.',it:'Reaz. nuovi prodotti', tr:'Yeni ürün reaksiyonu' },
+  },
+  skinConditions: {
+    condBreakouts:   { en:'Breakouts',         ru:'Высыпания',          de:'Unreinheiten',       uk:'Висипання',          es:'Brotes',           fr:'Imperfections',     it:'Imperfezioni',       tr:'Sivilce' },
+    condBlackheads:  { en:'Blackheads',        ru:'Чёрные точки',       de:'Mitesser',           uk:'Чорні точки',        es:'Puntos negros',    fr:'Points noirs',      it:'Punti neri',         tr:'Siyah nokta' },
+    condRedness:     { en:'Redness',           ru:'Покраснения',        de:'Rötungen',           uk:'Почервоніння',       es:'Rojeces',          fr:'Rougeurs',          it:'Rossori',            tr:'Kızarıklık' },
+    condIrritation:  { en:'Irritation',        ru:'Раздражение',        de:'Reizung',            uk:'Подразнення',        es:'Irritación',       fr:'Irritation',        it:'Irritazione',        tr:'Tahriş' },
+    condUnevenTone:  { en:'Uneven tone',       ru:'Неравномерный тон',  de:'Unebener Teint',     uk:'Нерівний тон',       es:'Tono irregular',   fr:'Teint irrégulier',  it:'Tono irregolare',    tr:'Düzensiz ton' },
+    condDarkSpots:   { en:'Dark spots',        ru:'Пигментация',        de:'Dunkle Flecken',     uk:'Пігментація',        es:'Manchas oscuras',  fr:'Taches sombres',    it:'Macchie scure',      tr:'Koyu lekeler' },
+    condDullness:    { en:'Dull complexion',   ru:'Тусклая кожа',       de:'Fahler Teint',       uk:'Тьмяна шкіра',       es:'Tez opaca',        fr:'Teint terne',       it:'Incarnato spento',   tr:'Donuk cilt' },
+    condPigmentation:{ en:'Pigmentation',      ru:'Пигментация',        de:'Pigmentierung',      uk:'Пігментація',        es:'Pigmentación',     fr:'Pigmentation',      it:'Pigmentazione',      tr:'Pigmentasyon' },
+  },
+  ageRange: {
+    age3545:  { en:'35–45',  ru:'35–45',  de:'35–45',  uk:'35–45',  es:'35–45',  fr:'35–45',  it:'35–45',  tr:'35–45' },
+    age4550:  { en:'45–50',  ru:'45–50',  de:'45–50',  uk:'45–50',  es:'45–50',  fr:'45–50',  it:'45–50',  tr:'45–50' },
+    age50plus:{ en:'50+',    ru:'50+',    de:'50+',    uk:'50+',    es:'50+',    fr:'50+',    it:'50+',    tr:'50+' },
+  },
+  climate: {
+    climateSunny:{ en:'Sunny climate', ru:'Солнечный климат', de:'Sonniges Klima',  uk:'Сонячний клімат', es:'Clima soleado', fr:'Climat ensoleillé', it:'Clima soleggiato', tr:'Güneşli iklim' },
+    climateDry:  { en:'Dry climate',   ru:'Сухой климат',    de:'Trockenes Klima', uk:'Сухий клімат',    es:'Clima seco',    fr:'Climat sec',        it:'Clima secco',      tr:'Kuru iklim' },
+    climateCold: { en:'Cold climate',  ru:'Холодный климат', de:'Kaltes Klima',    uk:'Холодний клімат', es:'Clima frío',    fr:'Climat froid',      it:'Clima freddo',     tr:'Soğuk iklim' },
+    climateHumid:{ en:'Humid climate', ru:'Влажный климат',  de:'Feuchtes Klima',  uk:'Вологий клімат',  es:'Clima húmedo',  fr:'Climat humide',     it:'Clima umido',      tr:'Nemli iklim' },
+    climateWindy:{ en:'Windy',         ru:'Ветер',           de:'Windig',          uk:'Вітер',           es:'Viento',        fr:'Vent',              it:'Vento',            tr:'Rüzgar' },
+  },
+  scalpCondition: {
+    scalpOily: { en:'Oily scalp', ru:'Жирная кожа головы', de:'Fettige Kopfhaut', uk:'Жирна шкіра голови', es:'Cuero cabelludo graso', fr:'Cuir chevelu gras', it:'Cuoio capelluto grasso', tr:'Yağlı saç derisi' },
+    scalpDry:  { en:'Dry scalp',  ru:'Сухая кожа головы',  de:'Trockene Kopfhaut',uk:'Суха шкіра голови',  es:'Cuero cabelludo seco',  fr:'Cuir chevelu sec',  it:'Cuoio capelluto secco',  tr:'Kuru saç derisi' },
+  },
+  hairProblems: {
+    hairDryDamaged: { en:'Dry/damaged hair', ru:'Сухие/повреждённые волосы', de:'Trockenes/geschädigtes Haar', uk:'Сухе/пошкоджене волосся', es:'Cabello seco/dañado', fr:'Cheveux secs/abîmés', it:'Capelli secchi/danneggiati', tr:'Kuru/hasarlı saç' },
+    hairFrizzy:     { en:'Frizzy hair',      ru:'Вьющиеся волосы',           de:'Krauses Haar',                uk:'Кучеряве волосся',        es:'Cabello encrespado',  fr:'Cheveux frisottants', it:'Capelli crespi',             tr:'Kabarık saç' },
+  },
+};
+
+/** Get the best localized preference label for a rule that fired */
+export function getPreferenceLabel(
+  conditions: Record<string, string[]>,
+  lang: string,
+): string {
+  for (const [field, values] of Object.entries(conditions)) {
+    const fieldMap = PREFERENCE_LABELS[field];
+    if (!fieldMap) continue;
+    for (const v of values) {
+      const lmap = fieldMap[v];
+      if (lmap) return lmap[lang] ?? lmap['en'] ?? v;
+    }
+  }
+  return '';
+}
+
+function statusNeutralBase(status: string): number {
+  if (status === '🟢') return 7;
+  if (status === '🟡') return 5;
+  if (status === '🔴') return 2;
+  return 5;
+}
+
+/**
+ * Считает дельту профиля для одного ингредиента.
+ * Возвращает суммарную дельту от всех сработавших правил.
+ */
+function profileDeltaForIngredient(ing: Ingredient, profile: UserProfile): number {
+  const n = ing.name.toLowerCase();
+  let delta = 0;
+  for (const rule of PROFILE_RULES) {
+    const nameMatch = rule.match.some(m => matchesIngredient(n, m));
+    if (!nameMatch) continue;
+    const conditionMatch = Object.entries(rule.conditions).some(([field, values]) => {
+      const profileValues: string[] = (profile as any)[field] ?? [];
+      return (values as string[]).some(v => profileValues.includes(v));
+    });
+    if (!conditionMatch) continue;
+    delta += rule.delta;
+  }
+  return delta;
+}
+
+/**
+ * Автономная персональная оценка — независима от общей оценки продукта.
+ *
+ * Алгоритм:
+ * 1. Для каждого ингредиента берём нейтральную базу по статусу (7/5/2)
+ * 2. Применяем дельту профиля (PROFILE_RULES)
+ * 3. Ингредиенты без совпадений с профилем → вносят неопределённость (±1.5)
+ * 4. Взвешенное среднее (позиция в составе = вес)
+ * 5. Применяем синергии (SYNERGY_RULES)
+ */
+export function computeAutonomousScore(
+  ingredients: Ingredient[],
+  profile: UserProfile,
+  lang: string = 'en',
+): AutonomousScore | null {
+  if (!ingredients || ingredients.length === 0) return null;
+
+  let weightedSum    = 0;
+  let weightedSumMin = 0;
+  let weightedSumMax = 0;
+  let totalWeight    = 0;
+
+  let profileMatchCount = 0;
+  let conflictCount     = 0;
+  let benefitCount      = 0;
+  let noMatchCount      = 0;
+
+  const matches: IngredientMatch[] = [];
+
+  for (let idx = 0; idx < ingredients.length; idx++) {
+    const ing    = ingredients[idx];
+    const weight = 1 / (idx + 1);
+    const base   = statusNeutralBase(ing.status);
+    const delta  = profileDeltaForIngredient(ing, profile);
+
+    const score    = Math.min(10, Math.max(0, base + delta));
+    const hasMatch = delta !== 0;
+    const spread   = hasMatch ? 0.5 : 1.5;
+
+    if (hasMatch) {
+      profileMatchCount++;
+      if (delta < 0) conflictCount++;
+      if (delta > 0) benefitCount++;
+
+      // Find the first matching rule to get its conditions for label
+      const n = ing.name.toLowerCase();
+      for (const rule of PROFILE_RULES) {
+        const nameMatch = rule.match.some(m => matchesIngredient(n, m));
+        if (!nameMatch) continue;
+        const conditionMatch = Object.entries(rule.conditions).some(([field, values]) => {
+          const pv: string[] = (profile as any)[field] ?? [];
+          return (values as string[]).some(v => pv.includes(v));
+        });
+        if (!conditionMatch) continue;
+        const label = getPreferenceLabel(rule.conditions as Record<string, string[]>, lang);
+        if (label) {
+          matches.push({
+            name:  ing.name,
+            emoji: delta > 0 ? '✅' : delta < -2 ? '⛔️' : '⚠️',
+            label,
+          });
+        }
+        break; // one label per ingredient
+      }
+    } else {
+      noMatchCount++;
+    }
+
+    weightedSum    += score * weight;
+    weightedSumMin += Math.max(0,  score - spread) * weight;
+    weightedSumMax += Math.min(10, score + spread) * weight;
+    totalWeight    += weight;
+  }
+
+  if (totalWeight === 0) return null;
+
+  const rawValue = weightedSum    / totalWeight;
+  const rawMin   = weightedSumMin / totalWeight;
+  const rawMax   = weightedSumMax / totalWeight;
+
+  // Синергии
+  const synergyNotes = detectSynergies(ingredients);
+  const synergyDelta = Math.round(
+    synergyNotes.reduce((s, n) => s + n.delta, 0) * 10,
+  ) / 10;
+
+  const clamp = (v: number) => Math.min(10, Math.max(0, Math.round(v * 10) / 10));
+  const uncertainty = noMatchCount / ingredients.length;
+
+  return {
+    value:            Math.round(clamp(rawValue + synergyDelta)),  // rounded to integer
+    min:              clamp(rawMin   + synergyDelta),
+    max:              clamp(rawMax   + synergyDelta),
+    uncertainty,
+    synergyDelta,
+    synergyNotes,
+    profileMatchCount,
+    conflictCount,
+    benefitCount,
+    matches,
+  };
+}
