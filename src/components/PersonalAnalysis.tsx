@@ -182,13 +182,45 @@ function PreferenceRow({ m, lang }: { m: IngredientMatch; lang: Language }) {
 // ── Autonomous Score Widget ───────────────────────────────────────────────
 
 function AutonomousScoreWidget({ qs, lang }: { qs: AutonomousScore; lang: Language }) {
-  if (qs.matches.length === 0) return null;
+  const color      = qs.value >= 7 ? '#2D9B5A' : qs.value >= 5 ? '#E8A020' : '#D94040';
+  const scoreLabel: Record<string, Record<number, string>> = {
+    en: { 1:'Caution advised', 2:'Not recommended', 3:'Poor match', 4:'Below average', 5:'Neutral', 6:'Acceptable', 7:'Good match', 8:'Great match', 9:'Excellent match', 10:'Perfect match' },
+    ru: { 1:'Осторожно', 2:'Не рекомендуется', 3:'Плохо подходит', 4:'Ниже среднего', 5:'Нейтрально', 6:'Приемлемо', 7:'Подходит', 8:'Хорошо подходит', 9:'Отлично подходит', 10:'Идеально' },
+    de: { 1:'Vorsicht', 2:'Nicht empfohlen', 3:'Schlecht geeignet', 4:'Unterdurchschnittlich', 5:'Neutral', 6:'Akzeptabel', 7:'Gut geeignet', 8:'Sehr gut geeignet', 9:'Ausgezeichnet', 10:'Perfekt' },
+    uk: { 1:'Обережно', 2:'Не рекомендується', 3:'Погано підходить', 4:'Нижче середнього', 5:'Нейтрально', 6:'Прийнятно', 7:'Підходить', 8:'Добре підходить', 9:'Чудово підходить', 10:'Ідеально' },
+    es: { 1:'Precaución', 2:'No recomendado', 3:'Mal resultado', 4:'Por debajo del promedio', 5:'Neutral', 6:'Aceptable', 7:'Buena coincidencia', 8:'Gran coincidencia', 9:'Excelente', 10:'Perfecto' },
+    fr: { 1:'Prudence', 2:'Déconseillé', 3:'Mauvaise adéquation', 4:'En dessous de la moyenne', 5:'Neutre', 6:'Acceptable', 7:'Bonne adéquation', 8:'Très bonne', 9:'Excellente', 10:'Parfait' },
+    it: { 1:'Attenzione', 2:'Sconsigliato', 3:'Scarsa compatibilità', 4:'Sotto la media', 5:'Neutro', 6:'Accettabile', 7:'Buona compatibilità', 8:'Ottima', 9:'Eccellente', 10:'Perfetto' },
+    tr: { 1:'Dikkat', 2:'Önerilmez', 3:'Kötü uyum', 4:'Ortalamanın altı', 5:'Nötr', 6:'Kabul edilebilir', 7:'İyi uyum', 8:'Çok iyi uyum', 9:'Mükemmel uyum', 10:'Mükemmel' },
+  };
+  const label = (scoreLabel[lang] ?? scoreLabel.en)[Math.min(10, Math.max(1, qs.value))] ?? '';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-      {qs.matches.map((m, i) => (
-        <PreferenceRow key={i} m={m} lang={lang} />
-      ))}
+    <div style={{ marginBottom: 12 }}>
+      {/* Score block — same style as ingredients score block */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', marginBottom: 10, background: 'rgba(255,255,255,0.6)', borderRadius: 14, border: `1.5px solid ${color}22` }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 64 }}>
+          <span style={{ fontSize: '2rem', fontWeight: 800, color, lineHeight: 1, fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em' }}>
+            {qs.value}
+          </span>
+          <span style={{ fontSize: '0.72rem', color, opacity: 0.75, fontFamily: 'var(--font-sans)', marginTop: 1 }}>/10</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 8, background: 'rgba(0,0,0,0.07)', borderRadius: 8, overflow: 'hidden', marginBottom: 6 }}>
+            <div style={{ height: '100%', width: `${qs.value * 10}%`, background: color, borderRadius: 8, transition: 'width 0.6s ease' }} />
+          </div>
+          <span style={{ fontSize: '0.8rem', color, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{label}</span>
+        </div>
+      </div>
+
+      {/* Per-ingredient preference rows */}
+      {qs.matches.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {qs.matches.map((m, i) => (
+            <PreferenceRow key={i} m={m} lang={lang} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
