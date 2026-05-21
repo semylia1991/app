@@ -298,6 +298,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
 
   async function regenerate() {
     if (!userProfile) return;
+    if (!result?.ingredients?.length) return; // no ingredients — nothing to analyse
     if (!canUseNote) { onLimitReached(); return; }
     setLoading(true);
     setError(null);
@@ -393,9 +394,16 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
     );
   }
 
+  // If no ingredients scanned — show nothing at all (no score, no button)
+  if (!result?.ingredients?.length) {
+    return null;
+  }
+
   if (!note) {
     return (
       <div className="flex flex-col gap-3 py-2">
+        {/* Show autonomous score even while AI note is loading/absent */}
+        {autonomousScore && <AutonomousScoreWidget qs={autonomousScore} lang={lang} />}
         <p className="text-base text-[#5A5550] leading-relaxed">
           {T.noteRescan}
         </p>
@@ -416,6 +424,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
       {autonomousScore && <AutonomousScoreWidget qs={autonomousScore} lang={lang} />}
 
       {/* ── AI personalNote markdown ─────────────────────────────────────── */}
+      {/* Sanitize literal \n sequences AI sometimes returns */}
       <div className="prose prose-base prose-stone max-w-none
         [&_strong]:text-[#1A1410] [&_strong]:font-semibold
         [&_p]:text-[#5A5550] [&_p]:leading-relaxed [&_p]:mb-1
@@ -424,7 +433,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, canUseNote, 
         [&_hr]:border-[#DDD5C8]/50 [&_hr]:my-3
         [&_em]:text-xs [&_em]:text-[#B8923A] [&_em]:not-italic [&_em]:block [&_em]:mt-2"
         style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem' }}>
-        <ReactMarkdown>{note}</ReactMarkdown>
+        <ReactMarkdown>{note.replace(/\\n/g, '\n')}</ReactMarkdown>
       </div>
     </div>
   );
