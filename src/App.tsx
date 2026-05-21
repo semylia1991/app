@@ -8,6 +8,7 @@ import type { User } from '@supabase/supabase-js';
 
 import { t, Language, loadLanguage } from './i18n';
 import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription, fetchPreferenceExplanation, fetchDetails } from './services/ai';
+import { getCanonicalScore, normalizeIngredientName } from './services/productCache';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -710,7 +711,24 @@ export default function App() {
               <>
                 <ScanHistory
                   user={user} lang={lang} refreshKey={scanHistoryKey}
-                  onSelect={(r, scanLang) => {
+                  onSelect={async (r, scanLang) => {
+                    // Apply canonical ingredient scores so history shows the
+                    // same score as a fresh scan of the same product.
+                    if (r.brand && r.productName) {
+                      const canonical = await getCanonicalScore(r.brand, r.productName).catch(() => null);
+                      if (canonical) {
+                        const sm = new Map<string, number>(
+                          canonical.ingredients.map(i => [normalizeIngredientName(i.name), Number(i.score)])
+                        );
+                        r = {
+                          ...r,
+                          ingredients: r.ingredients.map(ing => {
+                            const s = sm.get(normalizeIngredientName(ing.name));
+                            return s !== undefined ? { ...ing, score: s } : ing;
+                          }),
+                        };
+                      }
+                    }
                     originalResult.current = r;
                     const sourceLang = (scanLang ?? lang) as Language;
                     translationCache.current = new Map([[sourceLang, r]]);
