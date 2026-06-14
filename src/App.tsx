@@ -581,27 +581,27 @@ export default function App() {
       setFile(null);
       setPreviewUrl(null);
 
-      // Initial save — must happen before prefetch so scanId is available
-      const scanId = await saveScanToHistory(analysis);
-      await subscription.incrementScans();
-
-      // ── Prefetch "Обрати внимание" in background, then update scan record ──
+      // ── Prefetch "Обрати внимание" + save to history with criteria ──────────
+      let criteria: any[] = [];
       if (userProfile) {
-        prefetchPersonalNote(analysisWithShops, userProfile, lang)
-          .then(async () => {
-            const key = `${analysisWithShops.productName}|${analysisWithShops.brand}`;
-            let criteria: any[] = [];
-            for (const [k, v] of criteriaCache.entries()) {
-              if (k.startsWith(key + '|')) { criteria = v; break; }
-            }
-            if (criteria.length && scanId) {
-              await supabase.from('scan_history')
-                .update({ result: { ...analysisWithShops, criteria } })
-                .eq('id', scanId);
-            }
-          })
-          .catch(e => console.warn('[scan] prefetch personalNote failed:', e));
+        try {
+          await prefetchPersonalNote(analysisWithShops, userProfile, lang);
+          const key = `${analysisWithShops.productName}|${analysisWithShops.brand}`;
+          for (const [k, v] of criteriaCache.entries()) {
+            if (k.startsWith(key + '|')) { criteria = v; break; }
+          }
+          console.log('[prefetch] criteria count:', criteria.length);
+        } catch (e) {
+          console.warn('[scan] prefetch personalNote failed:', e);
+        }
       }
+
+      // Initial save — includes criteria if prefetch succeeded
+      const scanId = await saveScanToHistory({
+        ...analysis,
+        ...(criteria.length ? { criteria } : {}),
+      } as any);
+      await subscription.incrementScans();
 
       // ── Load details in background ────────────────────────────────────────
       const langAtDetails = lang;
