@@ -136,7 +136,7 @@ const guideContent: Record<Language, {
       { q: 'Should I consult a doctor instead?', a: 'GlowKI is for ingredient transparency, not medical advice. For skin conditions, always see a dermatologist.' },
     ],
 
-    founderQuote: '{c.founderQuote}',
+    founderQuote: `“I built this so you never have to guess again. One photo — and you know exactly what's in it.”`,
     disclaimer: 'GlowKI is an informational tool. The analysis is created by artificial intelligence and may contain errors or incomplete interpretations. Results are not medical advice and should not be used to diagnose or treat skin conditions.',
   },
 
@@ -307,7 +307,7 @@ const guideContent: Record<Language, {
       { q: 'Sollte ich lieber zum Arzt gehen?', a: 'GlowKI ist für Inhaltsstoff-Transparenz gedacht, nicht für medizinische Ratschläge. Bei Hauterkrankungen immer einen Dermatologen aufsuchen.' },
     ],
 
-    founderQuote: '„Ich habe das entwickelt, damit du nie wieder raten musst. Ein Foto — und du weißt genau, was drin ist."',
+    founderQuote: `„Ich habe das entwickelt, damit du nie wieder raten musst. Ein Foto — und du weißt genau, was drin ist.“`,
     disclaimer: 'GlowKI ist ein Informationswerkzeug. Die Analyse wird von KI erstellt und kann Fehler oder unvollständige Interpretationen enthalten. Die Ergebnisse sind keine medizinische Beratung.',
   },
 
@@ -475,7 +475,7 @@ const guideContent: Record<Language, {
       { q: '¿Debería consultar a un médico?', a: 'GlowKI es para la transparencia de ingredientes, no para consejos médicos. Para problemas de piel, consulta siempre a un dermatólogo.' },
     ],
 
-    founderQuote: '"Lo creé para que nunca más tengas que adivinar. Una foto — y sabes exactamente qué hay dentro."',
+    founderQuote: `«Lo creé para que nunca más tengas que adivinar. Una foto — y sabes exactamente qué hay dentro.»`,
     disclaimer: 'GlowKI es una herramienta informativa. El análisis es creado por IA y puede contener errores o interpretaciones incompletas. Los resultados no son consejo médico.',
   },
 
@@ -559,7 +559,7 @@ const guideContent: Record<Language, {
       { q: "Vaut-il mieux consulter un médecin ?", a: "GlowKI sert à la transparence des ingrédients, pas aux conseils médicaux. Pour les problèmes de peau, consulte toujours un dermatologue." },
     ],
 
-    founderQuote: '"Je l'ai créé pour que tu n'aies plus jamais à deviner. Une photo — et tu sais exactement ce qu'il y a dedans."',
+    founderQuote: `«Je l'ai créé pour que tu n'aies plus jamais à deviner. Une photo — et tu sais exactement ce qu'il y a dedans.»`,
     disclaimer: 'GlowKI est un outil informatif. L\'analyse est créée par IA et peut contenir des erreurs ou des interprétations incomplètes. Les résultats ne constituent pas un avis médical.',
   },
 
@@ -643,7 +643,7 @@ const guideContent: Record<Language, {
       { q: "Dovrei consultare un medico?", a: "GlowKI serve per la trasparenza degli ingredienti, non per consigli medici. Per le condizioni della pelle, consulta sempre un dermatologo." },
     ],
 
-    founderQuote: '"L'ho creato perché tu non debba più indovinare. Una foto — e sai esattamente cosa c'è dentro."',
+    founderQuote: `«L'ho creato perché tu non debba più indovinare. Una foto — e sai esattamente cosa c'è dentro.»`,
     disclaimer: 'GlowKI è uno strumento informativo. L\'analisi è creata dall\'IA e può contenere errori o interpretazioni incomplete. I risultati non costituiscono un consiglio medico.',
   },
 
@@ -728,7 +728,7 @@ const guideContent: Record<Language, {
       { q: 'Bunun yerine doktora gitmeli miyim?', a: 'GlowKI içerik şeffaflığı içindir, tıbbi tavsiye değil. Cilt sorunları için her zaman bir dermatologa başvur.' },
     ],
 
-    founderQuote: '"Bunu bir daha tahmin etmek zorunda kalmaman için yaptım. Bir fotoğraf — ve içinde ne olduğunu tam olarak biliyorsun."',
+    founderQuote: `“Bunu bir daha tahmin etmek zorunda kalmaman için yaptım. Bir fotoğraf — ve içinde ne olduğunu tam olarak biliyorsun.”`,
     disclaimer: 'GlowKI bir bilgi aracıdır. Analiz yapay zeka tarafından oluşturulur ve hatalar veya eksik yorumlar içerebilir. Sonuçlar tıbbi tavsiye niteliği taşımaz.',
   },
 };
