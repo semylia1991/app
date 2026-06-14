@@ -734,8 +734,10 @@ export function computeAutonomousScore(
   let benefitCount      = 0;
   let noMatchCount      = 0;
 
+  const matches: IngredientMatch[] = [];
+
   // ── Per-criteria matches (one row per profile field value) ──────────────
-  // Build a map: criteriaKey → { label, bestDelta, worstDelta, ingredientNames }
+  // Build a map: criteriaKey → { label, totalDelta, ingredientNames }
   const criteriaMap = new Map<string, { label: string; totalDelta: number; ingredients: string[] }>();
 
   for (let idx = 0; idx < ingredients.length; idx++) {
