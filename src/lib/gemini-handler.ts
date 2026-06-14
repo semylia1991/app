@@ -1412,9 +1412,9 @@ End with one emoji: ✅ beneficial, ⚠️ caution, ⛔️ problematic.
 
     // Filter out "unknown" / "any" / "none" values — they carry no meaning for analysis
     const SKIP_VALUES = ['unknown', 'Unknown', 'any', 'Any', 'none', 'None',
-      'skinUnknown', 'hairUnknown', 'climateAny', 'Don't know', 'Не знаю',
-      'Не важно', 'Не важливо', 'Egal', 'Peu importe', 'Je ne sais pas',
-      'Does not matter', 'Weiß nicht'];
+      'skinUnknown', 'hairUnknown', 'climateAny', "Don't know", '\u041d\u0435 \u0437\u043d\u0430\u044e',
+      '\u041d\u0435 \u0432\u0430\u0436\u043d\u043e', '\u041d\u0435 \u0432\u0430\u0436\u043b\u0438\u0432\u043e', 'Egal', 'Peu importe', "Je ne sais pas",
+      'Does not matter', 'Wei\u00df nicht'];
 
     const profileLines = Object.entries(userProfile as Record<string, string>)
       .filter(([k, v]) => v && relevantKeys.includes(k))
