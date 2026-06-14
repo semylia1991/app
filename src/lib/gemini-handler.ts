@@ -494,7 +494,7 @@ these are added by the server from a local INCI database.
 Formatting Rules:
 - productType: exact type (e.g. "Moisturizing Cream", "Exfoliating Toner").
 - analysis: STRICTLY 1-2 sentences. START by stating what the product is.
-- shelfLife: how long after opening (e.g. "12 months", "6 months after opening").
+- shelfLife: shelf life and storage conditions. Include: period after opening (PAO, e.g. "12M"), recommended storage temperature, light/humidity conditions, and any special notes (e.g. "keep away from direct sunlight", "store in cool dry place"). Write 2-4 sentences. If not determinable from the product type, write what is typical for this category.
 `.trim();
 
   if (!userProfile) return basePrompt;
