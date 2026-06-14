@@ -130,7 +130,6 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Do I need to be a beauty expert to use this?', a: 'Not at all. You just take a photo. GlowKI reads the label and shows you what matters for your preferences — in plain language.' },
       { q: 'What if I already bought the product?', a: "Scan it anyway. You'll know what's in it — and whether to keep using it or replace it next time." },
-      { q: 'Is this the same as Yuka?', a: 'Yuka gives you a score. GlowKI shows you which ingredients match your personal preferences — and lets you compare two products side by side.' },
       { q: 'What if the photo is blurry?', a: "Try again in better light. If it still doesn't work, photograph just the ingredient list up close." },
       { q: 'My photos — are they saved somewhere?', a: 'No. Your photo goes to the AI for analysis only. Nothing is stored on servers.' },
       { q: 'Should I consult a doctor instead?', a: 'GlowKI is for ingredient transparency, not medical advice. For skin conditions, always see a dermatologist.' },
@@ -217,7 +216,6 @@ const guideContent: Record<Language, {
       { q: 'Почему в «Обрати внимание» не все критерии из моего профиля?', a: 'ИИ показывает только критерии, релевантные для данного типа продукта. Например, для карандаша для глаз не нужны состояния кожи — они не применимы к макияжу. Для крема — полный набор: тип кожи, чувствительность, состояния, возраст, климат.' },
       { q: 'Когда появляется раздел «Обрати внимание»?', a: 'Анализ запускается автоматически сразу после сканирования — в фоне, пока вы читаете основной результат. К моменту открытия раздела данные уже готовы.' },
       { q: 'Что если я уже купила продукт?', a: "Всё равно отсканируй. Узнаешь, что внутри — и стоит ли продолжать использовать или заменить в следующий раз." },
-      { q: 'Это то же самое, что Yuka?', a: 'Yuka даёт общую оценку. GlowKI показывает конкретно, как каждый ингредиент соотносится с вашими особенностями кожи, возрастом и климатом — с объяснением по клику.' },
       { q: 'Что если фото нечёткое?', a: "Попробуй ещё раз при лучшем освещении. Если не получается — сфотографируй только список ингредиентов крупным планом." },
       { q: 'Мои фото — они где-то сохраняются?', a: 'Нет. Фото передаётся ИИ только для анализа. На серверах ничего не хранится.' },
       { q: 'Лучше сходить к врачу?', a: 'GlowKI — для прозрачности состава, не для медицинских советов. При кожных заболеваниях всегда консультируйся с дерматологом.' },
@@ -301,7 +299,6 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Muss ich mich mit Kosmetik auskennen?', a: 'Überhaupt nicht. Du machst einfach ein Foto. GlowKI liest das Etikett und zeigt dir, was für deine Vorlieben wichtig ist — in klarer Sprache.' },
       { q: 'Was, wenn ich das Produkt schon gekauft habe?', a: "Scanne es trotzdem. Du weißt dann, was drin ist — und ob du es weiter verwenden oder nächstes Mal ersetzen solltest." },
-      { q: 'Ist das dasselbe wie Yuka?', a: 'Yuka gibt dir eine Bewertung. GlowKI zeigt dir, welche Inhaltsstoffe zu deinen persönlichen Vorlieben passen — und lässt dich zwei Produkte direkt vergleichen.' },
       { q: 'Was, wenn das Foto unscharf ist?', a: "Versuche es bei besserem Licht nochmal. Falls es immer noch nicht klappt, fotografiere nur die Inhaltsstoffliste aus der Nähe." },
       { q: 'Meine Fotos — werden sie irgendwo gespeichert?', a: 'Nein. Dein Foto geht nur zur Analyse an die KI. Auf Servern wird nichts gespeichert.' },
       { q: 'Sollte ich lieber zum Arzt gehen?', a: 'GlowKI ist für Inhaltsstoff-Transparenz gedacht, nicht für medizinische Ratschläge. Bei Hauterkrankungen immer einen Dermatologen aufsuchen.' },
@@ -385,7 +382,6 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Чи потрібно розбиратися в косметиці?', a: 'Зовсім ні. Просто зроби фото. GlowKI прочитає склад і покаже, що важливо для твоїх уподобань — зрозумілою мовою.' },
       { q: 'Що якщо я вже купила продукт?', a: "Все одно відскануй. Дізнаєшся, що всередині — і чи варто продовжувати використовувати або замінити наступного разу." },
-      { q: 'Це те саме, що Yuka?', a: 'Yuka дає оцінку. GlowKI показує, які інгредієнти відповідають твоїм уподобанням — і дозволяє порівняти два продукти поруч.' },
       { q: 'Що якщо фото нечітке?', a: "Спробуй ще раз при кращому освітленні. Якщо не виходить — сфотографуй лише список інгредієнтів великим планом." },
       { q: 'Мої фото — вони десь зберігаються?', a: 'Ні. Фото передається ШІ лише для аналізу. На серверах нічого не зберігається.' },
       { q: 'Краще сходити до лікаря?', a: 'GlowKI — для прозорості складу, не для медичних порад. При шкірних захворюваннях завжди консультуйся з дерматологом.' },
@@ -469,7 +465,6 @@ const guideContent: Record<Language, {
     faqs: [
       { q: '¿Necesito entender de cosmética para usarlo?', a: 'Para nada. Solo haz una foto. GlowKI lee la etiqueta y te muestra lo que importa para tus preferencias — en lenguaje claro.' },
       { q: '¿Y si ya compré el producto?', a: "Escanéalo igualmente. Sabrás qué lleva — y si vale la pena seguir usándolo o cambiarlo la próxima vez." },
-      { q: '¿Es lo mismo que Yuka?', a: 'Yuka te da una puntuación. GlowKI te muestra qué ingredientes encajan con tus preferencias personales — y te permite comparar dos productos uno al lado del otro.' },
       { q: '¿Qué pasa si la foto sale movida?', a: "Inténtalo de nuevo con mejor luz. Si no funciona, fotografía solo la lista de ingredientes de cerca." },
       { q: 'Mis fotos — ¿se guardan en algún sitio?', a: 'No. Tu foto va a la IA solo para el análisis. Nada se almacena en servidores.' },
       { q: '¿Debería consultar a un médico?', a: 'GlowKI es para la transparencia de ingredientes, no para consejos médicos. Para problemas de piel, consulta siempre a un dermatólogo.' },
@@ -553,7 +548,6 @@ const guideContent: Record<Language, {
     faqs: [
       { q: "Faut-il s'y connaître en cosmétique ?", a: "Pas du tout. Tu fais juste une photo. GlowKI lit l'étiquette et te montre ce qui compte pour tes préférences — en langage clair." },
       { q: "Et si j'ai déjà acheté le produit ?", a: "Scanne-le quand même. Tu sauras ce qu'il contient — et si ça vaut la peine de continuer à l'utiliser ou de le remplacer." },
-      { q: "C'est la même chose que Yuka ?", a: "Yuka te donne une note. GlowKI te montre quels ingrédients correspondent à tes préférences personnelles — et te permet de comparer deux produits côte à côte." },
       { q: "Et si la photo est floue ?", a: "Réessaie avec une meilleure lumière. Si ça ne marche toujours pas, photographie uniquement la liste des ingrédients de près." },
       { q: "Mes photos — elles sont sauvegardées quelque part ?", a: "Non. Ta photo va uniquement à l'IA pour l'analyse. Rien n'est stocké sur des serveurs." },
       { q: "Vaut-il mieux consulter un médecin ?", a: "GlowKI sert à la transparence des ingrédients, pas aux conseils médicaux. Pour les problèmes de peau, consulte toujours un dermatologue." },
@@ -637,7 +631,6 @@ const guideContent: Record<Language, {
     faqs: [
       { q: "Devo essere esperta di cosmetici?", a: "Per niente. Fai solo una foto. GlowKI legge l'etichetta e ti mostra cosa conta per le tue preferenze — in parole semplici." },
       { q: "E se ho già comprato il prodotto?", a: "Scansionalo comunque. Saprai cosa contiene — e se vale la pena continuare a usarlo o sostituirlo la prossima volta." },
-      { q: "È uguale a Yuka?", a: "Yuka ti dà un punteggio. GlowKI ti mostra quali ingredienti si adattano alle tue preferenze personali — e ti permette di confrontare due prodotti fianco a fianco." },
       { q: "E se la foto è sfocata?", a: "Riprova con una luce migliore. Se ancora non funziona, fotografa solo la lista degli ingredienti da vicino." },
       { q: "Le mie foto vengono salvate da qualche parte?", a: "No. La tua foto va all'IA solo per l'analisi. Niente viene archiviato sui server." },
       { q: "Dovrei consultare un medico?", a: "GlowKI serve per la trasparenza degli ingredienti, non per consigli medici. Per le condizioni della pelle, consulta sempre un dermatologo." },
@@ -722,7 +715,6 @@ const guideContent: Record<Language, {
     faqs: [
       { q: 'Kozmetik konusunda uzman olmam gerekiyor mu?', a: 'Hiç gerekmiyor. Sadece bir fotoğraf çek. GlowKI etiketi okur ve tercihlerine göre ne önemli olduğunu gösterir — açık bir dilde.' },
       { q: 'Ürünü çoktan satın aldıysam?', a: 'Yine de tara. İçinde ne olduğunu öğrenirsin — ve bir dahaki sefere kullanmaya devam edip etmemen ya da değiştirmen gerekip gerekmediğini.' },
-      { q: 'Bu Yuka ile aynı şey mi?', a: 'Yuka sana bir puan verir. GlowKI hangi içeriklerin kişisel tercihlerinle örtüştüğünü gösterir — ve iki ürünü yan yana karşılaştırmanı sağlar.' },
       { q: 'Fotoğraf bulanık çıkarsa?', a: 'Daha iyi ışıkta tekrar dene. Yine de çalışmazsa yalnızca içerik listesini yakından fotoğrafla.' },
       { q: 'Fotoğraflarım bir yere kaydediliyor mu?', a: "Hayır. Fotoğrafın yalnızca analiz için YZ'ye gönderilir. Sunucularda hiçbir şey saklanmaz." },
       { q: 'Bunun yerine doktora gitmeli miyim?', a: 'GlowKI içerik şeffaflığı içindir, tıbbi tavsiye değil. Cilt sorunları için her zaman bir dermatologa başvur.' },
