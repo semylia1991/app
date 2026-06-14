@@ -1431,6 +1431,10 @@ End with one emoji: ✅ beneficial, ⚠️ caution, ⛔️ problematic.
       .filter(Boolean)
       .join("\n");
 
+    if (!profileLines.trim()) {
+      return { status: 400, body: { error: "No relevant profile fields for this product type." } };
+    }
+
     const ingredients = Array.isArray((result as any).ingredients)
       ? (result as any).ingredients
           .map((i: any) => `${i.status} ${i.name}: ${i.description ?? ""}`)
