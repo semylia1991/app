@@ -25,7 +25,7 @@ import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
 import { CompareSection } from './components/CompareSection';
 import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
-import { PersonalAnalysis, prefetchPersonalNote } from './components/PersonalAnalysis';
+import { PersonalAnalysis, prefetchPersonalNote, criteriaCache } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
 import { WelcomePremiumModal } from './components/WelcomePremiumModal';
 import { CancelPremiumModal } from './components/CancelPremiumModal';
@@ -1156,6 +1156,11 @@ export default function App() {
                       <CompareSection
                         lang={lang}
                         current={result}
+                        currentCriteria={(() => {
+                          const productKey = `${result.productName}|${result.brand}`;
+                          const profileKey = userProfile ? JSON.stringify(userProfile) : '';
+                          return criteriaCache.get(`${productKey}|${profileKey}|${lang}`) ?? [];
+                        })()}
                         user={user}
                         onRegister={() => {
                           const btn = document.querySelector('[data-auth-button]') as HTMLElement;
