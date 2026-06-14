@@ -27,7 +27,7 @@ const FUNCTION_URL = '/api/gemini';
 
 // Module-level cache: fetchKey → criteria array
 // Survives re-renders and re-opens within a session
-const criteriaCache = new Map<string, Criterion[]>();
+export const criteriaCache = new Map<string, Criterion[]>();
 
 // ── Prefetch — call this right after main analysis completes ──────────────
 export async function prefetchPersonalNote(
