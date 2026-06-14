@@ -1422,7 +1422,7 @@ End with one emoji: ✅ beneficial, ⚠️ caution, ⛔️ problematic.
       : "";
 
     const prompt = `You are a cosmetic safety analyst. A product has already been analyzed.
-Your ONLY task: write a personalNote in ${language} based on the user preferences and the ingredient list below.
+Your ONLY task: for each user preference listed below, produce one JSON item with emoji, label, and explanation.
 Do NOT re-analyze the product. Do NOT invent ingredients. Use ONLY what is listed.
 
 USER PREFERENCES:
@@ -1433,39 +1433,16 @@ PRODUCT TYPE: ${(result as any).productType ?? ""}
 INGREDIENTS:
 ${ingredients}
 
-Return ONLY valid JSON with a single field "personalNote" (string, in ${language}).
+Return ONLY valid JSON: { "criteria": [ { "emoji": "✅"|"⚠️"|"⛔️", "label": "<preference name in ${language}>", "explanation": "<1-2 sentences in ${language}, name specific ingredient(s)>" } ] }
 
-Structure (translate ALL text to ${language}):
-
-**[1-sentence summary referencing the selected preferences — impersonal]**
-Use ONLY impersonal phrasing tied to the preferences themselves:
-   "Виходячи з обраних переваг..." / "Based on the selected preferences..."
-   "Selon les préférences sélectionnées..." / "Basierend auf den ausgewählten Präferenzen..."
-NEVER: "suits your skin" / "your skin will love" / "perfect for you" / "your dryness"
-
-✅ <Preference label in ${language}> — <1 short sentence, max ~12 words, name ingredient(s)>
-⚠️ <Preference label in ${language}> — <1 short sentence, max ~12 words, name ingredient(s)>
-⛔️ <Preference label in ${language}> — <1 short sentence, max ~12 words, name ingredient(s)>
-
----
-🟡 *[${language === 'Ukrainian' ? 'Автоматизований аналіз на основі обраних переваг. Не є медичною порадою.' : language === 'Russian' ? 'Автоматический анализ на основе выбранных предпочтений. Не является медицинской консультацией.' : 'Automated analysis based on selected preferences. Not medical advice.'}]*
-
-EMOJI RULES — place emoji BEFORE the preference label:
-✅ — ingredients likely suitable/beneficial for this preference
-⚠️ — effect unclear, mixed, or depends on individual reaction (use as default when uncertain)
-⛔️ — ingredients likely problematic/unsuitable for this preference
-
-FORMAT RULES:
-- Each line: <emoji> <preference label in ${language}> — <explanation>
-- NEVER put emoji after the label or at end of line
-- NEVER output raw camelCase keys. Translate: condPigmentation → "Пігментація" / "Pigmentation", oilySkin → "Жирна шкіра", etc.
-- Use the preference VALUE as label, not the field key name
-- Name responsible ingredient(s) in each explanation
-- Use mild phrasing: may, can, tends to — no medical advice
-- List EVERY preference relevant to this product type. One line per preference.
-
-PRODUCT TYPE RELEVANCE: For hair products → only hair preferences (hairType, scalpCondition, hairProblems). For face/body → only skin preferences. For all → include climate if specified. NEVER mix categories.
-ALLERGIES: Each allergy = its own line. Matching ingredient found → ⛔️ with warning. No match → ✅ "no matching ingredient detected".`;
+RULES:
+- One item per preference. List EVERY preference relevant to this product type.
+- PRODUCT TYPE RELEVANCE: hair products → only hair preferences. face/body → only skin preferences. All → include climate.
+- emoji: ✅ beneficial, ⚠️ unclear/mixed (default when uncertain), ⛔️ problematic
+- label: human-readable preference value in ${language}. NEVER camelCase keys.
+- explanation: name the responsible ingredient(s). Mild phrasing: may, can, tends to. No medical advice. Max ~20 words.
+- ALLERGIES: each allergy = its own item. Match found → ⛔️. No match → ✅ "no matching ingredient detected".
+- Translate ALL text (label and explanation) to ${language}.`;
 
     const response = await generateWithRetry(ai, {
       contents: [{ parts: [{ text: prompt }] }],
@@ -1473,8 +1450,21 @@ ALLERGIES: Each allergy = its own line. Matching ingredient found → ⛔️ wit
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
-          properties: { personalNote: { type: Type.STRING } },
-          required: ["personalNote"],
+          properties: {
+            criteria: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  emoji:       { type: Type.STRING },
+                  label:       { type: Type.STRING },
+                  explanation: { type: Type.STRING },
+                },
+                required: ["emoji", "label", "explanation"],
+              },
+            },
+          },
+          required: ["criteria"],
         },
         temperature: 0.4,
         topP: 0.9,
