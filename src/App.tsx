@@ -500,10 +500,10 @@ export default function App() {
     }
   };
 
-  const saveScanToHistory = async (analysis: AnalysisResult) => {
+  const saveScanToHistory = async (analysis: AnalysisResult): Promise<string | null> => {
     if (!user) {
       console.warn('[ScanHistory] saveScan — no user, skipping');
-      return;
+      return null;
     }
     console.log('[ScanHistory] saving scan for user', user.id, analysis.productName);
     const { data, error } = await supabase.from('scan_history').insert({
@@ -515,8 +515,10 @@ export default function App() {
     }).select();
     if (error) {
       console.error('[ScanHistory] INSERT error:', error.message, '| code:', error.code, '| details:', error.details, '| hint:', error.hint);
+      return null;
     } else {
       console.log('[ScanHistory] saved OK, id:', data?.[0]?.id);
+      return data?.[0]?.id ?? null;
     }
   };
 
@@ -579,15 +581,29 @@ export default function App() {
       setFile(null);
       setPreviewUrl(null);
 
-      // ── Prefetch "Обрати внимание" in background ──────────────────────────
+      // Initial save — must happen before prefetch so scanId is available
+      const scanId = await saveScanToHistory(analysis);
+      await subscription.incrementScans();
+
+      // ── Prefetch "Обрати внимание" in background, then update scan record ──
       if (userProfile) {
         prefetchPersonalNote(analysisWithShops, userProfile, lang)
+          .then(async () => {
+            const key = `${analysisWithShops.productName}|${analysisWithShops.brand}`;
+            let criteria: any[] = [];
+            for (const [k, v] of criteriaCache.entries()) {
+              if (k.startsWith(key + '|')) { criteria = v; break; }
+            }
+            if (criteria.length && scanId) {
+              await supabase.from('scan_history')
+                .update({ result: { ...analysisWithShops, criteria } })
+                .eq('id', scanId);
+            }
+          })
           .catch(e => console.warn('[scan] prefetch personalNote failed:', e));
       }
 
-      // ── Load details in background immediately after fast result ──────────
-      // User can see ingredients/analysis right away while details load.
-      // When ready they appear in «Інформація про продукт» without any click.
+      // ── Load details in background ────────────────────────────────────────
       const langAtDetails = lang;
       fetchDetails(analysisWithShops, langAtDetails)
         .then((details) => {
@@ -601,9 +617,7 @@ export default function App() {
           });
         })
         .catch((e) => console.warn('[scan] background details failed:', e));
-      // Initial save with the fast subset; will be re-saved when details arrive.
-      await saveScanToHistory(analysis);
-      await subscription.incrementScans();
+
       if (userProfile && analysisWithShops.personalNote) await subscription.incrementNoteAnalysis();
       const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
       localStorage.setItem('totalScanCount', String(totalScans));
