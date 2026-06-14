@@ -63,19 +63,20 @@ export async function prefetchPersonalNote(
   }
 }
 
-function serializeProfile(profile: UserProfile, lang: Language): SerializedProfile {
-  const p = translateProfile(profile, lang);
+function serializeProfile(profile: UserProfile, _lang: Language): SerializedProfile {
+  // Send raw profile keys (e.g. "skinOily,skinDry") — gemini-handler filters by key name
+  // Translation happens inside gemini-handler via the `language` parameter
   return {
-    skinType:        p.skinType.join(', ')        || undefined,
-    skinSensitivity: p.skinSensitivity.join(', ') || undefined,
-    skinConditions:  p.skinConditions.join(', ')  || undefined,
-    ageRange:        p.ageRange                    || undefined,
-    hairType:        p.hairType.join(', ')         || undefined,
-    scalpCondition:  p.scalpCondition.join(', ')  || undefined,
-    hairProblems:    p.hairProblems.join(', ')     || undefined,
-    bodySkinType:    p.bodySkinType.join(', ')     || undefined,
-    climate:         p.climate.join(', ')          || undefined,
-    allergies:       (profile as any).allergies    || undefined,
+    skinType:        profile.skinType.join(', ')                    || undefined,
+    skinSensitivity: profile.skinSensitivity.join(', ')             || undefined,
+    skinConditions:  profile.skinConditions.join(', ')              || undefined,
+    ageRange:        profile.ageRange                               || undefined,
+    hairType:        profile.hairType.join(', ')                    || undefined,
+    scalpCondition:  profile.scalpCondition.join(', ')              || undefined,
+    hairProblems:    profile.hairProblems.join(', ')                || undefined,
+    bodySkinType:    (profile.bodySkinType ?? []).join(', ')        || undefined,
+    climate:         (profile.climate ?? []).join(', ')             || undefined,
+    allergies:       (profile as any).allergies                     || undefined,
   };
 }
 
