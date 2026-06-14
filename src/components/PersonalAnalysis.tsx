@@ -53,6 +53,7 @@ function PreferenceRow({ m, lang }: { m: IngredientMatch; lang: Language }) {
   useEffect(() => {
     if (!open) return;
     if (explanation) return;
+    if (!m.name) return; // no ingredient match — nothing to fetch
     const cached = prefExplanationCache.get(cacheKey);
     if (cached) { setExplanation(cached); return; }
     let cancelled = false;
@@ -86,7 +87,11 @@ function PreferenceRow({ m, lang }: { m: IngredientMatch; lang: Language }) {
       </div>
       {open && (
         <div style={{ paddingLeft: 22, marginTop: 4 }}>
-          {loading && !explanation ? (
+          {!m.name ? (
+            <span style={{ fontSize: '0.78rem', color: '#8A8078', fontFamily: 'var(--font-serif)', lineHeight: 1.55, fontStyle: 'italic' }}>
+              {{ en:'No matching ingredients found in this product.', ru:'Совпадающих ингредиентов в составе не найдено.', de:'Keine passenden Inhaltsstoffe gefunden.', uk:'Відповідних інгредієнтів не знайдено.', es:'No se encontraron ingredientes coincidentes.', fr:'Aucun ingrédient correspondant trouvé.', it:'Nessun ingrediente corrispondente trovato.', tr:'Eşleşen içerik bulunamadı.' }[lang] ?? 'No matching ingredients found.'}
+            </span>
+          ) : loading && !explanation ? (
             <span style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic', fontFamily: 'var(--font-serif)' }}>
               {loadingLabel[lang] ?? loadingLabel.en}
             </span>
