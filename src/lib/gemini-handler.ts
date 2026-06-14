@@ -1382,29 +1382,44 @@ End with one emoji: ✅ beneficial, ⚠️ caution, ⛔️ problematic.
 
     // Detect product category from productType
     const productType = ((result as any).productType ?? "").toLowerCase();
-    const isHairProduct = /shampoo|conditioner|hair mask|hair oil|hair serum|hair spray|dry shampoo|волос|шампун|кондиционер|маска для волос|haarpflege|haarmaske|haarshampoo|haaröl/i.test(productType);
-    const isLipProduct = /lip balm|lipstick|lip gloss|lip mask|lip oil|бальзам для губ|помада|блеск для губ|lippenbalsam|lippenstift|baume à lèvres|rouge à lèvres/i.test(productType);
-    const isBodyProduct = /body lotion|body butter|body oil|body scrub|body mist|body wash|body cream|hand cream|foot cream|лосьон для тела|масло для тела|скраб для тела|крем для рук|крем для ног|körperlotion|körpercreme|körperöl|handcreme|loción corporal|crème corps/i.test(productType);
-    const isFaceProduct = /face|facial|eye cream|serum|toner|cleanser|sunscreen|spf|moistur|exfoliat|face mask|micellar|essence|для лица|сыворот|тонер|очищ|солнц|увлажн|крем для лица|маска для лица|gesicht|gesichtscreme|reiniger|toner|sérum|tonique/i.test(productType);
+    const isHairProduct      = /shampoo|conditioner|hair mask|hair oil|hair serum|hair spray|dry shampoo|волос|шампун|кондиционер|маска для волос|haarpflege|haarmaske|haarshampoo|haaröl/i.test(productType);
+    const isLipProduct       = /lip balm|lipstick|lip gloss|lip mask|lip oil|lip tint|lip liner|lip pencil|бальзам для губ|помада для губ|блеск для губ|тинт для губ|карандаш для губ|lippenbalsam|lippenstift|lipgloss|baume à lèvres|rouge à lèvres/i.test(productType);
+    const isBodyProduct      = /body lotion|body butter|body oil|body scrub|body mist|body wash|body cream|hand cream|foot cream|лосьон для тела|масло для тела|скраб для тела|крем для рук|крем для ног|körperlotion|körpercreme|körperöl|handcreme|loción corporal|crème corps/i.test(productType);
+    const isFoundationProduct = /foundation|тональн|bb.?cream|cc.?cream|conseal|консилер|пудра|powder|tinted moistur|тонирующ|base makeup|база под макияж/i.test(productType);
+    const isBlushProduct     = /blush|bronzer|highlighter|contour|румян|бронзер|хайлайтер|контуринг|скульптур/i.test(productType);
+    const isSettingProduct   = /setting spray|fixing spray|спрей для фиксации|фиксатор макияжа|makeup fixer/i.test(productType);
+    const isEyeProduct       = /eyeshadow|mascara|eyeliner|eye pencil|eye primer|тени для глаз|тушь|подводка|карандаш для глаз|праймер для глаз|lidschatten|mascara|ombretto|eyeliner/i.test(productType);
+    const isBrowProduct      = /brow|eyebrow|карандаш для бровей|тени для бровей|гель для бровей|помада для бровей|augenbraue|sourcils/i.test(productType);
+    const isFaceProduct      = /face|facial|eye cream|serum|toner|cleanser|sunscreen|spf|moistur|exfoliat|face mask|micellar|essence|для лица|сыворот|тонер|очищ|солнц|увлажн|крем для лица|маска для лица|gesicht|gesichtscreme|reiniger|sérum|tonique/i.test(productType);
 
-    // Face skin keys
-    const faceSkinKeys = ["skinType", "skinSensitivity", "skinConditions", "ageRange"];
-    // Body skin keys
-    const bodySkinKeys = ["bodySkinType"];
-    // Hair keys
-    const hairKeys = ["hairType", "scalpCondition", "hairProblems"];
-    // Always relevant
-    const universalKeys = ["climate"];
+    // Key groups
+    const faceSkinKeys    = ["skinType", "skinSensitivity", "skinConditions", "ageRange"];
+    const bodySkinKeys    = ["bodySkinType"];
+    const hairKeys        = ["hairType", "scalpCondition", "hairProblems"];
+    const sensitivityOnly = ["skinSensitivity", "ageRange"];
+    const universalKeys   = ["climate"];
 
     let relevantKeys: string[];
     if (isHairProduct) {
       relevantKeys = [...hairKeys, ...universalKeys];
-    } else if (isLipProduct) {
-      relevantKeys = ['skinSensitivity', ...universalKeys];
+    } else if (isLipProduct || isEyeProduct || isBrowProduct) {
+      // Eye/lip/brow makeup — only sensitivity and age, no skin conditions
+      relevantKeys = [...sensitivityOnly];
+    } else if (isFoundationProduct) {
+      // Foundation/concealer/powder — full face keys + climate (wears all day on skin)
+      relevantKeys = [...faceSkinKeys, ...universalKeys];
+    } else if (isBlushProduct) {
+      // Blush/bronzer/highlighter — skin type + sensitivity + climate
+      relevantKeys = ["skinType", "skinSensitivity", "ageRange", ...universalKeys];
+    } else if (isSettingProduct) {
+      // Setting sprays — skin type + sensitivity
+      relevantKeys = ["skinType", "skinSensitivity", "ageRange"];
     } else if (isBodyProduct) {
       relevantKeys = [...bodySkinKeys, ...universalKeys];
+    } else if (isFaceProduct) {
+      relevantKeys = [...faceSkinKeys, ...universalKeys];
     } else {
-      // face product (explicit or default) — never include hair keys
+      // default — face care
       relevantKeys = [...faceSkinKeys, ...universalKeys];
     }
 
