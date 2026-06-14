@@ -25,6 +25,10 @@ interface Criterion {
 
 const FUNCTION_URL = '/api/gemini';
 
+// Module-level cache: fetchKey → criteria array
+// Survives re-renders and re-opens within a session
+const criteriaCache = new Map<string, Criterion[]>();
+
 function serializeProfile(profile: UserProfile, lang: Language): SerializedProfile {
   const p = translateProfile(profile, lang);
   return {
@@ -141,6 +145,10 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     if (fetchKey === lastFetchKey.current) return;
     lastFetchKey.current = fetchKey;
 
+    // Check module-level cache first
+    const cached = criteriaCache.get(fetchKey);
+    if (cached) { setCriteria(cached); return; }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -164,6 +172,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
           label: c.label,
           explanation: c.explanation,
         }));
+        criteriaCache.set(fetchKey, items);
         setCriteria(items);
       })
       .catch(e => { if (!cancelled) setError(e.message ?? 'Error'); })
