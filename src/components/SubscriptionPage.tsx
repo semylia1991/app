@@ -330,11 +330,6 @@ export function SubscriptionPage({ user, subscription, lang, onBack }: Props) {
               </div>
             )}
 
-            {/* Donation breakdown */}
-            <p className="text-[11px] text-[#8A8A8A] text-center mb-4">
-              {T.tierDonationOf} €{donationAmount} {T.tierDonationGoes}
-            </p>
-
             {/* CTA */}
             <button
               onClick={handleSupport}
