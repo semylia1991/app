@@ -1157,9 +1157,13 @@ export default function App() {
                         lang={lang}
                         current={result}
                         currentCriteria={(() => {
+                          // Key must match exactly what PersonalAnalysis uses
                           const productKey = `${result.productName}|${result.brand}`;
-                          const profileKey = userProfile ? JSON.stringify(userProfile) : '';
-                          return criteriaCache.get(`${productKey}|${profileKey}|${lang}`) ?? [];
+                          // Find any key in cache that starts with this productKey
+                          for (const [key, val] of criteriaCache.entries()) {
+                            if (key.startsWith(productKey + '|')) return val;
+                          }
+                          return [];
                         })()}
                         user={user}
                         onRegister={() => {
