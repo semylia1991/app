@@ -1422,10 +1422,10 @@ End with one emoji: ✅ beneficial, ⚠️ caution, ⛔️ problematic.
       : "";
 
     const prompt = `You are a cosmetic safety analyst. A product has already been analyzed.
-Your ONLY task: for each user preference listed below, produce one JSON item with emoji, label, and explanation.
+Your ONLY task: for each individual user preference value below, produce exactly ONE separate JSON item.
 Do NOT re-analyze the product. Do NOT invent ingredients. Use ONLY what is listed.
 
-USER PREFERENCES:
+USER PREFERENCES (each line = one value = one separate item in output):
 ${profileLines}
 
 PRODUCT: ${(result as any).productName ?? ""} by ${(result as any).brand ?? ""}
@@ -1433,16 +1433,22 @@ PRODUCT TYPE: ${(result as any).productType ?? ""}
 INGREDIENTS:
 ${ingredients}
 
-Return ONLY valid JSON: { "criteria": [ { "emoji": "✅"|"⚠️"|"⛔️", "label": "<preference name in ${language}>", "explanation": "<1-2 sentences in ${language}, name specific ingredient(s)>" } ] }
+Return ONLY valid JSON: { "criteria": [ { "emoji": "✅"|"⚠️"|"⛔️", "label": "<single preference value in ${language}>", "explanation": "<1-2 sentences in ${language}, name specific ingredient(s)>" } ] }
 
-RULES:
-- One item per preference. List EVERY preference relevant to this product type.
+CRITICAL RULES:
+- EACH preference value = EXACTLY ONE item. NEVER combine multiple values into one label.
+  WRONG: { "label": "Пигментация, Расширенные поры, Неровный тон" }
+  CORRECT: { "label": "Пигментация" }, { "label": "Расширенные поры" }, { "label": "Неровный тон" }
+- WRONG: { "label": "Комбинированная, Сухая" }
+  CORRECT: { "label": "Комбинированная" }, { "label": "Сухая" }
+- WRONG: { "label": "Климат" } or { "label": "Чувствительность кожи" } — too vague, use the specific value
+  CORRECT: { "label": "Влажный климат" }, { "label": "Солнечный климат" }
 - PRODUCT TYPE RELEVANCE: hair products → only hair preferences. face/body → only skin preferences. All → include climate.
 - emoji: ✅ beneficial, ⚠️ unclear/mixed (default when uncertain), ⛔️ problematic
-- label: human-readable preference value in ${language}. NEVER camelCase keys.
+- label: the specific preference value translated to ${language}. One value only. NEVER camelCase.
 - explanation: name the responsible ingredient(s). Mild phrasing: may, can, tends to. No medical advice. Max ~20 words.
 - ALLERGIES: each allergy = its own item. Match found → ⛔️. No match → ✅ "no matching ingredient detected".
-- Translate ALL text (label and explanation) to ${language}.`;
+- Translate ALL text to ${language}.`;
 
     const response = await generateWithRetry(ai, {
       contents: [{ parts: [{ text: prompt }] }],
