@@ -2,7 +2,7 @@ import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart, GitCompareArrows, ChevronDown } from 'lucide-react';
+import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
@@ -23,7 +23,7 @@ import { AskAI } from './components/AskAI';
 import { LoadingScreen } from './components/LoadingScreen';
 import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
-import { CompareSection } from './components/CompareSection';
+
 import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
 import { PersonalAnalysis, prefetchPersonalNote, criteriaCache } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
@@ -1166,28 +1166,6 @@ export default function App() {
                 {/* Compare and WhereToBuy mount lazily (after browser idle) — not on critical path */}
                 {secondaryReady && (
                   <>
-                    <CollapsibleSection title={t[lang].compareWith} icon={<GitCompareArrows size={15} />} collapseLabel={cl}>
-                      <CompareSection
-                        lang={lang}
-                        current={result}
-                        currentCriteria={(() => {
-                          // Key must match exactly what PersonalAnalysis uses
-                          const productKey = `${result.productName}|${result.brand}`;
-                          // Find any key in cache that starts with this productKey
-                          for (const [key, val] of criteriaCache.entries()) {
-                            if (key.startsWith(productKey + '|')) return val;
-                          }
-                          return [];
-                        })()}
-                        user={user}
-                        onRegister={() => {
-                          const btn = document.querySelector('[data-auth-button]') as HTMLElement;
-                          btn?.click();
-                        }}
-                      />
-                    </CollapsibleSection>
-
-
                     <CollapsibleSection title={t[lang].whereToBuy} icon={<ShoppingCart size={15} />} collapseLabel={cl}>
                       <WhereToBuy lang={lang} shopLinks={result.shopLinks ?? []} productName={`${result.brand} ${result.productName}`.trim()} />
                     </CollapsibleSection>
