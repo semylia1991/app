@@ -48,7 +48,12 @@ export interface SubscriptionState {
 }
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10); // "2026-03-28"
+  // Use local date to avoid UTC midnight rollover resetting counters mid-day
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 // ── Tamper-resistant localStorage ────────────────────────────────────────────
