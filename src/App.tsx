@@ -25,7 +25,7 @@ import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
 import { CompareSection } from './components/CompareSection';
 import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
-import { PersonalAnalysis } from './components/PersonalAnalysis';
+import { PersonalAnalysis, prefetchPersonalNote } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
 import { WelcomePremiumModal } from './components/WelcomePremiumModal';
 import { CancelPremiumModal } from './components/CancelPremiumModal';
@@ -578,6 +578,12 @@ export default function App() {
       setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
+
+      // ── Prefetch "Обрати внимание" in background ──────────────────────────
+      if (userProfile) {
+        prefetchPersonalNote(analysisWithShops, userProfile, lang)
+          .catch(e => console.warn('[scan] prefetch personalNote failed:', e));
+      }
 
       // ── Load details in background immediately after fast result ──────────
       // User can see ingredients/analysis right away while details load.
