@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { LogIn, Settings } from 'lucide-react';
-import { t, Language } from '../i18n';
-import { AnalysisResult, SerializedProfile, fetchIngredientPreferenceNote } from '../services/ai';
+import React, { useState, useEffect, useRef } from 'react';
+import { LogIn, Settings, Loader2, ChevronDown } from 'lucide-react';
+import { Language } from '../i18n';
+import { AnalysisResult, SerializedProfile } from '../services/ai';
 import { UserProfile, translateProfile } from './UserProfile';
-import { computeAutonomousScore, IngredientMatch } from '../lib/personalScore';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
@@ -17,6 +16,14 @@ interface Props {
   onUsed: () => Promise<void>;
   onOpenProfile: () => void;
 }
+
+interface Criterion {
+  emoji: '✅' | '⚠️' | '⛔️';
+  label: string;
+  explanation: string;
+}
+
+const FUNCTION_URL = '/api/gemini';
 
 function serializeProfile(profile: UserProfile, lang: Language): SerializedProfile {
   const p = translateProfile(profile, lang);
@@ -34,40 +41,10 @@ function serializeProfile(profile: UserProfile, lang: Language): SerializedProfi
   };
 }
 
-// ── Preference row — clickable, lazy-loads ingredient explanation ─────────
+// ── Single criterion row ──────────────────────────────────────────────────
 
-const prefExplanationCache = new Map<string, string>();
-
-function PreferenceRow({ m, lang }: { m: IngredientMatch; lang: Language }) {
-  const [open, setOpen]             = useState(false);
-  const [loading, setLoading]       = useState(false);
-  const [explanation, setExplanation] = useState<string | null>(null);
-
-  const cacheKey = `${m.name.toLowerCase()}|${lang}`;
-
-  useEffect(() => {
-    const hit = prefExplanationCache.get(cacheKey);
-    if (hit) setExplanation(hit);
-  }, [cacheKey]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (explanation) return;
-    if (!m.name) return; // no ingredient match — nothing to fetch
-    const cached = prefExplanationCache.get(cacheKey);
-    if (cached) { setExplanation(cached); return; }
-    let cancelled = false;
-    setLoading(true);
-    fetchIngredientPreferenceNote(m.name, m.label, lang)
-      .then(desc => {
-        if (cancelled) return;
-        prefExplanationCache.set(cacheKey, desc);
-        setExplanation(desc);
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [open, explanation, cacheKey, m.name, m.label, lang]);
+function CriterionRow({ c, lang }: { c: Criterion; lang: Language }) {
+  const [open, setOpen] = useState(false);
 
   const loadingLabel: Record<string, string> = {
     en: 'Loading…', ru: 'Загружаем…', de: 'Laden…', uk: 'Завантажуємо…',
@@ -80,31 +57,24 @@ function PreferenceRow({ m, lang }: { m: IngredientMatch; lang: Language }) {
       style={{ cursor: 'pointer', paddingBottom: open ? 6 : 0 }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span style={{ fontSize: '0.82rem', lineHeight: 1, flexShrink: 0 }}>{m.emoji}</span>
+        <span style={{ fontSize: '0.82rem', lineHeight: 1, flexShrink: 0 }}>{c.emoji}</span>
         <span style={{ flex: 1, fontSize: '0.78rem', color: '#3A3530', fontFamily: 'var(--font-sans)', fontWeight: 500 }}>
-          {m.label}
+          {c.label}
         </span>
+        <ChevronDown size={12} style={{ color: '#8A8078', flexShrink: 0, transition: 'transform 0.18s', transform: open ? 'rotate(180deg)' : 'rotate(0)' }} />
       </div>
       {open && (
         <div style={{ paddingLeft: 22, marginTop: 4 }}>
-          {!m.name ? (
-            <span style={{ fontSize: '0.78rem', color: '#8A8078', fontFamily: 'var(--font-serif)', lineHeight: 1.55, fontStyle: 'italic' }}>
-              {{ en:'No matching ingredients found in this product.', ru:'Совпадающих ингредиентов в составе не найдено.', de:'Keine passenden Inhaltsstoffe gefunden.', uk:'Відповідних інгредієнтів не знайдено.', es:'No se encontraron ingredientes coincidentes.', fr:'Aucun ingrédient correspondant trouvé.', it:'Nessun ingrediente corrispondente trovato.', tr:'Eşleşen içerik bulunamadı.' }[lang] ?? 'No matching ingredients found.'}
-            </span>
-          ) : loading && !explanation ? (
-            <span style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic', fontFamily: 'var(--font-serif)' }}>
-              {loadingLabel[lang] ?? loadingLabel.en}
-            </span>
-          ) : (
-            <span style={{ fontSize: '0.78rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.55 }}>
-              {explanation}
-            </span>
-          )}
+          <span style={{ fontSize: '0.78rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.55 }}>
+            {c.explanation}
+          </span>
         </div>
       )}
     </div>
   );
 }
+
+// ── Labels ────────────────────────────────────────────────────────────────
 
 const SIGN_IN_LABELS: Record<Language, string> = {
   en: 'Sign in to get a more accurate analysis based on your preferences.',
@@ -118,42 +88,41 @@ const SIGN_IN_LABELS: Record<Language, string> = {
 };
 
 const SIGN_IN_BTN: Record<Language, string> = {
-  en: 'Sign in with Google',
-  ru: 'Войти через Google',
-  de: 'Mit Google anmelden',
-  uk: 'Увійти через Google',
-  es: 'Iniciar sesión con Google',
-  fr: 'Se connecter avec Google',
-  it: 'Accedi con Google',
-  tr: 'Google ile giriş yap',
+  en: 'Sign in with Google', ru: 'Войти через Google', de: 'Mit Google anmelden',
+  uk: 'Увійти через Google', es: 'Iniciar sesión con Google', fr: 'Se connecter avec Google',
+  it: 'Accedi con Google', tr: 'Google ile giriş yap',
 };
 
 const FILL_PROFILE_LABELS: Record<Language, string> = {
-  en: 'Fill in your preferences to get a personalised note.',
+  en: 'Fill in your preferences to get a personalised analysis.',
   ru: 'Заполните предпочтения, чтобы получить персональный анализ.',
-  de: 'Füllen Sie Ihre Präferenzen aus, um einen personalisierten Hinweis zu erhalten.',
+  de: 'Füllen Sie Ihre Präferenzen aus, um eine personalisierte Analyse zu erhalten.',
   uk: 'Заповніть вподобання, щоб отримати персональний аналіз.',
-  es: 'Completa tus preferencias para obtener una nota personalizada.',
-  fr: 'Remplissez vos préférences pour obtenir une note personnalisée.',
-  it: 'Compila le tue preferenze per ricevere una nota personalizzata.',
-  tr: 'Kişiselleştirilmiş not almak için tercihlerinizi doldurun.',
+  es: 'Completa tus preferencias para obtener un análisis personalizado.',
+  fr: 'Remplissez vos préférences pour obtenir une analyse personnalisée.',
+  it: 'Compila le tue preferenze per ricevere un\'analisi personalizzata.',
+  tr: 'Kişiselleştirilmiş analiz almak için tercihlerinizi doldurun.',
 };
 
 const FILL_PROFILE_BTN: Record<Language, string> = {
-  en: 'Fill in preferences',
-  ru: 'Заполнить предпочтения',
-  de: 'Präferenzen ausfüllen',
-  uk: 'Заповнити вподобання',
-  es: 'Completar preferencias',
-  fr: 'Remplir les préférences',
-  it: 'Compila le preferenze',
-  tr: 'Tercihleri doldur',
+  en: 'Fill in preferences', ru: 'Заполнить предпочтения', de: 'Präferenzen ausfüllen',
+  uk: 'Заповнити вподобання', es: 'Completar preferencias', fr: 'Remplir les préférences',
+  it: 'Compila le preferenze', tr: 'Tercihleri doldur',
 };
 
-// ── PersonalAnalysis ───────────────────────────────────────────────────────
+// ── PersonalAnalysis ──────────────────────────────────────────────────────
 
 export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfile }: Props) {
+  const [criteria, setCriteria] = useState<Criterion[] | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+
+  // Key to detect product or profile change
+  const productKey = `${result.productName}|${result.brand}`;
+  const profileKey = userProfile ? JSON.stringify(serializeProfile(userProfile, 'en')) : '';
+  const fetchKey   = `${productKey}|${profileKey}|${lang}`;
+  const lastFetchKey = useRef<string>('');
 
   const hasProfile = !!userProfile && (
     userProfile.skinType.length > 0 ||
@@ -167,27 +136,53 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     !!userProfile.ageRange
   );
 
-  const autonomousScore = React.useMemo(() => {
-    if (!userProfile || !result?.ingredients?.length) return null;
-    return computeAutonomousScore(result.ingredients, userProfile, lang);
-  }, [result?.ingredients, userProfile, lang]);
+  useEffect(() => {
+    if (!user || !hasProfile || !result?.ingredients?.length) return;
+    if (fetchKey === lastFetchKey.current) return;
+    lastFetchKey.current = fetchKey;
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setCriteria(null);
+
+    fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'personalNote',
+        result,
+        userProfile: serializeProfile(userProfile!, lang),
+        language: lang,
+      }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        const items: Criterion[] = (data.criteria ?? []).map((c: any) => ({
+          emoji: c.emoji,
+          label: c.label,
+          explanation: c.explanation,
+        }));
+        setCriteria(items);
+      })
+      .catch(e => { if (!cancelled) setError(e.message ?? 'Error'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [fetchKey]);
 
   async function handleSignIn() {
     setSigningIn(true);
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    });
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
     setSigningIn(false);
   }
 
-  // ── Not logged in ──────────────────────────────────────────────────────────
+  // ── Not logged in ─────────────────────────────────────────────────────
   if (!user) {
     return (
       <div className="flex flex-col gap-3 py-2">
-        <p className="text-base text-[#5A5550] leading-relaxed">
-          {SIGN_IN_LABELS[lang]}
-        </p>
+        <p className="text-base text-[#5A5550] leading-relaxed">{SIGN_IN_LABELS[lang]}</p>
         <button
           onClick={handleSignIn}
           disabled={signingIn}
@@ -200,13 +195,11 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     );
   }
 
-  // ── Logged in but no profile ───────────────────────────────────────────────
+  // ── No profile ────────────────────────────────────────────────────────
   if (!hasProfile) {
     return (
       <div className="flex flex-col gap-3 py-2">
-        <p className="text-base text-[#5A5550] leading-relaxed">
-          {FILL_PROFILE_LABELS[lang]}
-        </p>
+        <p className="text-base text-[#5A5550] leading-relaxed">{FILL_PROFILE_LABELS[lang]}</p>
         <button
           onClick={onOpenProfile}
           className="inline-flex items-center gap-2 self-start px-4 py-2 bg-[#2D5A3D] text-white text-[11px] font-semibold rounded-sm hover:bg-[#3D7A55] transition-all"
@@ -218,16 +211,40 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     );
   }
 
-  // ── No ingredients scanned ─────────────────────────────────────────────────
+  // ── No ingredients ────────────────────────────────────────────────────
   if (!result?.ingredients?.length) return null;
 
-  // ── Main: criteria list ────────────────────────────────────────────────────
-  if (!autonomousScore || autonomousScore.matches.length === 0) return null;
+  // ── Loading ───────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 py-3">
+        <Loader2 size={13} className="text-[#B8923A] animate-spin" />
+        <span style={{ fontSize: '0.78rem', color: '#B8923A', fontFamily: 'var(--font-sans)' }}>
+          {{ en:'Analysing…', ru:'Анализируем…', de:'Analysiere…', uk:'Аналізуємо…', es:'Analizando…', fr:'Analyse en cours…', it:'Analisi in corso…', tr:'Analiz ediliyor…' }[lang] ?? 'Analysing…'}
+        </span>
+      </div>
+    );
+  }
+
+  // ── Error ─────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 py-2">
+        <p className="text-xs text-red-400 italic flex-1">{error}</p>
+        <button onClick={() => { lastFetchKey.current = ''; setError(null); }} className="text-xs text-[#B8923A] underline">
+          {{ en:'Retry', ru:'Повторить', de:'Wiederholen', uk:'Повторити', es:'Reintentar', fr:'Réessayer', it:'Riprova', tr:'Tekrar dene' }[lang] ?? 'Retry'}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Criteria list ─────────────────────────────────────────────────────
+  if (!criteria || criteria.length === 0) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      {autonomousScore.matches.map((m, i) => (
-        <PreferenceRow key={i} m={m} lang={lang} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {criteria.map((c, i) => (
+        <CriterionRow key={i} c={c} lang={lang} />
       ))}
     </div>
   );
