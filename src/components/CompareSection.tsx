@@ -22,23 +22,12 @@ function truncate(text: string, max = 260): string {
   return s.length > max ? s.slice(0, max - 1).trimEnd() + '…' : s;
 }
 
-// Extract criteria from a scanned record — supports both new format and old personalNote
 function extractCriteria(result: AnalysisResult): Criterion[] {
-  // New format: stored directly
-  if ((result as any).criteria?.length) return (result as any).criteria;
-  // Old format: parse personalNote text
-  const note = result.personalNote;
-  if (!note) return [];
-  return note.split('\n')
-    .map(l => l.trim())
-    .filter(l => /[✅⚠️⛔️🚫]/.test(l))
-    .map(l => {
-      const emoji = l.match(/[✅⚠️⛔️🚫]/)?.[0] ?? '⚠️';
-      const rest  = l.replace(/[✅⚠️⛔️🚫]/g, '').trim();
-      const [label, explanation = ''] = rest.split(/\s*[—–-]\s*/);
-      return { emoji, label: label.trim(), explanation: explanation.trim() };
-    })
-    .filter(c => c.label);
+  // New format: stored directly in result.criteria
+  if (Array.isArray((result as any).criteria) && (result as any).criteria.length) {
+    return (result as any).criteria;
+  }
+  return [];
 }
 
 export function CompareSection({ lang, current, currentCriteria, user, onRegister }: Props) {
