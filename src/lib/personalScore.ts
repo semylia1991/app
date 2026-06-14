@@ -734,7 +734,9 @@ export function computeAutonomousScore(
   let benefitCount      = 0;
   let noMatchCount      = 0;
 
-  const matches: IngredientMatch[] = [];
+  // ── Per-criteria matches (one row per profile field value) ──────────────
+  // Build a map: criteriaKey → { label, bestDelta, worstDelta, ingredientNames }
+  const criteriaMap = new Map<string, { label: string; totalDelta: number; ingredients: string[] }>();
 
   for (let idx = 0; idx < ingredients.length; idx++) {
     const ing    = ingredients[idx];
@@ -751,7 +753,7 @@ export function computeAutonomousScore(
       if (delta < 0) conflictCount++;
       if (delta > 0) benefitCount++;
 
-      // Find the first matching rule to get its conditions for label
+      // Collect all matching rules for this ingredient → group by criteria key
       const n = ing.name.toLowerCase();
       for (const rule of PROFILE_RULES) {
         const nameMatch = rule.match.some(m => matchesIngredient(n, m));
@@ -762,14 +764,15 @@ export function computeAutonomousScore(
         });
         if (!conditionMatch) continue;
         const label = getPreferenceLabel(rule.conditions as Record<string, string[]>, lang);
-        if (label) {
-          matches.push({
-            name:  ing.name,
-            emoji: delta > 0 ? '✅' : delta < -2 ? '⛔️' : '⚠️',
-            label,
-          });
+        if (!label) continue;
+        const key = label;
+        const existing = criteriaMap.get(key);
+        if (existing) {
+          existing.totalDelta += rule.delta;
+          if (!existing.ingredients.includes(ing.name)) existing.ingredients.push(ing.name);
+        } else {
+          criteriaMap.set(key, { label, totalDelta: rule.delta, ingredients: [ing.name] });
         }
-        break; // one label per ingredient
       }
     } else {
       noMatchCount++;
@@ -780,6 +783,21 @@ export function computeAutonomousScore(
     weightedSumMax += Math.min(10, score + spread) * weight;
     totalWeight    += weight;
   }
+
+  // ── Build matches: ALL profile fields, not just ones with ingredient hits ──
+  // First add criteria that had ingredient matches
+  const matchedLabels = new Set<string>();
+  for (const [, c] of criteriaMap) {
+    matchedLabels.add(c.label);
+    const matches_item: IngredientMatch = {
+      name:  c.ingredients[0],
+      emoji: c.totalDelta > 0 ? '✅' : c.totalDelta < -2 ? '⛔️' : '⚠️',
+      label: c.label,
+    };
+    matches.push(matches_item);
+  }
+
+  const matchesFinal: IngredientMatch[] = matches;
 
   if (totalWeight === 0) return null;
 
@@ -806,6 +824,6 @@ export function computeAutonomousScore(
     profileMatchCount,
     conflictCount,
     benefitCount,
-    matches,
+    matches: matchesFinal,
   };
 }
