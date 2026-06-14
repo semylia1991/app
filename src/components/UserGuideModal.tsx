@@ -53,6 +53,7 @@ const guideContent: Record<Language, {
   faqTitleEm: string;
   faqs: { q: string; a: string }[];
 
+  founderQuote: string;
   disclaimer: string;
 }> = {
   en: {
@@ -64,8 +65,8 @@ const guideContent: Record<Language, {
     introLabel: 'Introduction',
     introTitle: 'Cosmetic formulas are no longer a',
     introTitleEm: 'mystery',
-    introQuote: '"I used to just grab whatever looked nice. Now I actually know what I\'m buying." — GlowKI user, Berlin',
-    introBody: 'GlowKI is a smart cosmetic ingredient analyzer powered by Gemini AI. Photograph a cream, serum, shampoo or any other product — the app instantly tells you which components are safe, what requires caution, how to use the product correctly, and what alternatives exist. Repeat scans of the same product are recognized from cache and returned almost instantly.',
+    introQuote: '"I used to just grab whatever looked nice. Now I actually know what I\'m buying."',
+    introBody: 'GlowKI is a smart cosmetic ingredient analyzer. Photograph a cream, serum, shampoo or any other product — the app instantly tells you which components are safe, what requires caution, how to use the product correctly, and what alternatives exist.',
 
     stepsLabel: 'How it works',
     stepsTitle: 'Five steps to a',
@@ -75,13 +76,12 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Tap — and wait 10 seconds', desc: 'Check the consent box and press Analyze. Known products come back almost instantly from cache. New ones take around 10 seconds.' },
       { num: '03', title: "See exactly what's in it — for your skin", desc: 'You get a full breakdown: every ingredient rated, a usage guide, warnings, and alternatives. No chemistry degree needed.' },
       { num: '04', title: 'Ask follow-up questions', desc: 'After the analysis, an "Ask AI" chat appears. Ask anything about the product — compatibility with retinol, suitability for sensitive skin, what to use before or after.' },
-      { num: '05', title: 'Compare with past scans', desc: 'Open the "Compare with..." section, pick any product from your scan history, and see both analyses side by side — including how each one matches your personal preferences.' },
-    ],
+          ],
 
     reportLabel: 'What you get',
     reportTitle: 'Report',
     reportTitleEm: 'sections',
-    reportIntro: 'Every analysis contains nine collapsible sections. Tap any one to expand details.',
+    reportIntro: 'Every analysis contains several collapsible sections. Tap any one to expand details.',
     features: [
       { icon: '🛡️', title: 'Overall Analysis', desc: 'A concise verdict on the formula: what it is, what the formula looks like, and what to pay attention to first.' },
       { icon: '🌿', title: 'Ingredients', desc: 'Full ingredient list with descriptions and a colour-coded safety rating. No abbreviations — plain language only.' },
@@ -90,8 +90,7 @@ const guideContent: Record<Language, {
       { icon: '🟡', title: 'Side Effects', desc: 'Possible reactions by category: irritation, allergies, effects from prolonged use.' },
       { icon: '⚡', title: 'Compatibility', desc: 'Which actives and products work well together, and what should not be used at the same time.' },
       { icon: '🔄', title: 'Alternatives', desc: '3–5 real products with a similar formula — in case something didn\'t suit you or the product is unavailable.' },
-      { icon: '📝', title: 'Personal Note', desc: 'An analysis tailored to your skin and hair profile. Filled in once in Settings — applied to every subsequent scan automatically.' },
-      { icon: '⚖️', title: 'Compare With', desc: 'Side-by-side comparison with any product from your scan history. Shows both analyses and how each matches your preferences.' },
+      { icon: '📝', title: 'Pay Attention', desc: 'Personal analysis based on your preferences and interests. AI automatically matches the formula to your interests and shows ✅ / ⚠️ / ⛔️ for each criterion. Tap a row to reveal an explanation with specific ingredients.' },
     ],
 
     badgesLabel: 'Colour markers',
@@ -104,7 +103,7 @@ const guideContent: Record<Language, {
       { dot: '🔴', label: 'Higher Risk', desc: 'The ingredient has documented risks: hormonal activity, high allergenic potential, bans in certain countries, or negative research findings.' },
     ],
 
-    profileLabel: 'Your preferences',
+    profileLabel: 'Personalisation by preferences',
     profileTitle: 'Analysis tailored to',
     profileTitleEm: 'you',
     profileIntro: 'Register and fill in your profile — every analysis will then take your personal characteristics into account automatically.',
@@ -137,6 +136,7 @@ const guideContent: Record<Language, {
       { q: 'Should I consult a doctor instead?', a: 'GlowKI is for ingredient transparency, not medical advice. For skin conditions, always see a dermatologist.' },
     ],
 
+    founderQuote: '{c.founderQuote}',
     disclaimer: 'GlowKI is an informational tool. The analysis is created by artificial intelligence and may contain errors or incomplete interpretations. Results are not medical advice and should not be used to diagnose or treat skin conditions.',
   },
 
@@ -149,8 +149,8 @@ const guideContent: Record<Language, {
     introLabel: 'Введение',
     introTitle: 'Состав косметики больше не',
     introTitleEm: 'тайна',
-    introQuote: '«Раньше я просто брала то, что красиво выглядело. Теперь я знаю, что покупаю.» — пользователь GlowKI, Берлин',
-    introBody: 'GlowKI — умный анализатор косметических ингредиентов на базе Gemini AI. Сфотографируйте крем, сыворотку, шампунь или любой другой продукт — приложение мгновенно расскажет, какие компоненты безопасны, что требует осторожности, как правильно использовать продукт и какие аналоги есть на рынке. Повторное сканирование известных продуктов выполняется из кэша и возвращает результат почти мгновенно.',
+    introQuote: '«Раньше я просто брала то, что красиво выглядело. Теперь я знаю, что покупаю.',
+    introBody: 'GlowKI — умный анализатор косметических ингредиентов. Сфотографируйте крем, сыворотку, шампунь или любой другой продукт — приложение мгновенно расскажет, какие компоненты безопасны, что требует осторожности, как правильно использовать продукт и какие аналоги есть на рынке.',
 
     stepsLabel: 'Инструкция',
     stepsTitle: 'Пять шагов до',
@@ -160,13 +160,13 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Нажми — и жди 10 секунд', desc: 'Отметь галочку согласия и нажми «Анализ». Известные продукты возвращаются почти мгновенно. Новые занимают около 10 секунд.' },
       { num: '03', title: 'Узнай, что внутри — для твоей кожи', desc: 'Ты получаешь полный разбор: каждый ингредиент с оценкой, инструкцию, предупреждения и альтернативы. Без знания химии.' },
       { num: '04', title: 'Задайте уточняющие вопросы', desc: 'После анализа появится чат «Спросить ИИ». Спросите всё о продукте — совместимость с ретинолом, подходит ли для чувствительной кожи, в каком порядке наносить.' },
-      { num: '05', title: 'Сравните с предыдущими сканированиями', desc: 'Откройте раздел «Сравнить с...», выберите продукт из истории — и увидите оба анализа рядом, с учётом ваших предпочтений.' },
+
     ],
 
     reportLabel: 'Что вы получаете',
     reportTitle: 'Разделы',
     reportTitleEm: 'отчёта',
-    reportIntro: 'Каждый анализ содержит девять разворачиваемых секций. Нажмите на любую, чтобы раскрыть подробности.',
+    reportIntro: 'Каждый анализ содержит несколько разворачиваемых секций. Нажмите на любую, чтобы раскрыть подробности.',
     features: [
       { icon: '🛡️', title: 'Общий анализ', desc: 'Краткий вывод о составе: что за продукт, какова формула, на что обратить внимание в первую очередь.' },
       { icon: '🌿', title: 'Ингредиенты', desc: 'Полный список компонентов с описанием и цветовой оценкой безопасности. Никаких сокращений — только понятный язык.' },
@@ -175,8 +175,7 @@ const guideContent: Record<Language, {
       { icon: '🟡', title: 'Побочные эффекты', desc: 'Возможные реакции по категориям: раздражение, аллергии, эффекты при длительном применении.' },
       { icon: '⚡', title: 'Совместимость', desc: 'С какими активами и продуктами сочетается, а что категорически не стоит использовать одновременно.' },
       { icon: '🔄', title: 'Альтернативы', desc: '3–5 реальных продуктов со схожим составом — если что-то в формуле не устроило или продукт недоступен.' },
-      { icon: '📝', title: 'Персональная заметка', desc: 'Анализ с учётом вашего профиля кожи и волос. Заполните один раз в Настройках — применяется к каждому следующему сканированию.' },
-      { icon: '⚖️', title: 'Сравнить с', desc: 'Сравнение бок о бок с любым продуктом из истории. Показывает оба анализа и соответствие вашим предпочтениям.' },
+      { icon: '📝', title: 'Обрати внимание', desc: 'Персональный анализ на основе ваших предпочтений и интересов. ИИ автоматически сопоставляет состав с вашими интересами — и показывает ✅ / ⚠️ / ⛔️ по каждому критерию. Нажмите на строку — раскроется объяснение с конкретными ингредиентами.' },
     ],
 
     badgesLabel: 'Цветовые маркеры',
@@ -189,15 +188,15 @@ const guideContent: Record<Language, {
       { dot: '🔴', label: 'Повышенный риск', desc: 'Задокументированные риски: гормональная активность, высокий аллергенный потенциал, запрет в ряде стран или негативные данные исследований.' },
     ],
 
-    profileLabel: 'Персонализация',
+    profileLabel: 'Персонализация по предпочтениям',
     profileTitle: 'Анализ именно для',
     profileTitleEm: 'вас',
-    profileIntro: 'Зарегистрируйтесь и заполните профиль — каждый анализ будет автоматически учитывать ваши личные особенности.',
+    profileIntro: 'Зарегистрируйтесь и заполните профиль — раздел «Обрати внимание» автоматически учтёт ваши особенности при каждом сканировании.',
     tips: [
-      { icon: '🌟', title: 'Тип кожи', desc: 'Жирная, сухая, комбинированная — ИИ учтёт это при оценке ингредиентов и даст релевантные рекомендации.' },
-      { icon: '🌺', title: 'Чувствительность и реакции', desc: 'Укажите непереносимость парфюмов, спирта, эфирных масел — ИИ выделит эти ингредиенты в каждом анализе.' },
-      { icon: '🌧', title: 'Особенности кожи', desc: 'Высыпания, расширенные поры, неровный тон, покраснения — опишите в Настройках, чтобы учитывалось в каждом отчёте.' },
-      { icon: '☘️', title: 'Волосы и кожа головы', desc: 'Для шампуней, масок и средств по уходу — укажите тип волос, состояние кожи головы и проблемы для точного анализа.' },
+      { icon: '🌟', title: 'Тип кожи', desc: 'Жирная, сухая, комбинированная — ИИ отразит это в разделе «Обрати внимание» для средств ухода и тональных продуктов.' },
+      { icon: '🌺', title: 'Чувствительность и реакции', desc: 'Реакция на парфюмы, спирт, эфирные масла — отображается в «Обрати внимание» для всех типов продуктов, включая декоративную косметику.' },
+      { icon: '🌧', title: 'Особенности кожи', desc: 'Акне, пигментация, поры, тусклость — учитываются в «Обрати внимание» для средств ухода. Для декоративной косметики показываются только релевантные критерии.' },
+      { icon: '☘️', title: 'Волосы и кожа головы', desc: 'Для шампуней, масок и средств по уходу за волосами — ИИ покажет только волосяные критерии, без смешения с уходом за кожей лица.' },
     ],
 
     tipsLabel: 'Советы',
@@ -215,13 +214,16 @@ const guideContent: Record<Language, {
     faqTitleEm: 'задаваемые вопросы',
     faqs: [
       { q: 'Нужно ли разбираться в косметике, чтобы пользоваться?', a: 'Совсем нет. Просто сделай фото. GlowKI прочитает состав и покажет, что важно для твоих предпочтений — простым языком.' },
+      { q: 'Почему в «Обрати внимание» не все критерии из моего профиля?', a: 'ИИ показывает только критерии, релевантные для данного типа продукта. Например, для карандаша для глаз не нужны состояния кожи — они не применимы к макияжу. Для крема — полный набор: тип кожи, чувствительность, состояния, возраст, климат.' },
+      { q: 'Когда появляется раздел «Обрати внимание»?', a: 'Анализ запускается автоматически сразу после сканирования — в фоне, пока вы читаете основной результат. К моменту открытия раздела данные уже готовы.' },
       { q: 'Что если я уже купила продукт?', a: "Всё равно отсканируй. Узнаешь, что внутри — и стоит ли продолжать использовать или заменить в следующий раз." },
-      { q: 'Это то же самое, что Yuka?', a: 'Yuka даёт оценку. GlowKI показывает, какие ингредиенты подходят твоим предпочтениям — и позволяет сравнить два продукта бок о бок.' },
+      { q: 'Это то же самое, что Yuka?', a: 'Yuka даёт общую оценку. GlowKI показывает конкретно, как каждый ингредиент соотносится с вашими особенностями кожи, возрастом и климатом — с объяснением по клику.' },
       { q: 'Что если фото нечёткое?', a: "Попробуй ещё раз при лучшем освещении. Если не получается — сфотографируй только список ингредиентов крупным планом." },
       { q: 'Мои фото — они где-то сохраняются?', a: 'Нет. Фото передаётся ИИ только для анализа. На серверах ничего не хранится.' },
       { q: 'Лучше сходить к врачу?', a: 'GlowKI — для прозрачности состава, не для медицинских советов. При кожных заболеваниях всегда консультируйся с дерматологом.' },
     ],
 
+    founderQuote: '«Я создала это, чтобы вы больше никогда не гадали. Одно фото — и вы точно знаете, что внутри.»',
     disclaimer: 'GlowKI — информационный инструмент. Анализ создаётся ИИ и может содержать ошибки или неполные интерпретации. Результаты не являются медицинской консультацией.',
   },
 
@@ -234,8 +236,8 @@ const guideContent: Record<Language, {
     introLabel: 'Einführung',
     introTitle: 'Kosmetikformeln sind keine',
     introTitleEm: 'Geheimnisse mehr',
-    introQuote: '"Früher habe ich einfach genommen, was schön aussah. Jetzt weiß ich wirklich, was ich kaufe." — GlowKI Nutzerin, Berlin',
-    introBody: 'GlowKI ist ein intelligenter Kosmetikinhaltsstoff-Analysator auf Basis von Gemini AI. Fotografieren Sie eine Creme, ein Serum oder ein Shampoo — die App teilt Ihnen sofort mit, welche Bestandteile sicher sind, was Vorsicht erfordert und welche Alternativen existieren. Wiederholte Scans bekannter Produkte werden aus dem Cache geladen und erscheinen nahezu sofort.',
+    introQuote: '"Früher habe ich einfach genommen, was schön aussah. Jetzt weiß ich wirklich, was ich kaufe."',
+    introBody: 'GlowKI ist ein intelligenter Kosmetikinhaltsstoff-Analysator. Fotografieren Sie eine Creme, ein Serum oder ein Shampoo — die App teilt Ihnen sofort mit, welche Bestandteile sicher sind, was Vorsicht erfordert und welche Alternativen existieren.',
 
     stepsLabel: 'Anleitung',
     stepsTitle: 'Fünf Schritte zur',
@@ -245,13 +247,12 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Einwilligung geben und „Analysieren" tippen', desc: 'Aktivieren Sie das Einwilligungskästchen und drücken Sie die Schaltfläche. Ihr Foto wird nur für diese Analyse verwendet und nicht gespeichert.' },
       { num: '03', title: 'Sieh genau, was drin ist — für deine Haut', desc: 'Du bekommst eine vollständige Aufschlüsselung: jeden Inhaltsstoff bewertet, eine Anwendungsanleitung, Warnhinweise und Alternativen. Kein Chemiestudium nötig.' },
       { num: '04', title: 'Rückfragen stellen', desc: 'Nach der Analyse erscheint ein „KI fragen"-Chat. Fragen Sie alles zum Produkt — Verträglichkeit mit Retinol, Eignung für empfindliche Haut, Reihenfolge in der Pflegeroutine.' },
-      { num: '05', title: 'Mit früheren Scans vergleichen', desc: 'Öffnen Sie „Vergleichen mit…", wählen Sie ein Produkt aus dem Verlauf — und sehen Sie beide Analysen nebeneinander, abgestimmt auf Ihre Vorlieben.' },
-    ],
+          ],
 
     reportLabel: 'Was Sie erhalten',
     reportTitle: 'Berichts-',
     reportTitleEm: 'abschnitte',
-    reportIntro: 'Jede Analyse enthält neun ausklappbare Abschnitte. Tippen Sie auf einen, um die Details zu sehen.',
+    reportIntro: 'Jede Analyse enthält mehrere ausklappbare Abschnitte. Tippen Sie auf einen, um die Details zu sehen.',
     features: [
       { icon: '🛡️', title: 'Gesamtanalyse', desc: 'Ein prägnantes Fazit zur Formel: was das Produkt ist, wie es aufgebaut ist und was zuerst beachtet werden sollte.' },
       { icon: '🌿', title: 'Inhaltsstoffe', desc: 'Vollständige Liste mit Beschreibungen und farbkodierter Sicherheitsbewertung. Keine Abkürzungen — nur klare Sprache.' },
@@ -260,8 +261,7 @@ const guideContent: Record<Language, {
       { icon: '🟡', title: 'Nebenwirkungen', desc: 'Mögliche Reaktionen nach Kategorie: Reizungen, Allergien, Effekte bei Langzeitanwendung.' },
       { icon: '⚡', title: 'Verträglichkeit', desc: 'Welche Wirkstoffe sich gut kombinieren lassen und was keinesfalls gleichzeitig verwendet werden sollte.' },
       { icon: '🔄', title: 'Alternativen', desc: '3–5 reale Produkte mit ähnlicher Formel — falls etwas nicht zusagt oder das Produkt nicht verfügbar ist.' },
-      { icon: '📝', title: 'Persönliche Notiz', desc: 'Analyse auf Basis Ihres Haut- und Haarprofils. Einmal in den Einstellungen ausgefüllt — wird bei jedem Scan automatisch berücksichtigt.' },
-      { icon: '⚖️', title: 'Vergleichen mit', desc: 'Direkter Vergleich mit einem Produkt aus Ihrem Scan-Verlauf. Zeigt beide Analysen und wie jedes zu Ihren Vorlieben passt.' },
+      { icon: '📝', title: 'Beachte', desc: 'Persönliche Analyse auf Basis Ihrer Präferenzen und Interessen. Die KI gleicht die Formel automatisch mit Ihren Interessen ab und zeigt ✅ / ⚠️ / ⛔️ für jedes Kriterium. Tippen Sie auf eine Zeile für eine Erklärung mit konkreten Inhaltsstoffen.' },
     ],
 
     badgesLabel: 'Farbmarkierungen',
@@ -274,7 +274,7 @@ const guideContent: Record<Language, {
       { dot: '🔴', label: 'Erhöhtes Risiko', desc: 'Dokumentierte Risiken: hormonelle Aktivität, hohes Allergiepotenzial, Verbote in bestimmten Ländern oder negative Forschungsergebnisse.' },
     ],
 
-    profileLabel: 'Personalisierung',
+    profileLabel: 'Personalisierung nach Präferenzen',
     profileTitle: 'Analyse für',
     profileTitleEm: 'Sie',
     profileIntro: 'Registrieren Sie sich und füllen Sie Ihr Profil aus — jede Analyse berücksichtigt dann Ihre persönlichen Merkmale automatisch.',
@@ -307,6 +307,7 @@ const guideContent: Record<Language, {
       { q: 'Sollte ich lieber zum Arzt gehen?', a: 'GlowKI ist für Inhaltsstoff-Transparenz gedacht, nicht für medizinische Ratschläge. Bei Hauterkrankungen immer einen Dermatologen aufsuchen.' },
     ],
 
+    founderQuote: '„Ich habe das entwickelt, damit du nie wieder raten musst. Ein Foto — und du weißt genau, was drin ist."',
     disclaimer: 'GlowKI ist ein Informationswerkzeug. Die Analyse wird von KI erstellt und kann Fehler oder unvollständige Interpretationen enthalten. Die Ergebnisse sind keine medizinische Beratung.',
   },
 
@@ -319,8 +320,8 @@ const guideContent: Record<Language, {
     introLabel: 'Вступ',
     introTitle: 'Склад косметики більше не',
     introTitleEm: 'таємниця',
-    introQuote: '«Раніше я просто брала те, що гарно виглядало. Тепер я знаю, що купую.» — користувачка GlowKI, Берлін',
-    introBody: 'GlowKI — розумний аналізатор косметичних інгредієнтів на базі Gemini AI. Сфотографуйте крем, сироватку, шампунь або будь-який інший продукт — застосунок миттєво розповість, які компоненти безпечні, що потребує обережності, як правильно використовувати і які аналоги є на ринку. Повторне сканування відомих продуктів виконується з кешу та повертає результат майже миттєво.',
+    introQuote: '«Раніше я просто брала те, що гарно виглядало. Тепер я знаю, що купую.»',
+    introBody: 'GlowKI — розумний аналізатор косметичних інгредієнтів. Сфотографуйте крем, сироватку, шампунь або будь-який інший продукт — застосунок миттєво розповість, які компоненти безпечні, що потребує обережності, як правильно використовувати і які аналоги є на ринку.',
 
     stepsLabel: 'Інструкція',
     stepsTitle: "П'ять кроків до",
@@ -330,13 +331,12 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Натисни — і чекай 10 секунд', desc: 'Відміть галочку згоди і натисни «Аналіз». Відомі продукти повертаються майже миттєво. Нові займають близько 10 секунд.' },
       { num: '03', title: 'Дізнайся, що всередині — для твоєї шкіри', desc: 'Ти отримуєш повний розбір: кожен інгредієнт з оцінкою, інструкцію, попередження та альтернативи. Без знання хімії.' },
       { num: '04', title: 'Поставте уточнювальні запитання', desc: "Після аналізу з'явиться чат «Запитати ШІ». Запитайте все про продукт — сумісність із ретинолом, підходить для чутливої шкіри, порядок нанесення." },
-      { num: '05', title: 'Порівняйте з минулими скануваннями', desc: 'Відкрийте «Порівняти з...», оберіть продукт з історії — побачите обидва аналізи поруч з урахуванням ваших уподобань.' },
-    ],
+          ],
 
     reportLabel: 'Що ви отримуєте',
     reportTitle: 'Розділи',
     reportTitleEm: 'звіту',
-    reportIntro: "Кожен аналіз містить дев'ять розгортуваних секцій. Натисніть на будь-яку, щоб розкрити подробиці.",
+    reportIntro: "Кожен аналіз містить кілька розгортуваних секцій. Натисніть на будь-яку, щоб розкрити подробиці.",
     features: [
       { icon: '🛡️', title: 'Загальний аналіз', desc: 'Короткий висновок про склад: що за продукт, яка формула, на що звернути увагу насамперед.' },
       { icon: '🌿', title: 'Інгредієнти', desc: 'Повний список компонентів з описом і кольоровою оцінкою безпеки. Жодних скорочень — лише зрозуміла мова.' },
@@ -345,8 +345,7 @@ const guideContent: Record<Language, {
       { icon: '🟡', title: 'Побічні ефекти', desc: 'Можливі реакції за категоріями: подразнення, алергії, ефекти при тривалому застосуванні.' },
       { icon: '⚡', title: 'Сумісність', desc: 'З якими активами і продуктами поєднується, а що категорично не варто використовувати одночасно.' },
       { icon: '🔄', title: 'Альтернативи', desc: '3–5 реальних продуктів зі схожим складом — якщо щось не влаштувало або продукт недоступний.' },
-      { icon: '📝', title: 'Персональна нотатка', desc: 'Аналіз з урахуванням вашого профілю шкіри та волосся. Заповніть один раз у Налаштуваннях — застосовується до кожного наступного сканування.' },
-      { icon: '⚖️', title: 'Порівняти з', desc: 'Порівняння поруч з будь-яким продуктом з історії сканувань. Показує обидва аналізи і відповідність вашим уподобанням.' },
+      { icon: '📝', title: 'Зверни увагу', desc: 'Персональний аналіз на основі ваших вподобань та інтересів. ШІ автоматично зіставляє склад з вашими інтересами і показує ✅ / ⚠️ / ⛔️ по кожному критерію. Натисніть на рядок для пояснення з конкретними інгредієнтами.' },
     ],
 
     badgesLabel: 'Кольорові маркери',
@@ -359,7 +358,7 @@ const guideContent: Record<Language, {
       { dot: '🔴', label: 'Підвищений ризик', desc: 'Задокументовані ризики: гормональна активність, високий алергенний потенціал, заборона в ряді країн або негативні дані досліджень.' },
     ],
 
-    profileLabel: 'Персоналізація',
+    profileLabel: 'Персоналізація за вподобаннями',
     profileTitle: 'Аналіз саме для',
     profileTitleEm: 'вас',
     profileIntro: 'Зареєструйтесь і заповніть профіль — кожен аналіз автоматично враховуватиме ваші особисті особливості.',
@@ -392,6 +391,7 @@ const guideContent: Record<Language, {
       { q: 'Краще сходити до лікаря?', a: 'GlowKI — для прозорості складу, не для медичних порад. При шкірних захворюваннях завжди консультуйся з дерматологом.' },
     ],
 
+    founderQuote: '«Я створила це, щоб ви більше ніколи не гадали. Одне фото — і ви точно знаєте, що всередині.»',
     disclaimer: 'GlowKI — інформаційний інструмент. Аналіз створюється ШІ і може містити помилки або неповні інтерпретації. Результати не є медичною консультацією.',
   },
 
@@ -404,8 +404,8 @@ const guideContent: Record<Language, {
     introLabel: 'Introducción',
     introTitle: 'Las fórmulas cosméticas ya no son un',
     introTitleEm: 'misterio',
-    introQuote: '"Antes cogía lo que tuviera mejor pinta. Ahora sé exactamente lo que compro." — usuaria de GlowKI, Berlín',
-    introBody: 'GlowKI es un analizador inteligente de ingredientes cosméticos impulsado por Gemini AI. Fotografía una crema, suero, champú o cualquier otro producto — la app te dice al instante qué componentes son seguros, qué requiere precaución y qué alternativas existen. Los productos conocidos se cargan desde caché y aparecen casi al instante.',
+    introQuote: '"Antes cogía lo que tuviera mejor pinta. Ahora sé exactamente lo que compro."',
+    introBody: 'GlowKI es un analizador inteligente de ingredientes cosméticos. Fotografía una crema, suero, champú o cualquier otro producto — la app te dice al instante qué componentes son seguros, qué requiere precaución y qué alternativas existen.',
 
     stepsLabel: 'Instrucciones',
     stepsTitle: 'Cinco pasos para un',
@@ -415,13 +415,12 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Pulsa — y espera 10 segundos', desc: 'Marca la casilla y pulsa Analizar. Los productos conocidos aparecen casi al instante. Los nuevos tardan unos 10 segundos.' },
       { num: '03', title: 'Ve exactamente qué tiene — para tu piel', desc: 'Obtienes un desglose completo: cada ingrediente valorado, guía de uso, advertencias y alternativas. Sin necesidad de saber química.' },
       { num: '04', title: 'Haz preguntas de seguimiento', desc: 'Tras el análisis aparece un chat "Preguntar a la IA". Pregunta lo que quieras — compatibilidad con retinol, piel sensible, orden de aplicación.' },
-      { num: '05', title: 'Compara con escaneos anteriores', desc: 'Abre "Comparar con...", elige un producto del historial y ve ambos análisis lado a lado, ajustados a tus preferencias.' },
-    ],
+          ],
 
     reportLabel: 'Lo que obtienes',
     reportTitle: 'Secciones del',
     reportTitleEm: 'informe',
-    reportIntro: 'Cada análisis contiene nueve secciones desplegables. Toca cualquiera para ver los detalles.',
+    reportIntro: 'Cada análisis contiene varias secciones desplegables. Toca cualquiera para ver los detalles.',
     features: [
       { icon: '🛡️', title: 'Análisis general', desc: 'Un veredicto conciso sobre la fórmula: qué es, cómo está compuesta y qué hay que tener en cuenta primero.' },
       { icon: '🌿', title: 'Ingredientes', desc: 'Lista completa con descripciones y calificación de seguridad codificada por colores. Sin abreviaturas — solo lenguaje claro.' },
@@ -430,8 +429,7 @@ const guideContent: Record<Language, {
       { icon: '🟡', title: 'Efectos secundarios', desc: 'Posibles reacciones por categoría: irritación, alergias, efectos del uso prolongado.' },
       { icon: '⚡', title: 'Compatibilidad', desc: 'Qué activos y productos combinan bien y qué definitivamente no debe usarse al mismo tiempo.' },
       { icon: '🔄', title: 'Alternativas', desc: '3–5 productos reales con fórmula similar — si algo no convenció o el producto no está disponible.' },
-      { icon: '📝', title: 'Nota personal', desc: 'Análisis adaptado a tu perfil de piel y cabello. Complétalo una vez en Ajustes — se aplica a cada escaneo automáticamente.' },
-      { icon: '⚖️', title: 'Comparar con', desc: 'Comparación lado a lado con cualquier producto de tu historial. Muestra ambos análisis y cómo cada uno se ajusta a tus preferencias.' },
+      { icon: '📝', title: 'Presta atención', desc: 'Análisis personal basado en tus preferencias e intereses. La IA compara automáticamente la fórmula con tus intereses y muestra ✅ / ⚠️ / ⛔️ por cada criterio. Toca una fila para ver la explicación con ingredientes específicos.' },
     ],
 
     badgesLabel: 'Marcadores de color',
@@ -444,7 +442,7 @@ const guideContent: Record<Language, {
       { dot: '🔴', label: 'Mayor riesgo', desc: 'Riesgos documentados: actividad hormonal, alto potencial alergénico, prohibiciones en ciertos países o resultados negativos de investigación.' },
     ],
 
-    profileLabel: 'Personalización',
+    profileLabel: 'Personalización por preferencias',
     profileTitle: 'Análisis adaptado a',
     profileTitleEm: 'ti',
     profileIntro: 'Regístrate y completa tu perfil — cada análisis tendrá en cuenta tus características personales automáticamente.',
@@ -477,6 +475,7 @@ const guideContent: Record<Language, {
       { q: '¿Debería consultar a un médico?', a: 'GlowKI es para la transparencia de ingredientes, no para consejos médicos. Para problemas de piel, consulta siempre a un dermatólogo.' },
     ],
 
+    founderQuote: '"Lo creé para que nunca más tengas que adivinar. Una foto — y sabes exactamente qué hay dentro."',
     disclaimer: 'GlowKI es una herramienta informativa. El análisis es creado por IA y puede contener errores o interpretaciones incompletas. Los resultados no son consejo médico.',
   },
 
@@ -489,8 +488,8 @@ const guideContent: Record<Language, {
     introLabel: 'Introduction',
     introTitle: 'Les formules cosmétiques ne sont plus un',
     introTitleEm: 'mystère',
-    introQuote: '"Avant je prenais ce qui avait l\'air bien. Maintenant je sais vraiment ce que j\'achète." — utilisatrice GlowKI, Berlin',
-    introBody: 'GlowKI est un analyseur intelligent d\'ingrédients cosmétiques propulsé par Gemini AI. Photographie une crème, un sérum ou un shampoing — l\'application te dit instantanément quels composants sont sûrs, ce qui nécessite de la prudence et quelles alternatives existent. Les produits connus sont chargés depuis le cache et apparaissent presque instantanément.',
+    introQuote: '"Avant je prenais ce qui avait l\'air bien. Maintenant je sais vraiment ce que j\'achète."',
+    introBody: 'GlowKI est un analyseur intelligent d\'ingrédients cosmétiques Photographie une crème, un sérum ou un shampoing — l\'application te dit instantanément quels composants sont sûrs, ce qui nécessite de la prudence et quelles alternatives existent.',
 
     stepsLabel: 'Mode d\'emploi',
     stepsTitle: 'Cinq étapes pour une',
@@ -500,13 +499,12 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Appuie — et attends 10 secondes', desc: "Coche la case de consentement et appuie sur Analyser. Les produits connus apparaissent presque instantanément. Les nouveaux prennent environ 10 secondes." },
       { num: '03', title: "Vois exactement ce qu'il y a dedans — pour ta peau", desc: "Tu obtiens une analyse complète : chaque ingrédient évalué, un guide d'utilisation, des avertissements et des alternatives. Sans avoir fait de chimie." },
       { num: '04', title: 'Pose des questions complémentaires', desc: 'Après l\'analyse, un chat « Demander à l\'IA » apparaît. Pose toutes tes questions — compatibilité avec le rétinol, peaux sensibles, ordre d\'application.' },
-      { num: '05', title: 'Compare avec les scans précédents', desc: 'Ouvre « Comparer avec… », choisis un produit de l\'historique et vois les deux analyses côte à côte, adaptées à tes préférences.' },
-    ],
+          ],
 
     reportLabel: 'Ce que tu obtiens',
     reportTitle: 'Sections du',
     reportTitleEm: 'rapport',
-    reportIntro: 'Chaque analyse contient neuf sections dépliables. Appuie sur l\'une d\'elles pour afficher les détails.',
+    reportIntro: 'Chaque analyse contient plusieurs sections dépliables. Appuie sur l\'une d\'elles pour afficher les détails.',
     features: [
       { icon: '🛡️', title: 'Analyse générale', desc: 'Un verdict concis sur la formule : ce qu\'est le produit, comment il est composé et à quoi prêter attention en premier.' },
       { icon: '🌿', title: 'Ingrédients', desc: 'Liste complète avec descriptions et note de sécurité codée par couleur. Pas d\'abréviations — seulement un langage clair.' },
@@ -515,8 +513,7 @@ const guideContent: Record<Language, {
       { icon: '🟡', title: 'Effets secondaires', desc: 'Réactions possibles par catégorie : irritations, allergies, effets d\'une utilisation prolongée.' },
       { icon: '⚡', title: 'Compatibilité', desc: 'Quels actifs se combinent bien et ce qui ne doit pas être utilisé en même temps.' },
       { icon: '🔄', title: 'Alternatives', desc: '3 à 5 produits réels avec une formule similaire — si quelque chose ne convenait pas ou si le produit est indisponible.' },
-      { icon: '📝', title: 'Note personnelle', desc: 'Analyse basée sur ton profil de peau et de cheveux. Rempli une fois dans les Paramètres — appliqué à chaque scan automatiquement.' },
-      { icon: '⚖️', title: 'Comparer avec', desc: 'Comparaison côte à côte avec n\'importe quel produit de ton historique. Montre les deux analyses et comment chaque produit correspond à tes préférences.' },
+      { icon: '📝', title: 'Fais attention', desc: 'Analyse personnelle basée sur tes préférences et intérêts. L\'IA compare automatiquement la formule à tes intérêts et affiche ✅ / ⚠️ / ⛔️ pour chaque critère. Appuie sur une ligne pour l\'explication avec les ingrédients spécifiques.' },
     ],
 
     badgesLabel: 'Marqueurs de couleur',
@@ -529,7 +526,7 @@ const guideContent: Record<Language, {
       { dot: '🔴', label: 'Risque élevé', desc: 'Risques documentés : activité hormonale, fort potentiel allergène, interdictions dans certains pays ou résultats négatifs de recherche.' },
     ],
 
-    profileLabel: 'Personnalisation',
+    profileLabel: 'Personnalisation par préférences',
     profileTitle: 'Analyse adaptée à',
     profileTitleEm: 'toi',
     profileIntro: 'Inscris-toi et remplis ton profil — chaque analyse tiendra compte de tes caractéristiques personnelles automatiquement.',
@@ -562,6 +559,7 @@ const guideContent: Record<Language, {
       { q: "Vaut-il mieux consulter un médecin ?", a: "GlowKI sert à la transparence des ingrédients, pas aux conseils médicaux. Pour les problèmes de peau, consulte toujours un dermatologue." },
     ],
 
+    founderQuote: '"Je l'ai créé pour que tu n'aies plus jamais à deviner. Une photo — et tu sais exactement ce qu'il y a dedans."',
     disclaimer: 'GlowKI est un outil informatif. L\'analyse est créée par IA et peut contenir des erreurs ou des interprétations incomplètes. Les résultats ne constituent pas un avis médical.',
   },
 
@@ -574,8 +572,8 @@ const guideContent: Record<Language, {
     introLabel: 'Introduzione',
     introTitle: 'Le formule cosmetiche non sono più un',
     introTitleEm: 'mistero',
-    introQuote: '"Prima prendevo quello che sembrava bello. Ora so davvero cosa compro." — utente GlowKI, Berlino',
-    introBody: 'GlowKI è un analizzatore intelligente di ingredienti cosmetici basato su Gemini AI. Fotografa una crema, un siero o uno shampoo — l\'app ti dice immediatamente quali componenti sono sicuri, cosa richiede cautela e quali alternative esistono. I prodotti noti vengono caricati dalla cache e appaiono quasi istantaneamente.',
+    introQuote: '"Prima prendevo quello che sembrava bello. Ora so davvero cosa compro."',
+    introBody: 'GlowKI è un analizzatore intelligente di ingredienti cosmetici Fotografa una crema, un siero o uno shampoo — l\'app ti dice immediatamente quali componenti sono sicuri, cosa richiede cautela e quali alternative esistono.',
 
     stepsLabel: 'Istruzioni',
     stepsTitle: 'Cinque passi per un\'analisi',
@@ -585,13 +583,12 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Premi — e aspetta 10 secondi', desc: 'Spunta la casella di consenso e premi il pulsante. La tua foto viene inviata all\'IA solo per questa analisi e non viene archiviata.' },
       { num: '03', title: 'Ricevi l\'analisi completa', desc: 'L\'IA legge la formula, verifica database internazionali (EWG, CosDNA, EU CosIng) e restituisce un report strutturato. I prodotti noti vengono caricati dalla cache — quasi istantaneamente.' },
       { num: '04', title: 'Fai domande di approfondimento', desc: 'Dopo l\'analisi appare una chat "Chiedi all\'IA". Chiedi tutto sul prodotto — compatibilità con retinolo, idoneità per pelle sensibile, ordine di applicazione.' },
-      { num: '05', title: 'Confronta con scansioni precedenti', desc: 'Apri "Confronta con...", scegli un prodotto dalla cronologia e vedi entrambe le analisi fianco a fianco, adattate alle tue preferenze.' },
-    ],
+          ],
 
     reportLabel: 'Cosa ottieni',
     reportTitle: 'Sezioni del',
     reportTitleEm: 'report',
-    reportIntro: 'Ogni analisi contiene nove sezioni espandibili. Tocca una qualsiasi per vedere i dettagli.',
+    reportIntro: 'Ogni analisi contiene diverse sezioni espandibili. Tocca una qualsiasi per vedere i dettagli.',
     features: [
       { icon: '🛡️', title: 'Analisi generale', desc: 'Un verdetto conciso sulla formula: cos\'è il prodotto, com\'è composto e a cosa prestare attenzione prima di tutto.' },
       { icon: '🌿', title: 'Ingredienti', desc: 'Elenco completo con descrizioni e valutazione della sicurezza codificata a colori. Nessuna abbreviazione — solo linguaggio chiaro.' },
@@ -600,8 +597,7 @@ const guideContent: Record<Language, {
       { icon: '🟡', title: 'Effetti collaterali', desc: 'Possibili reazioni per categoria: irritazione, allergie, effetti dall\'uso prolungato.' },
       { icon: '⚡', title: 'Compatibilità', desc: 'Quali attivi si combinano bene e cosa non dovrebbe essere usato contemporaneamente.' },
       { icon: '🔄', title: 'Alternative', desc: '3–5 prodotti reali con formula simile — se qualcosa non ha convinto o il prodotto non è disponibile.' },
-      { icon: '📝', title: 'Nota personale', desc: 'Analisi basata sul tuo profilo di pelle e capelli. Compilato una volta nelle Impostazioni — applicato ad ogni scansione automaticamente.' },
-      { icon: '⚖️', title: 'Confronta con', desc: 'Confronto fianco a fianco con qualsiasi prodotto dalla cronologia. Mostra entrambe le analisi e come ogni prodotto si adatta alle tue preferenze.' },
+      { icon: '📝', title: 'Presta attenzione', desc: 'Analisi personale basata sulle tue preferenze e interessi. L\'IA confronta automaticamente la formula con i tuoi interessi e mostra ✅ / ⚠️ / ⛔️ per ogni criterio. Tocca una riga per la spiegazione con ingredienti specifici.' },
     ],
 
     badgesLabel: 'Marcatori di colore',
@@ -614,7 +610,7 @@ const guideContent: Record<Language, {
       { dot: '🔴', label: 'Rischio elevato', desc: 'Rischi documentati: attività ormonale, alto potenziale allergenico, divieti in certi paesi o risultati di ricerca negativi.' },
     ],
 
-    profileLabel: 'Personalizzazione',
+    profileLabel: 'Personalizzazione per preferenze',
     profileTitle: 'Analisi pensata per',
     profileTitleEm: 'te',
     profileIntro: 'Registrati e compila il tuo profilo — ogni analisi terrà conto delle tue caratteristiche personali automaticamente.',
@@ -647,6 +643,7 @@ const guideContent: Record<Language, {
       { q: "Dovrei consultare un medico?", a: "GlowKI serve per la trasparenza degli ingredienti, non per consigli medici. Per le condizioni della pelle, consulta sempre un dermatologo." },
     ],
 
+    founderQuote: '"L'ho creato perché tu non debba più indovinare. Una foto — e sai esattamente cosa c'è dentro."',
     disclaimer: 'GlowKI è uno strumento informativo. L\'analisi è creata dall\'IA e può contenere errori o interpretazioni incomplete. I risultati non costituiscono un consiglio medico.',
   },
 
@@ -659,8 +656,8 @@ const guideContent: Record<Language, {
     introLabel: 'Giriş',
     introTitle: 'Kozmetik formüller artık bir',
     introTitleEm: 'sır değil',
-    introQuote: '"Eskiden sadece güzel görünene bakardım. Artık ne aldığımı gerçekten biliyorum." — GlowKI kullanıcısı, Berlin',
-    introBody: 'GlowKI, Gemini AI destekli akıllı bir kozmetik içerik analizörüdür. Bir krem, serum veya şampuan fotoğraflayın — uygulama hangi bileşenlerin güvenli olduğunu, nelerin dikkat gerektirdiğini ve alternatifleri anında söyler. Bilinen ürünler önbellekten yüklenir ve neredeyse anında görünür.',
+    introQuote: '"Eskiden sadece güzel görünene bakardım. Artık ne aldığımı gerçekten biliyorum."',
+    introBody: 'GlowKI akıllı bir kozmetik içerik analizörüdür. Bir krem, serum veya şampuan fotoğraflayın — uygulama hangi bileşenlerin güvenli olduğunu, nelerin dikkat gerektirdiğini ve alternatifleri anında söyler.',
 
     stepsLabel: 'Nasıl çalışır',
     stepsTitle: 'Tam analize',
@@ -670,13 +667,12 @@ const guideContent: Record<Language, {
       { num: '02', title: 'Bas — ve 10 saniye bekle', desc: "Onay kutusunu işaretle ve Analiz Et'e bas. Bilinen ürünler neredeyse anında gelir. Yeniler yaklaşık 10 saniye sürer." },
       { num: '03', title: 'İçinde tam olarak ne olduğunu gör — cildin için', desc: 'Eksiksiz bir analiz alırsın: her içerik değerlendirilmiş, kullanım kılavuzu, uyarılar ve alternatifler. Kimya bilgisi gerektirmez.' },
       { num: '04', title: 'Takip soruları sor', desc: 'Analizden sonra "YZ\'ye Sor" sohbeti belirir. Ürün hakkında her şeyi sorabilirsiniz — retinol uyumluluğu, hassas cilt için uygunluk, uygulama sırası.' },
-      { num: '05', title: 'Önceki taramalarla karşılaştır', desc: '"Karşılaştır..." bölümünü açın, geçmişten bir ürün seçin — tercihlerinize göre ayarlanmış iki analizi yan yana görün.' },
-    ],
+          ],
 
     reportLabel: 'Ne elde edersiniz',
     reportTitle: 'Rapor',
     reportTitleEm: 'bölümleri',
-    reportIntro: 'Her analiz dokuz katlanabilir bölüm içerir. Ayrıntıları görmek için herhangi birine dokunun.',
+    reportIntro: 'Her analiz birkaç katlanabilir bölüm içerir. Ayrıntıları görmek için herhangi birine dokunun.',
     features: [
       { icon: '🛡️', title: 'Genel Analiz', desc: 'Formül hakkında kısa bir karar: ne olduğu, nasıl bir formülü olduğu ve önce neye dikkat edilmesi gerektiği.' },
       { icon: '🌿', title: 'İçerikler', desc: 'Açıklamalar ve renk kodlu güvenlik değerlendirmesiyle tam içerik listesi. Kısaltma yok — sadece anlaşılır dil.' },
@@ -685,8 +681,8 @@ const guideContent: Record<Language, {
       { icon: '🟡', title: 'Yan Etkiler', desc: 'Kategoriye göre olası reaksiyonlar: tahriş, alerjiler, uzun süreli kullanım etkileri.' },
       { icon: '⚡', title: 'Uyumluluk', desc: 'Hangi aktifler birlikte kullanılabilir ve hangilerinin kesinlikle aynı anda kullanılmaması gerektiği.' },
       { icon: '🔄', title: 'Alternatifler', desc: 'Benzer formüle sahip 3–5 gerçek ürün — bir şey tatmin etmediyse veya ürün mevcut değilse.' },
-      { icon: '📝', title: 'Kişisel Not', desc: 'Cilt ve saç profilinize göre analiz. Ayarlar\'da bir kez doldurun — her taramada otomatik olarak uygulanır.' },
-      { icon: '⚖️', title: 'Karşılaştır', desc: 'Tarama geçmişinizdeki herhangi bir ürünle yan yana karşılaştırma. Her iki analizi ve her birinin tercihlerinize nasıl uyduğunu gösterir.' },
+      { icon: '📝', title: 'Dikkat et', desc: 'Tercihlerinize ve ilgi alanlarınıza dayalı kişisel analiz. YZ, formülü otomatik olarak ilgi alanlarınızla eşleştirir ve her kriter için ✅ / ⚠️ / ⛔️ gösterir. Açıklama için bir satıra dokunun.' },
+      
     ],
 
     badgesLabel: 'Renk işaretçileri',
@@ -699,7 +695,7 @@ const guideContent: Record<Language, {
       { dot: '🔴', label: 'Yüksek Risk', desc: 'Belgelenmiş riskler: hormonal aktivite, yüksek alerjenik potansiyel, bazı ülkelerde yasaklar veya olumsuz araştırma bulguları.' },
     ],
 
-    profileLabel: 'Kişiselleştirme',
+    profileLabel: 'Tercihlere göre kişiselleştirme',
     profileTitle: 'Size özel',
     profileTitleEm: 'analiz',
     profileIntro: 'Kaydolun ve profilinizi doldurun — her analiz kişisel özelliklerinizi otomatik olarak dikkate alacak.',
@@ -732,6 +728,7 @@ const guideContent: Record<Language, {
       { q: 'Bunun yerine doktora gitmeli miyim?', a: 'GlowKI içerik şeffaflığı içindir, tıbbi tavsiye değil. Cilt sorunları için her zaman bir dermatologa başvur.' },
     ],
 
+    founderQuote: '"Bunu bir daha tahmin etmek zorunda kalmaman için yaptım. Bir fotoğraf — ve içinde ne olduğunu tam olarak biliyorsun."',
     disclaimer: 'GlowKI bir bilgi aracıdır. Analiz yapay zeka tarafından oluşturulur ve hatalar veya eksik yorumlar içerebilir. Sonuçlar tıbbi tavsiye niteliği taşımaz.',
   },
 };
@@ -786,7 +783,7 @@ export function UserGuideModal({ isOpen, onClose, lang }: UserGuideModalProps) {
               <div>
                 <p className="text-xs font-semibold text-[#2C3E50]">Yuliia Parkina · Founder</p>
                 <p className="text-xs text-[#4A4A4A] leading-relaxed mt-1 italic">
-                  "I built this so you never have to guess again. One photo — and you know exactly what's in it."
+                  {c.founderQuote}
                 </p>
               </div>
             </div>
