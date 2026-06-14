@@ -1050,11 +1050,6 @@ export default function App() {
                   title={t[lang].noteSection}
                   icon={<NotebookPen size={15} />}
                   collapseLabel={cl}
-                  headerBadge={(() => {
-                    if (!userProfile || !result?.ingredients?.length) return null;
-                    const as = computeAutonomousScore(result.ingredients, userProfile, lang);
-                    return as ? <ScoreBadge score={as.value} /> : null;
-                  })()}
                 >
                   <PersonalAnalysis
                     lang={lang} result={result} user={user} userProfile={userProfile}
@@ -1063,6 +1058,7 @@ export default function App() {
                     onUsed={subscription.incrementNoteAnalysis}
                     onOpenProfile={() => setIsProfileOpen(true)}
                   />
+
                 </CollapsibleSection>
 
                 <CollapsibleSection
