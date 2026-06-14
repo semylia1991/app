@@ -618,7 +618,9 @@ export default function App() {
         })
         .catch((e) => console.warn('[scan] background details failed:', e));
 
-      if (userProfile && criteria.length > 0) await subscription.incrementNoteAnalysis();
+      if (userProfile && criteria.length > 0) {
+        console.log('[scan] criteria prefetched:', criteria.length);
+      }
       const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
       localStorage.setItem('totalScanCount', String(totalScans));
       if (totalScans % 5 === 0) setTimeout(() => setIsSurveyOpen(true), 1500);
