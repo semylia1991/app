@@ -1410,9 +1410,25 @@ End with one emoji: ✅ beneficial, ⚠️ caution, ⛔️ problematic.
       relevantKeys = [...faceSkinKeys, ...bodySkinKeys, ...hairKeys, ...universalKeys];
     }
 
+    // Filter out "unknown" / "any" / "none" values — they carry no meaning for analysis
+    const SKIP_VALUES = ['unknown', 'Unknown', 'any', 'Any', 'none', 'None',
+      'skinUnknown', 'hairUnknown', 'climateAny', 'Don't know', 'Не знаю',
+      'Не важно', 'Не важливо', 'Egal', 'Peu importe', 'Je ne sais pas',
+      'Does not matter', 'Weiß nicht'];
+
     const profileLines = Object.entries(userProfile as Record<string, string>)
       .filter(([k, v]) => v && relevantKeys.includes(k))
-      .map(([k, v]) => `${k}: ${v}`)
+      .map(([k, v]) => {
+        // Filter comma-separated lists, removing unknown values
+        const filtered = v.split(',')
+          .map((s: string) => s.trim())
+          .filter((s: string) => !SKIP_VALUES.some(skip =>
+            s.toLowerCase() === skip.toLowerCase() || s.includes('unknown') || s.includes('Unknown')
+          ))
+          .join(', ');
+        return filtered ? `${k}: ${filtered}` : null;
+      })
+      .filter(Boolean)
       .join("\n");
 
     const ingredients = Array.isArray((result as any).ingredients)
@@ -1472,8 +1488,7 @@ CRITICAL RULES:
           },
           required: ["criteria"],
         },
-        temperature: 0.4,
-        topP: 0.9,
+        temperature: 0,
       },
     }, "personalNote");
     return { status: 200, rawText: response.text ?? "" };
