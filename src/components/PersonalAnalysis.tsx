@@ -282,11 +282,13 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
   }
 
   // ── Criteria list ─────────────────────────────────────────────────────
-  if (!criteria || criteria.length === 0) return null;
+  const SKIP_LABELS = /ничего|nothing|none|unknown|keine|нічого|ninguno|aucun|nessuno|bilinmiyor/i;
+  const filtered = criteria.filter(c => !SKIP_LABELS.test(c.label));
+  if (!filtered || filtered.length === 0) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {criteria.map((c, i) => (
+      {filtered.map((c, i) => (
         <CriterionRow key={i} c={c} lang={lang} />
       ))}
     </div>
