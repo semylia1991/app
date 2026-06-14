@@ -97,7 +97,7 @@ export async function prefetchPersonalNote(
 }
 
 // ── CriterionRow ──────────────────────────────────────────────────────────────
-const SKIP_LABELS = /ничего|nothing|none|unknown|keine|нічого|ninguno|aucun|nessuno|bilinmiyor/i;
+const SKIP_LABELS = /ничего|nothing|none|unknown|keine|нічого|ninguno|aucun|nessuno|bilinmiyor|отсутстви|absence|не имею|no issues|no problem|немає|sin problemas/i;
 
 function CriterionRow({ c, lang }: { c: Criterion; lang: Language }) {
   const [open, setOpen] = useState(false);
