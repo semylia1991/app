@@ -175,6 +175,8 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
         if (cancelled) return;
         criteriaCache.set(fetchKey, items);
         setCriteria(items);
+        // Count this as a note analysis use
+        if (items.length > 0) onUsed().catch(() => {});
       })
       .catch(e => { if (!cancelled) setError(e.message ?? 'Error'); })
       .finally(() => { if (!cancelled) setLoading(false); });
