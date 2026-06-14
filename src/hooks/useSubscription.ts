@@ -12,7 +12,7 @@ export interface UsageLimits {
 
 export const LIMITS: Record<Plan, UsageLimits> = {
   free: {
-    scansPerDay: 5,
+    scansPerDay: 10,
     noteAnalysisPerDay: 5,
     askAiPerDay: 3,
   },
@@ -164,11 +164,12 @@ export function useSubscription(user: User | null): SubscriptionState {
 
       // ── Authenticated: optimistic update + Supabase upsert ────────────────
       setUsage(prev => ({ ...prev, [field]: prev[field] + 1 }));
-      await supabase.rpc('increment_usage', {
+      const { error } = await supabase.rpc('increment_usage', {
         p_user_id: user.id,
         p_date: today,
         p_field: dbField,
       });
+      if (error) console.error('[usage] increment_usage failed:', error.message, '| code:', error.code);
     },
     [user]
   );
