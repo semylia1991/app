@@ -623,44 +623,61 @@ const PREFERENCE_LABELS: Record<string, Record<string, LangMap>> = {
   skinType: {
     skinOily:        { en:'Oily skin',        ru:'Жирная кожа',        de:'Fettige Haut',       uk:'Жирна шкіра',        es:'Piel grasa',       fr:'Peau grasse',       it:'Pelle grassa',       tr:'Yağlı cilt' },
     skinDry:         { en:'Dry skin',          ru:'Сухая кожа',         de:'Trockene Haut',      uk:'Суха шкіра',         es:'Piel seca',        fr:'Peau sèche',        it:'Pelle secca',        tr:'Kuru cilt' },
-    skinCombination: { en:'Combination skin',  ru:'Комбинированная',    de:'Mischhaut',          uk:'Комбінована',        es:'Piel mixta',       fr:'Peau mixte',        it:'Pelle mista',        tr:'Karma cilt' },
+    skinCombination: { en:'Combination skin',  ru:'Комбинированная кожа', de:'Mischhaut',        uk:'Комбінована шкіра',  es:'Piel mixta',       fr:'Peau mixte',        it:'Pelle mista',        tr:'Karma cilt' },
+    skinUnknown:     { en:'Skin type unknown', ru:'Тип кожи неизвестен', de:'Hauttyp unbekannt', uk:'Тип шкіри невідомий', es:'Tipo de piel desconocido', fr:'Type de peau inconnu', it:'Tipo di pelle sconosciuto', tr:'Cilt tipi bilinmiyor' },
   },
   skinSensitivity: {
-    sensFragrances:         { en:'Fragrance sensitivity',  ru:'Чувствительность к отдушкам', de:'Duftstoff-Empf.',   uk:'Чутливість до ароматів', es:'Sensibilidad a fragancias', fr:'Sensibilité parfums', it:'Sensibilità profumi', tr:'Parfüm hassasiyeti' },
-    sensAlcohol:            { en:'Alcohol sensitivity',    ru:'Чувствительность к спирту',  de:'Alkohol-Empf.',     uk:'Чутливість до спирту',   es:'Sensibilidad alcohol',      fr:'Sensibilité alcool',  it:'Sensibilità alcol',   tr:'Alkol hassasiyeti' },
-    sensEssentialOils:      { en:'Essential oil sensitivity', ru:'Эфирные масла',          de:'Ätherische Öle',    uk:'Ефірні олії',            es:'Aceites esenciales',        fr:'Huiles essentielles', it:'Oli essenziali',      tr:'Uçucu yağ hassas.' },
-    sensIrritationAfterCare:{ en:'Post-care irritation',  ru:'Раздражение после ухода',    de:'Reizung nach Pflege',uk:'Подразнення після догляду', es:'Irritación post-cuidado',  fr:'Irritation post-soin',it:'Irritazione post-cura',tr:'Bakım sonrası tahriş' },
-    sensReactionNewProducts:{ en:'New product reactions',  ru:'Реакция на новые средства', de:'Reaktion Neuprodukte',uk:'Реакція на нові засоби', es:'Reacciones a nuevos prod.',fr:'Réact. nouveaux prod.',it:'Reaz. nuovi prodotti', tr:'Yeni ürün reaksiyonu' },
+    sensFragrances:         { en:'Fragrance sensitivity',     ru:'Чувствительность к отдушкам',   de:'Duftstoff-Empfindlichkeit',  uk:'Чутливість до ароматів',        es:'Sensibilidad a fragancias',  fr:'Sensibilité aux parfums',    it:'Sensibilità ai profumi',       tr:'Parfüm hassasiyeti' },
+    sensAlcohol:            { en:'Alcohol sensitivity',       ru:'Чувствительность к спирту',     de:'Alkohol-Empfindlichkeit',    uk:'Чутливість до спирту',          es:'Sensibilidad al alcohol',    fr:'Sensibilité à l\'alcool',    it:'Sensibilità all\'alcol',       tr:'Alkol hassasiyeti' },
+    sensEssentialOils:      { en:'Essential oil sensitivity', ru:'Реакция на эфирные масла',      de:'Ätherische Öle',             uk:'Реакція на ефірні олії',        es:'Sensibilidad a aceites esenciales', fr:'Huiles essentielles',  it:'Oli essenziali',               tr:'Uçucu yağ hassasiyeti' },
+    sensIrritationAfterCare:{ en:'Post-care irritation',     ru:'Раздражение после ухода',       de:'Reizung nach Pflege',        uk:'Подразнення після догляду',     es:'Irritación post-cuidado',   fr:'Irritation après les soins', it:'Irritazione post-cura',        tr:'Bakım sonrası tahriş' },
+    sensReactionNewProducts:{ en:'Reaction to new products', ru:'Реакция на новые средства',     de:'Reaktion auf neue Produkte', uk:'Реакція на нові засоби',        es:'Reacción a nuevos productos',fr:'Réaction aux nouveaux produits', it:'Reazione a nuovi prodotti', tr:'Yeni ürün reaksiyonu' },
   },
   skinConditions: {
-    condBreakouts:   { en:'Breakouts',         ru:'Высыпания',          de:'Unreinheiten',       uk:'Висипання',          es:'Brotes',           fr:'Imperfections',     it:'Imperfezioni',       tr:'Sivilce' },
-    condBlackheads:  { en:'Blackheads',        ru:'Чёрные точки',       de:'Mitesser',           uk:'Чорні точки',        es:'Puntos negros',    fr:'Points noirs',      it:'Punti neri',         tr:'Siyah nokta' },
-    condRedness:     { en:'Redness',           ru:'Покраснения',        de:'Rötungen',           uk:'Почервоніння',       es:'Rojeces',          fr:'Rougeurs',          it:'Rossori',            tr:'Kızarıklık' },
-    condIrritation:  { en:'Irritation',        ru:'Раздражение',        de:'Reizung',            uk:'Подразнення',        es:'Irritación',       fr:'Irritation',        it:'Irritazione',        tr:'Tahriş' },
-    condUnevenTone:  { en:'Uneven tone',       ru:'Неравномерный тон',  de:'Unebener Teint',     uk:'Нерівний тон',       es:'Tono irregular',   fr:'Teint irrégulier',  it:'Tono irregolare',    tr:'Düzensiz ton' },
-    condDarkSpots:   { en:'Dark spots',        ru:'Пигментация',        de:'Dunkle Flecken',     uk:'Пігментація',        es:'Manchas oscuras',  fr:'Taches sombres',    it:'Macchie scure',      tr:'Koyu lekeler' },
-    condDullness:    { en:'Dull complexion',   ru:'Тусклая кожа',       de:'Fahler Teint',       uk:'Тьмяна шкіра',       es:'Tez opaca',        fr:'Teint terne',       it:'Incarnato spento',   tr:'Donuk cilt' },
-    condPigmentation:{ en:'Pigmentation',      ru:'Пигментация',        de:'Pigmentierung',      uk:'Пігментація',        es:'Pigmentación',     fr:'Pigmentation',      it:'Pigmentazione',      tr:'Pigmentasyon' },
+    condBreakouts:   { en:'Breakouts',         ru:'Высыпания',            de:'Unreinheiten',       uk:'Висипання',            es:'Brotes',           fr:'Imperfections',     it:'Imperfezioni',       tr:'Sivilce' },
+    condBlackheads:  { en:'Blackheads',        ru:'Чёрные точки',         de:'Mitesser',           uk:'Чорні точки',          es:'Puntos negros',    fr:'Points noirs',      it:'Punti neri',         tr:'Siyah nokta' },
+    condRedness:     { en:'Redness',           ru:'Покраснения',          de:'Rötungen',           uk:'Почервоніння',         es:'Rojeces',          fr:'Rougeurs',          it:'Rossori',            tr:'Kızarıklık' },
+    condIrritation:  { en:'Irritation',        ru:'Раздражение',          de:'Reizung',            uk:'Подразнення',          es:'Irritación',       fr:'Irritation',        it:'Irritazione',        tr:'Tahriş' },
+    condUnevenTone:  { en:'Uneven skin tone',  ru:'Неровный тон',         de:'Unebener Hautton',   uk:'Нерівний тон',         es:'Tono irregular',   fr:'Teint irrégulier',  it:'Tono irregolare',    tr:'Düzensiz ton' },
+    condDarkSpots:   { en:'Dark spots',        ru:'Тёмные пятна',         de:'Dunkle Flecken',     uk:'Темні плями',          es:'Manchas oscuras',  fr:'Taches sombres',    it:'Macchie scure',      tr:'Koyu lekeler' },
+    condDullness:    { en:'Dull complexion',   ru:'Тусклый цвет лица',    de:'Fahler Teint',       uk:'Тьмяний колір обличчя', es:'Tez opaca',       fr:'Teint terne',       it:'Incarnato spento',   tr:'Donuk cilt' },
+    condPigmentation:{ en:'Pigmentation',      ru:'Пигментация',          de:'Pigmentierung',      uk:'Пігментація',          es:'Pigmentación',     fr:'Pigmentation',      it:'Pigmentazione',      tr:'Pigmentasyon' },
   },
   ageRange: {
-    age3545:  { en:'35–45',  ru:'35–45',  de:'35–45',  uk:'35–45',  es:'35–45',  fr:'35–45',  it:'35–45',  tr:'35–45' },
-    age4550:  { en:'45–50',  ru:'45–50',  de:'45–50',  uk:'45–50',  es:'45–50',  fr:'45–50',  it:'45–50',  tr:'45–50' },
-    age50plus:{ en:'50+',    ru:'50+',    de:'50+',    uk:'50+',    es:'50+',    fr:'50+',    it:'50+',    tr:'50+' },
+    ageUnder25: { en:'Under 25',  ru:'До 25',   de:'Unter 25',  uk:'До 25',   es:'Menos de 25', fr:'Moins de 25', it:'Meno di 25', tr:'25 altı' },
+    age2535:    { en:'25–35',     ru:'25–35',   de:'25–35',     uk:'25–35',   es:'25–35',       fr:'25–35',       it:'25–35',      tr:'25–35' },
+    age3545:    { en:'35–45',     ru:'35–45',   de:'35–45',     uk:'35–45',   es:'35–45',       fr:'35–45',       it:'35–45',      tr:'35–45' },
+    age4550:    { en:'45–50',     ru:'45–50',   de:'45–50',     uk:'45–50',   es:'45–50',       fr:'45–50',       it:'45–50',      tr:'45–50' },
+    age50plus:  { en:'50+',       ru:'50+',     de:'50+',       uk:'50+',     es:'50+',         fr:'50+',         it:'50+',        tr:'50+' },
   },
-  climate: {
-    climateSunny:{ en:'Sunny climate', ru:'Солнечный климат', de:'Sonniges Klima',  uk:'Сонячний клімат', es:'Clima soleado', fr:'Climat ensoleillé', it:'Clima soleggiato', tr:'Güneşli iklim' },
-    climateDry:  { en:'Dry climate',   ru:'Сухой климат',    de:'Trockenes Klima', uk:'Сухий клімат',    es:'Clima seco',    fr:'Climat sec',        it:'Clima secco',      tr:'Kuru iklim' },
-    climateCold: { en:'Cold climate',  ru:'Холодный климат', de:'Kaltes Klima',    uk:'Холодний клімат', es:'Clima frío',    fr:'Climat froid',      it:'Clima freddo',     tr:'Soğuk iklim' },
-    climateHumid:{ en:'Humid climate', ru:'Влажный климат',  de:'Feuchtes Klima',  uk:'Вологий клімат',  es:'Clima húmedo',  fr:'Climat humide',     it:'Clima umido',      tr:'Nemli iklim' },
-    climateWindy:{ en:'Windy',         ru:'Ветер',           de:'Windig',          uk:'Вітер',           es:'Viento',        fr:'Vent',              it:'Vento',            tr:'Rüzgar' },
+  hairType: {
+    hairStraight: { en:'Straight hair', ru:'Прямые волосы',    de:'Glattes Haar',       uk:'Пряме волосся',    es:'Cabello liso',     fr:'Cheveux raides',    it:'Capelli lisci',      tr:'Düz saç' },
+    hairWavy:     { en:'Wavy hair',     ru:'Волнистые волосы', de:'Welliges Haar',      uk:'Хвилясте волосся', es:'Cabello ondulado',  fr:'Cheveux ondulés',   it:'Capelli mossi',      tr:'Dalgalı saç' },
+    hairCurly:    { en:'Curly hair',    ru:'Кудрявые волосы',  de:'Lockiges Haar',      uk:'Кучеряве волосся', es:'Cabello rizado',   fr:'Cheveux bouclés',   it:'Capelli ricci',      tr:'Kıvırcık saç' },
+    hairCoily:    { en:'Coily hair',    ru:'Спиральные волосы', de:'Spiralförmiges Haar', uk:'Спіральне волосся', es:'Cabello muy rizado', fr:'Cheveux très bouclés', it:'Capelli a spirale', tr:'Spiral saç' },
+    hairBrittle:  { en:'Brittle hair',  ru:'Ломкие волосы',    de:'Sprödes Haar',       uk:'Ламке волосся',    es:'Cabello quebradizo', fr:'Cheveux fragiles', it:'Capelli fragili',    tr:'Kırılgan saç' },
   },
   scalpCondition: {
-    scalpOily: { en:'Oily scalp', ru:'Жирная кожа головы', de:'Fettige Kopfhaut', uk:'Жирна шкіра голови', es:'Cuero cabelludo graso', fr:'Cuir chevelu gras', it:'Cuoio capelluto grasso', tr:'Yağlı saç derisi' },
-    scalpDry:  { en:'Dry scalp',  ru:'Сухая кожа головы',  de:'Trockene Kopfhaut',uk:'Суха шкіра голови',  es:'Cuero cabelludo seco',  fr:'Cuir chevelu sec',  it:'Cuoio capelluto secco',  tr:'Kuru saç derisi' },
+    scalpOily: { en:'Oily scalp', ru:'Жирная кожа головы', de:'Fettige Kopfhaut',   uk:'Жирна шкіра голови', es:'Cuero cabelludo graso', fr:'Cuir chevelu gras', it:'Cuoio capelluto grasso', tr:'Yağlı saç derisi' },
+    scalpDry:  { en:'Dry scalp',  ru:'Сухая кожа головы',  de:'Trockene Kopfhaut',  uk:'Суха шкіра голови',  es:'Cuero cabelludo seco',  fr:'Cuir chevelu sec',  it:'Cuoio capelluto secco',  tr:'Kuru saç derisi' },
   },
   hairProblems: {
-    hairDryDamaged: { en:'Dry/damaged hair', ru:'Сухие/повреждённые волосы', de:'Trockenes/geschädigtes Haar', uk:'Сухе/пошкоджене волосся', es:'Cabello seco/dañado', fr:'Cheveux secs/abîmés', it:'Capelli secchi/danneggiati', tr:'Kuru/hasarlı saç' },
-    hairFrizzy:     { en:'Frizzy hair',      ru:'Вьющиеся волосы',           de:'Krauses Haar',                uk:'Кучеряве волосся',        es:'Cabello encrespado',  fr:'Cheveux frisottants', it:'Capelli crespi',             tr:'Kabarık saç' },
+    hairDryDamaged: { en:'Dry/damaged hair',  ru:'Сухие/повреждённые волосы', de:'Trockenes/geschädigtes Haar', uk:'Сухе/пошкоджене волосся', es:'Cabello seco/dañado',  fr:'Cheveux secs/abîmés',   it:'Capelli secchi/danneggiati', tr:'Kuru/hasarlı saç' },
+    hairFrizzy:     { en:'Frizzy hair',       ru:'Пушистые волосы',           de:'Krauses Haar',                uk:'Пухнасте волосся',        es:'Cabello encrespado',   fr:'Cheveux frisottants',   it:'Capelli crespi',             tr:'Kabarık saç' },
+    hairBrittle:    { en:'Brittle hair',      ru:'Ломкие волосы',             de:'Sprödes Haar',                uk:'Ламке волосся',           es:'Cabello quebradizo',   fr:'Cheveux fragiles',      it:'Capelli fragili',            tr:'Kırılgan saç' },
+  },
+  bodySkinType: {
+    bodySkinDry:       { en:'Dry body skin',       ru:'Сухая кожа тела',        de:'Trockene Körperhaut',    uk:'Суха шкіра тіла',       es:'Piel del cuerpo seca',        fr:'Peau du corps sèche',        it:'Pelle del corpo secca',        tr:'Kuru vücut cildi' },
+    bodySkinSensitive: { en:'Sensitive body skin', ru:'Чувствительная кожа тела', de:'Empfindliche Körperhaut', uk:'Чутлива шкіра тіла',  es:'Piel del cuerpo sensible',    fr:'Peau du corps sensible',     it:'Pelle del corpo sensibile',    tr:'Hassas vücut cildi' },
+    bodySkinOily:      { en:'Oily body skin',      ru:'Жирная кожа тела',       de:'Fettige Körperhaut',     uk:'Жирна шкіра тіла',      es:'Piel del cuerpo grasa',       fr:'Peau du corps grasse',       it:'Pelle del corpo grassa',       tr:'Yağlı vücut cildi' },
+    bodySkinNormal:    { en:'Normal body skin',    ru:'Нормальная кожа тела',   de:'Normale Körperhaut',     uk:'Нормальна шкіра тіла',  es:'Piel del cuerpo normal',      fr:'Peau du corps normale',      it:'Pelle del corpo normale',      tr:'Normal vücut cildi' },
+  },
+  climate: {
+    climateSunny: { en:'Sunny climate', ru:'Солнечный климат', de:'Sonniges Klima',  uk:'Сонячний клімат', es:'Clima soleado', fr:'Climat ensoleillé', it:'Clima soleggiato', tr:'Güneşli iklim' },
+    climateDry:   { en:'Dry climate',   ru:'Сухой климат',    de:'Trockenes Klima', uk:'Сухий клімат',    es:'Clima seco',    fr:'Climat sec',        it:'Clima secco',      tr:'Kuru iklim' },
+    climateCold:  { en:'Cold climate',  ru:'Холодный климат', de:'Kaltes Klima',    uk:'Холодний клімат', es:'Clima frío',    fr:'Climat froid',      it:'Clima freddo',     tr:'Soğuk iklim' },
+    climateHumid: { en:'Humid climate', ru:'Влажный климат',  de:'Feuchtes Klima',  uk:'Вологий клімат',  es:'Clima húmedo',  fr:'Climat humide',     it:'Clima umido',      tr:'Nemli iklim' },
+    climateWindy: { en:'Windy climate', ru:'Ветреный климат', de:'Windiges Klima',  uk:'Вітряний клімат', es:'Clima ventoso', fr:'Climat venteux',    it:'Clima ventoso',    tr:'Rüzgarlı iklim' },
   },
 };
 
@@ -786,17 +803,22 @@ export function computeAutonomousScore(
     totalWeight    += weight;
   }
 
-  // ── Build matches: ALL profile fields, not just ones with ingredient hits ──
-  // First add criteria that had ingredient matches
-  const matchedLabels = new Set<string>();
-  for (const [, c] of criteriaMap) {
-    matchedLabels.add(c.label);
-    const matches_item: IngredientMatch = {
-      name:  c.ingredients[0],
-      emoji: c.totalDelta > 0 ? '✅' : c.totalDelta < -2 ? '⛔️' : '⚠️',
-      label: c.label,
-    };
-    matches.push(matches_item);
+  // ── Build matches: one row per profile field value, always shown ──────────
+  // For each filled profile field → look up if criteriaMap has a match → set emoji
+  for (const [field, valuesMap] of Object.entries(PREFERENCE_LABELS)) {
+    const profileValues: string[] = (profile as any)[field] ?? [];
+    for (const val of profileValues) {
+      const lmap = valuesMap[val];
+      if (!lmap) continue;
+      const label = lmap[lang] ?? lmap['en'] ?? val;
+      // Find if any ingredient matched this criterion
+      const hit = criteriaMap.get(label);
+      matches.push({
+        name:  hit ? hit.ingredients[0] : '',
+        emoji: hit ? (hit.totalDelta > 0 ? '✅' : hit.totalDelta < -2 ? '⛔️' : '⚠️') : '✅',
+        label,
+      });
+    }
   }
 
   const matchesFinal: IngredientMatch[] = matches;
