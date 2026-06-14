@@ -91,27 +91,31 @@ export function CompareSection({ lang, current, currentCriteria, user, onRegiste
   const renderScore = (r: AnalysisResult) => {
     const s = computeProductScore(r.ingredients);
     if (s === null) return <div style={{ ...sectionBodyStyle, color: '#8A8078', fontStyle: 'italic' }}>—</div>;
-    const color = s >= 7.5 ? '#2D9B5A' : s >= 5 ? '#E8A020' : '#D94040';
+    const rounded = Math.round(s);
+    const color = rounded >= 8 ? '#2D9B5A' : rounded >= 5 ? '#E8A020' : '#D94040';
     return (
       <div style={{ ...sectionBodyStyle, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: '1.2rem', fontWeight: 700, color, fontFamily: 'var(--font-sans)', lineHeight: 1 }}>{s.toFixed(1)}</span>
+        <span style={{ fontSize: '1.2rem', fontWeight: 700, color, fontFamily: 'var(--font-sans)', lineHeight: 1 }}>{rounded}</span>
         <span style={{ fontSize: '0.7rem', color, opacity: 0.75 }}>/10</span>
         <div style={{ flex: 1, height: 5, background: 'rgba(0,0,0,0.07)', borderRadius: 8, overflow: 'hidden', minWidth: 30 }}>
-          <div style={{ height: '100%', width: `${s * 10}%`, background: color, borderRadius: 8 }} />
+          <div style={{ height: '100%', width: `${rounded * 10}%`, background: color, borderRadius: 8 }} />
         </div>
       </div>
     );
   };
 
+  const SKIP_LABELS = /ничего|nothing|none|unknown|keine|нічого|ninguno|aucun|nessuno|bilinmiyor/i;
+
   const renderCriteria = (criteria: Criterion[]) => {
-    if (!criteria.length) return (
+    const filtered = criteria.filter(c => !SKIP_LABELS.test(c.label));
+    if (!filtered.length) return (
       <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.72rem' }}>
         {tt.compareNoPersonalNote}
       </span>
     );
     return (
       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {criteria.map((c, i) => (
+        {filtered.map((c, i) => (
           <li key={i} style={{ fontSize: '0.74rem', lineHeight: 1.5, color: '#1A1410', display: 'flex', gap: 5 }}>
             <span style={{ flexShrink: 0 }}>{c.emoji}</span>
             <span>{c.label}</span>
