@@ -29,6 +29,40 @@ const FUNCTION_URL = '/api/gemini';
 // Survives re-renders and re-opens within a session
 const criteriaCache = new Map<string, Criterion[]>();
 
+// ── Prefetch — call this right after main analysis completes ──────────────
+export async function prefetchPersonalNote(
+  result: AnalysisResult,
+  userProfile: UserProfile,
+  lang: Language,
+): Promise<void> {
+  const productKey = `${result.productName}|${result.brand}`;
+  const profileKey = JSON.stringify(serializeProfile(userProfile, 'en'));
+  const fetchKey   = `${productKey}|${profileKey}|${lang}`;
+  if (criteriaCache.has(fetchKey)) return; // already cached
+
+  try {
+    const r = await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'personalNote',
+        result,
+        userProfile: serializeProfile(userProfile, lang),
+        language: lang,
+      }),
+    });
+    const data = await r.json();
+    const items: Criterion[] = (data.criteria ?? []).map((c: any) => ({
+      emoji: c.emoji,
+      label: c.label,
+      explanation: c.explanation,
+    }));
+    criteriaCache.set(fetchKey, items);
+  } catch {
+    // silent — component will retry on open
+  }
+}
+
 function serializeProfile(profile: UserProfile, lang: Language): SerializedProfile {
   const p = translateProfile(profile, lang);
   return {
