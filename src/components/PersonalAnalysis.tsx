@@ -42,16 +42,6 @@ function makeProfileKey(profile: UserProfile): string {
   ].join('|');
 }
 
-// Build a stable key from the ingredient composition (sorted, normalized).
-// Same formula → same key → cached result is reused → identical output.
-function makeIngredientsKey(result: AnalysisResult): string {
-  const names = (result.ingredients ?? [])
-    .map(i => (i.name ?? '').toLowerCase().trim())
-    .filter(Boolean)
-    .sort();
-  return names.join(',');
-}
-
 function serializeProfile(profile: UserProfile): SerializedProfile {
   return {
     skinType:        profile.skinType.join(', ')             || undefined,
@@ -96,7 +86,7 @@ export async function prefetchPersonalNote(
   profile: UserProfile,
   lang: Language,
 ): Promise<Criterion[]> {
-  const key = `${makeIngredientsKey(result)}|${makeProfileKey(profile)}|${lang}`;
+  const key = `${result.productName}|${result.brand}|${makeProfileKey(profile)}|${lang}`;
   const cached = criteriaCache.get(key);
   if (cached) return cached;
   try {
@@ -166,7 +156,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
   );
 
   const fetchKey = user && hasProfile && result?.ingredients?.length
-    ? `${makeIngredientsKey(result)}|${makeProfileKey(userProfile!)}|${lang}`
+    ? `${result.productName}|${result.brand}|${makeProfileKey(userProfile!)}|${lang}`
     : '';
 
   useEffect(() => {
@@ -187,8 +177,6 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
         if (cancelled) return;
         criteriaCache.set(fetchKey, items);
         setCriteria(items);
-        // Count this as a note analysis use
-        if (items.length > 0) onUsed().catch(() => {});
       })
       .catch(e => { if (!cancelled) setError(e.message ?? 'Error'); })
       .finally(() => { if (!cancelled) setLoading(false); });
