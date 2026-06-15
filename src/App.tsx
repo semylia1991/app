@@ -25,7 +25,7 @@ import { AuthButton } from './components/AuthButton';
 import { ScanHistory } from './components/ScanHistory';
 
 import { UserProfilePanel, UserProfile, translateProfile } from './components/UserProfile';
-import { PersonalAnalysis, prefetchPersonalNote, criteriaCache } from './components/PersonalAnalysis';
+import { PersonalAnalysis, prefetchPersonalNote } from './components/PersonalAnalysis';
 import { PaywallModal } from './components/PaywallModal';
 import { WelcomePremiumModal } from './components/WelcomePremiumModal';
 import { CancelPremiumModal } from './components/CancelPremiumModal';
@@ -585,11 +585,7 @@ export default function App() {
       let criteria: any[] = [];
       if (userProfile) {
         try {
-          await prefetchPersonalNote(analysisWithShops, userProfile, lang);
-          const key = `${analysisWithShops.productName}|${analysisWithShops.brand}`;
-          for (const [k, v] of criteriaCache.entries()) {
-            if (k.startsWith(key + '|')) { criteria = v; break; }
-          }
+          criteria = await prefetchPersonalNote(analysisWithShops, userProfile, lang);
           console.log('[prefetch] criteria count:', criteria.length);
         } catch (e) {
           console.warn('[scan] prefetch personalNote failed:', e);
