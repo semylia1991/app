@@ -1486,7 +1486,9 @@ CRITICAL RULES:
 - label: the specific preference value translated to ${language}. One value only. NEVER camelCase.
 - explanation: name the responsible ingredient(s). Mild phrasing: may, can, tends to. No medical advice. Max ~20 words.
 - ALLERGIES: each allergy = its own item. Match found → ⛔️. No match → ✅ "no matching ingredient detected".
-- Translate ALL text to ${language}.`;
+- Translate ALL text to ${language}.
+- DETERMINISM: Be consistent. For the same ingredients and preferences, always produce the same emoji and explanation. Base your judgment strictly on the ingredient list — do not introduce variation. List criteria in the same order as the preferences appear above.
+- Keep explanations factual and concise — name the specific ingredient, state its effect on that criterion. Avoid creative variation in wording.`;
 
     const response = await generateWithRetry(ai, {
       contents: [{ parts: [{ text: prompt }] }],
