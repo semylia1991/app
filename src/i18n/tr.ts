@@ -26,7 +26,7 @@ const tr: Translations = {
     ingredients: "İçerikler",
     usage: "Kullanım",
     benefits: "Faydalar",
-    sideEffects: "Yan etkiler",
+    sideEffects: "Bilinen hassasiyetler",
     warnings: "Uyarılar",
     interactions: "Etkileşimler",
     shelfLife: "Raf ömrü ve depolama",
