@@ -26,7 +26,7 @@ const it: Translations = {
     ingredients: "Ingredienti",
     usage: "Utilizzo",
     benefits: "Benefici",
-    sideEffects: "Effetti collaterali",
+    sideEffects: "Sensibilità note",
     warnings: "Avvertenze",
     interactions: "Interazioni",
     shelfLife: "Durata e conservazione",
