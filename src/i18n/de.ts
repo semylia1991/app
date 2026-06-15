@@ -26,7 +26,7 @@ const de: Translations = {
     ingredients: "Inhaltsstoffe",
     usage: "Anwendung",
     benefits: "Vorteile",
-    sideEffects: "Nebenwirkungen",
+    sideEffects: "Bekannte Unverträglichkeiten",
     warnings: "Warnhinweise",
     interactions: "Wechselwirkungen",
     shelfLife: "Haltbarkeit & Lagerung",
