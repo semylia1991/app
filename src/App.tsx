@@ -2,7 +2,7 @@ import logo from './logo.png'
 import posthog from 'posthog-js'
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart, ChevronDown } from 'lucide-react';
+import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart, ChevronDown, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
@@ -34,6 +34,19 @@ import { useSubscription } from './hooks/useSubscription';
 import { SubscriptionPage } from './components/SubscriptionPage';
 import { WelcomeScreen, useShowWelcome } from './components/WelcomeScreen';
 import { FirstScanModal, useFirstScanModal } from './components/FirstScanModal';
+
+// Localized medical disclaimer shown as a dismissible banner at the top of the
+// results panel. Dismissal persists across reloads via localStorage.
+const DISCLAIMER_BANNER_TEXT: Record<Language, string> = {
+  en: 'This analysis is for informational purposes only and is not medical advice. Consult a doctor or dermatologist before making changes to your skincare routine.',
+  ru: 'Этот анализ предоставляется только в информационных целях и не является медицинской рекомендацией. Перед изменением ухода за кожей проконсультируйтесь с врачом или дерматологом.',
+  de: 'Diese Analyse dient nur zu Informationszwecken und ist keine medizinische Beratung. Konsultieren Sie einen Arzt oder Dermatologen, bevor Sie Ihre Hautpflege ändern.',
+  uk: 'Цей аналіз надається лише в інформаційних цілях і не є медичною рекомендацією. Перед зміною догляду за шкірою проконсультуйтеся з лікарем або дерматологом.',
+  es: 'Este análisis es solo con fines informativos y no constituye consejo médico. Consulte a un médico o dermatólogo antes de cambiar su rutina de cuidado de la piel.',
+  fr: "Cette analyse est fournie à titre informatif uniquement et ne constitue pas un avis médical. Consultez un médecin ou un dermatologue avant de modifier votre routine de soins.",
+  it: 'Questa analisi ha solo scopo informativo e non costituisce un consiglio medico. Consulta un medico o un dermatologo prima di modificare la tua routine di cura della pelle.',
+  tr: 'Bu analiz yalnızca bilgilendirme amaçlıdır ve tıbbi tavsiye değildir. Cilt bakımı rutininizi değiştirmeden önce bir doktora veya dermatoloğa danışın.',
+};
 
 // Compact score chip rendered in CollapsibleSection headers (always visible)
 // for the Ingredients and Personal Note rows.
@@ -387,6 +400,9 @@ export default function App() {
   const [captionCopied, setCaptionCopied]     = useState(false);
   const [isSharing, setIsSharing]             = useState(false);
   const [shareAppCopied, setShareAppCopied]   = useState(false);
+  const [disclaimerDismissed, setDisclaimerDismissed] = useState<boolean>(
+    () => localStorage.getItem('disclaimerDismissed') === 'true'
+  );
 
   const subscription = useSubscription(user);
   const [paywallReason, setPaywallReason] = useState<'scans' | 'note' | 'askAi' | null>(null);
@@ -688,6 +704,11 @@ export default function App() {
     }
   };
 
+  const handleDismissDisclaimer = () => {
+    setDisclaimerDismissed(true);
+    localStorage.setItem('disclaimerDismissed', 'true');
+  };
+
   const cl = t[lang].collapse;
 
   /* Subscription page */
@@ -946,6 +967,45 @@ export default function App() {
               className="luxury-card"
               style={{ width: '100%', maxWidth: 680 }}
             >
+              {/* ── MEDICAL DISCLAIMER BANNER (dismissible, persists via localStorage) ── */}
+              {!disclaimerDismissed && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  padding: '14px 18px',
+                  background: '#FBF3D9',
+                  borderBottom: '0.5px solid #E0B84A',
+                }}>
+                  <span role="img" aria-label="warning" style={{ fontSize: '1rem', flexShrink: 0, lineHeight: 1.4 }}>⚠️</span>
+                  <p style={{
+                    flex: 1,
+                    margin: 0,
+                    fontSize: '0.72rem',
+                    lineHeight: 1.6,
+                    color: '#6B5418',
+                    fontFamily: 'var(--font-sans)',
+                  }}>
+                    {DISCLAIMER_BANNER_TEXT[lang] ?? DISCLAIMER_BANNER_TEXT.en}
+                  </p>
+                  <button
+                    onClick={handleDismissDisclaimer}
+                    aria-label="Dismiss"
+                    style={{
+                      flexShrink: 0,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 2,
+                      color: '#9A7B2A',
+                      lineHeight: 0,
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
               {/* Product header */}
               <div style={{ padding: '32px 32px 24px', textAlign: 'center', borderBottom: '0.5px solid #DDD5C8' }}>
                 {isSharedView && (
@@ -1234,8 +1294,8 @@ export default function App() {
       <LoadingScreen isVisible={isAnalyzing} lang={lang} currentStep={0} />
       <CookieBanner lang={lang} onOpenPrivacy={() => setIsPrivacyOpen(true)} />
 
-      <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent />} />
-      <LegalModal isOpen={isAgbOpen} onClose={() => setIsAgbOpen(false)} title={t[lang].agb} content={<AGBContent />} />
+      <LegalModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} title={t[lang].privacyPolicy} content={<PrivacyPolicyContent lang={lang} />} />
+      <LegalModal isOpen={isAgbOpen} onClose={() => setIsAgbOpen(false)} title={t[lang].agb} content={<AGBContent lang={lang} />} />
       <LegalModal isOpen={isImpressumOpen} onClose={() => setIsImpressumOpen(false)} title={t[lang].impressum} content={<ImpressumContent />} />
 
       <UserGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} lang={lang} />
