@@ -26,7 +26,7 @@ const uk: Translations = {
     ingredients: "Інгредієнти",
     usage: "Використання",
     benefits: "Переваги",
-    sideEffects: "Побічні ефекти",
+    sideEffects: "Відомі чутливості",
     warnings: "Попередження",
     interactions: "Взаємодії",
     shelfLife: "Термін зберігання та умови",
