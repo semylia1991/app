@@ -26,7 +26,7 @@ const es: Translations = {
     ingredients: "Ingredientes",
     usage: "Uso",
     benefits: "Beneficios",
-    sideEffects: "Efectos secundarios",
+    sideEffects: "Sensibilidades conocidas",
     warnings: "Advertencias",
     interactions: "Interacciones",
     shelfLife: "Vida útil y almacenamiento",
