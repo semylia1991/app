@@ -26,7 +26,7 @@ const ru: Translations = {
     ingredients: "Ингредиенты",
     usage: "Использование",
     benefits: "Преимущества",
-    sideEffects: "Побочные эффекты",
+    sideEffects: "Известные чувствительности",
     warnings: "Предупреждения",
     interactions: "Взаимодействия",
     shelfLife: "Срок хранения и условия",
