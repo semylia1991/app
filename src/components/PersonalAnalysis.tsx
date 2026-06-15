@@ -42,6 +42,16 @@ function makeProfileKey(profile: UserProfile): string {
   ].join('|');
 }
 
+// Build a stable key from the ingredient composition (sorted, normalized).
+// Same formula → same key → cached result is reused → identical output.
+function makeIngredientsKey(result: AnalysisResult): string {
+  const names = (result.ingredients ?? [])
+    .map(i => (i.name ?? '').toLowerCase().trim())
+    .filter(Boolean)
+    .sort();
+  return names.join(',');
+}
+
 function serializeProfile(profile: UserProfile): SerializedProfile {
   return {
     skinType:        profile.skinType.join(', ')             || undefined,
@@ -85,14 +95,16 @@ export async function prefetchPersonalNote(
   result: AnalysisResult,
   profile: UserProfile,
   lang: Language,
-): Promise<void> {
-  const key = `${result.productName}|${result.brand}|${makeProfileKey(profile)}|${lang}`;
-  if (criteriaCache.has(key)) return;
+): Promise<Criterion[]> {
+  const key = `${makeIngredientsKey(result)}|${makeProfileKey(profile)}|${lang}`;
+  const cached = criteriaCache.get(key);
+  if (cached) return cached;
   try {
     const items = await fetchCriteria(result, profile, lang);
     criteriaCache.set(key, items);
+    return items;
   } catch {
-    // silent — component will retry
+    return [];
   }
 }
 
@@ -154,7 +166,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
   );
 
   const fetchKey = user && hasProfile && result?.ingredients?.length
-    ? `${result.productName}|${result.brand}|${makeProfileKey(userProfile!)}|${lang}`
+    ? `${makeIngredientsKey(result)}|${makeProfileKey(userProfile!)}|${lang}`
     : '';
 
   useEffect(() => {
