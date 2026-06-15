@@ -26,7 +26,7 @@ const en: Translations = {
     ingredients: "Ingredients",
     usage: "Usage",
     benefits: "Benefits",
-    sideEffects: "Side Effects",
+    sideEffects: "Known Sensitivities",
     warnings: "Warnings",
     interactions: "Interactions",
     shelfLife: "Shelf Life & Storage",
