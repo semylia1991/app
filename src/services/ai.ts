@@ -94,6 +94,8 @@ export interface AnalysisResult {
   shopLinks?: ShopLink[];
   // Optional: populated when userProfile is passed to analyzeProductImage
   personalNote?: string;
+  // Optional: "Pay Attention" criteria — persisted to scan history
+  criteria?: { emoji: string; label: string; explanation: string }[];
   // Internal: image hash for lazy details cache lookup (not persisted)
   _imageHash?: string | null;
 }
