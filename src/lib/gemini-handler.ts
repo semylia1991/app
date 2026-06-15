@@ -305,12 +305,12 @@ Formatting Rules:
 💧 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
 
-- sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
-🟡 [translated side effect category name]:
-• [Ingredient] [description of potential reaction]
+- sideEffects: This is the "Known Sensitivities" section — frame everything as a COSMETIC observation, NOT a medical/pharmacological effect. Use the same style as benefits — emojis, bullet points, category headers. Translate ALL category names. Group by type of skin sensitivity (e.g. possible irritation, sensitivities for certain skin types, sensitivities from overuse). Use cosmetic phrasing: "May cause irritation if applied directly", "Known sensitivity for certain skin types", "Avoid if sensitive to…". NEVER use medical/drug terms like "side effect", "adverse reaction", "contraindicated", or "used to treat". Use DOUBLE NEWLINES between categories:
+🟡 [translated sensitivity category name]:
+• [Ingredient] [cosmetic description, e.g. "may cause irritation if applied directly"]
 
-🔴 [translated side effect category name]:
-• [Ingredient] [description of potential reaction]
+🔴 [translated sensitivity category name]:
+• [Ingredient] [cosmetic description, e.g. "avoid if sensitive to this ingredient"]
 
 - interactions: Write a DETAILED section using emojis, categories and bullet points. Translate ALL category names AND block titles. The section MUST be split into TWO clearly labeled blocks separated by a divider line (---). Use DOUBLE NEWLINES between categories:
 
@@ -629,12 +629,12 @@ NEVER invent data — if information is not found, write "Data not found in publ
 💧 [translated benefit category name]:
 • [Ingredient/Mechanism] [description]
 
-- sideEffects: Use the same style as benefits — emojis, bullet points, category headers. Group by type of reaction (e.g. skin irritation, allergic reactions, overuse effects). Use DOUBLE NEWLINES between categories:
-🟡 [translated side effect category name]:
-• [Ingredient] [description of potential reaction]
+- sideEffects: This is the "Known Sensitivities" section — frame everything as a COSMETIC observation, NOT a medical/pharmacological effect. Use the same style as benefits — emojis, bullet points, category headers. Group by type of skin sensitivity (e.g. possible irritation, sensitivities for certain skin types, sensitivities from overuse). Use cosmetic phrasing: "May cause irritation if applied directly", "Known sensitivity for certain skin types", "Avoid if sensitive to…". NEVER use medical/drug terms like "side effect", "adverse reaction", "contraindicated", or "used to treat". Use DOUBLE NEWLINES between categories:
+🟡 [translated sensitivity category name]:
+• [Ingredient] [cosmetic description, e.g. "may cause irritation if applied directly"]
 
-🔴 [translated side effect category name]:
-• [Ingredient] [description of potential reaction]
+🔴 [translated sensitivity category name]:
+• [Ingredient] [cosmetic description, e.g. "avoid if sensitive to this ingredient"]
 
 - warnings: brief markdown paragraph. Mention allergies and contraindications. If user's known allergies are listed in the profile, address them here.
 
