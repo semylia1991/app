@@ -164,9 +164,20 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     if (fetchKey === fetchKeyRef.current) return;
     fetchKeyRef.current = fetchKey;
 
+    // 1. Criteria already stored in the scan result (loaded from history) → use directly
+    const stored = (result as any).criteria;
+    if (Array.isArray(stored) && stored.length > 0) {
+      criteriaCache.set(fetchKey, stored);
+      setCriteria(stored);
+      setLoading(false);
+      return;
+    }
+
+    // 2. In-memory cache (prefetched this session)
     const cached = criteriaCache.get(fetchKey);
     if (cached) { setCriteria(cached); setLoading(false); return; }
 
+    // 3. Fetch fresh
     let cancelled = false;
     setLoading(true);
     setError(null);
