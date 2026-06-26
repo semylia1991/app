@@ -145,7 +145,7 @@ const PT = {
 function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: Language }) {
   const [showIgnored, setShowIgnored] = useState(false);
   const score = table.score ?? 0;
-  const color = score >= 8 ? '#2D9B5A' : score >= 5 ? '#E8A020' : '#D94040';
+  const color = score >= 80 ? '#2D9B5A' : score >= 50 ? '#E8A020' : '#D94040';
   const tt = (m: Record<string, string>) => m[lang] ?? m.en;
   const note = table.capped ? tt(PT.capped) : table.uncertain ? tt(PT.approx) : '';
 
@@ -154,7 +154,7 @@ function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: L
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '9px 13px', background: 'rgba(255,255,255,0.55)', border: `1.5px solid ${color}33`, borderRadius: 13 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 46 }}>
           <span style={{ fontSize: '1.65rem', fontWeight: 800, color, lineHeight: 1, fontFamily: 'var(--font-sans)' }}>{score}</span>
-          <span style={{ fontSize: '0.66rem', color, opacity: 0.7 }}>/10</span>
+          <span style={{ fontSize: '0.66rem', color, opacity: 0.7 }}>/100</span>
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{tt(PT.title)}</div>
@@ -168,7 +168,7 @@ function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: L
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ fontSize: '0.82rem', lineHeight: 1, flexShrink: 0 }}>{col.emoji}</span>
               <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 500, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{col.label}</span>
-              <span style={{ fontSize: '0.69rem', color: '#8A8078', flexShrink: 0 }}>{col.score}/10</span>
+              <span style={{ fontSize: '0.69rem', color: '#8A8078', flexShrink: 0 }}>{col.score}/100</span>
             </div>
             <div style={{ paddingLeft: 22, marginTop: 3, display: 'flex', flexWrap: 'wrap', columnGap: 10, rowGap: 2 }}>
               {col.cells.map((cell, j) => (
