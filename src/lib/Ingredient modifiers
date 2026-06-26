@@ -2073,3 +2073,8 @@ for (const row of INGREDIENT_MODIFIERS) {
 export function getModifierRows(ingredientName: string): ModifierRow[] {
   return MODIFIER_INDEX.get(ingredientName.toLowerCase()) ?? [];
 }
+
+/** True if the ingredient has at least one modifier row in the static table. */
+export function hasModifiers(ingredientName: string): boolean {
+  return MODIFIER_INDEX.has(ingredientName.toLowerCase());
+}
