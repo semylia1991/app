@@ -6,7 +6,7 @@ import { supabase, ScanRecord } from '../lib/supabase';
 import { t, Language } from '../i18n';
 import { AnalysisResult, computeProductScore } from '../services/ai';
 
-interface Criterion { emoji: string; label: string; explanation: string; }
+interface Criterion { emoji: string; label: string; explanation: string; ingredient?: string; relevant?: boolean; }
 
 interface Props {
   lang: Language;
@@ -96,7 +96,7 @@ export function CompareSection({ lang, current, currentCriteria, user, onRegiste
   const SKIP_LABELS = /ничего|nothing|none|unknown|keine|нічого|ninguno|aucun|nessuno|bilinmiyor/i;
 
   const renderCriteria = (criteria: Criterion[]) => {
-    const filtered = criteria.filter(c => !SKIP_LABELS.test(c.label));
+    const filtered = criteria.filter(c => c.relevant !== false && !SKIP_LABELS.test(c.label));
     if (!filtered.length) return (
       <span style={{ color: '#8A8078', fontStyle: 'italic', fontSize: '0.72rem' }}>
         {tt.compareNoPersonalNote}
