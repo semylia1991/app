@@ -1471,7 +1471,17 @@ PRODUCT TYPE: ${(result as any).productType ?? ""}
 INGREDIENTS:
 ${ingredients}
 
-Return ONLY valid JSON: { "criteria": [ { "emoji": "✅"|"⚠️"|"⛔️", "label": "<single preference value in ${language}>", "explanation": "<1-2 sentences in ${language}, name specific ingredient(s)>" } ] }
+Return ONLY valid JSON: { "criteria": [ { "emoji": "✅"|"⚠️"|"⛔️", "label": "<single preference value in ${language}>", "ingredient": "<exact INCI name from the list that drives this verdict, or empty string if none>", "relevant": true|false, "explanation": "<1-2 sentences in ${language}, name specific ingredient(s)>" } ] }
+
+RELEVANCE — THE MOST IMPORTANT RULE:
+- A preference is RELEVANT only if at least ONE ingredient in the list above measurably helps or harms it.
+- For every preference value still output exactly ONE item (do not silently drop any), but:
+    • If a specific ingredient drives the verdict → set "relevant": true and put that exact INCI name in "ingredient".
+    • If NO ingredient in the list affects this preference → set "relevant": false, "ingredient": "", emoji "⚠️",
+      and explanation "no relevant ingredient found" (translated to ${language}).
+- NEVER fabricate a connection just to make a preference look relevant. If unsure whether an ingredient truly
+  affects the preference, mark "relevant": false. The client hides everything with "relevant": false, so being
+  honest here is what keeps the list short and accurate.
 
 CRITICAL RULES:
 - EACH preference value = EXACTLY ONE item. NEVER combine multiple values into one label.
@@ -1485,7 +1495,8 @@ CRITICAL RULES:
 - emoji: ✅ beneficial, ⚠️ unclear/mixed (default when uncertain), ⛔️ problematic
 - label: the specific preference value translated to ${language}. One value only. NEVER camelCase.
 - explanation: name the responsible ingredient(s). Mild phrasing: may, can, tends to. No medical advice. Max ~20 words.
-- ALLERGIES: each allergy = its own item. Match found → ⛔️. No match → ✅ "no matching ingredient detected".
+- ingredient: copy the exact INCI name from the INGREDIENTS list. Leave "" only when "relevant" is false.
+- ALLERGIES: each allergy = its own item. Match found → relevant true, ⛔️, name the ingredient. No match → relevant false.
 - Translate ALL text to ${language}.
 - DETERMINISM: Be consistent. For the same ingredients and preferences, always produce the same emoji and explanation. Base your judgment strictly on the ingredient list — do not introduce variation. List criteria in the same order as the preferences appear above.
 - Keep explanations factual and concise — name the specific ingredient, state its effect on that criterion. Avoid creative variation in wording.`;
@@ -1504,9 +1515,11 @@ CRITICAL RULES:
                 properties: {
                   emoji:       { type: Type.STRING },
                   label:       { type: Type.STRING },
+                  ingredient:  { type: Type.STRING },
+                  relevant:    { type: Type.BOOLEAN },
                   explanation: { type: Type.STRING },
                 },
-                required: ["emoji", "label", "explanation"],
+                required: ["emoji", "label", "ingredient", "relevant", "explanation"],
               },
             },
           },
