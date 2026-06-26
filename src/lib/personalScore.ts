@@ -11,6 +11,7 @@
 import type { Ingredient } from '../services/ai';
 import type { UserProfile } from '../components/UserProfile';
 import { lookupIngredient } from './ingredients-db';
+import { getModifierRows, type ModifierRow } from './ingredient-modifiers';
 
 // ── Ingredient name → penalty/bonus rules ──────────────────────────────────
 
@@ -868,10 +869,10 @@ export function computeAutonomousScore(
 // One direct contraindication shouldn't be outvoted by unrelated bonuses.
 // Flip CONFLICT_CAP_ENABLED to false for a plain (uncapped) average.
 const CONFLICT_CAP_ENABLED = true;
-const CONFLICT_CAP_VALUE    = 5;
+const CONFLICT_CAP_VALUE    = 50;   // 0–100 scale
 
-// Cell numeric values used to roll the table up into a score.
-const EMOJI_SCORE: Record<'✅' | '⚠️' | '⛔️', number> = { '✅': 10, '⚠️': 6, '⛔️': 1 };
+// Cell numeric values (0–100) used to roll fallback (rule-based) cells into a score.
+const EMOJI_SCORE: Record<'✅' | '⚠️' | '⛔️', number> = { '✅': 100, '⚠️': 60, '⛔️': 10 };
 
 function emojiFromDelta(delta: number): '✅' | '⚠️' | '⛔️' {
   if (delta > 0)  return '✅';
@@ -880,8 +881,8 @@ function emojiFromDelta(delta: number): '✅' | '⚠️' | '⛔️' {
 }
 
 function emojiFromScore(score: number): '✅' | '⚠️' | '⛔️' {
-  if (score >= 7)   return '✅';
-  if (score >= 3.5) return '⚠️';
+  if (score >= 70)   return '✅';
+  if (score >= 35)   return '⚠️';
   return '⛔️';
 }
 
@@ -944,6 +945,123 @@ function cellDelta(ingredientName: string, field: string, value: string): number
   return delta;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CSV MODIFIER SOURCE  (primary source for the preference table)
+// ───────────────────────────────────────────────────────────────────────────
+// ingredient_modifiers_full.csv gives, per (ingredient, productType, field,
+// value), an ABSOLUTE 0–100 suitability score + optional status override +
+// localized reason. This is the PRIMARY signal; PROFILE_RULES (cellDelta) are
+// only consulted when the CSV has no row for a given (ingredient, criterion).
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Map app-internal profile value codes → CSV criteria_value tokens.
+const CSV_VALUE_MAP: Record<string, { field: string; value: string }> = {
+  // skinType
+  skinOily:                 { field: 'skinType',        value: 'oily' },
+  skinDry:                  { field: 'skinType',        value: 'dry' },
+  // skinSensitivity
+  sensFragrances:           { field: 'skinSensitivity', value: 'fragrance_sensitive' },
+  sensAlcohol:              { field: 'skinSensitivity', value: 'alcohol_sensitive' },
+  sensEssentialOils:        { field: 'skinSensitivity', value: 'essential_oil_sensitive' },
+  sensIrritationAfterCare:  { field: 'skinSensitivity', value: 'sensitive' },
+  sensReactionNewProducts:  { field: 'skinSensitivity', value: 'sensitive' },
+  // skinConditions
+  condBreakouts:            { field: 'skinConditions',  value: 'acne' },
+  condBlackheads:           { field: 'skinConditions',  value: 'acne' },
+  condRedness:              { field: 'skinConditions',  value: 'redness' },
+  condIrritation:           { field: 'skinConditions',  value: 'redness' },
+  condUnevenTone:           { field: 'skinConditions',  value: 'hyperpigmentation' },
+  condDarkSpots:            { field: 'skinConditions',  value: 'hyperpigmentation' },
+  condPigmentation:         { field: 'skinConditions',  value: 'hyperpigmentation' },
+  condDullness:             { field: 'skinConditions',  value: 'dullness' },
+  // ageRange (only anti_age exists in CSV; map the mature buckets to it)
+  age3545:                  { field: 'ageRange',        value: 'anti_age' },
+  age4550:                  { field: 'ageRange',        value: 'anti_age' },
+  age50plus:                { field: 'ageRange',        value: 'anti_age' },
+  // scalpCondition
+  scalpOily:                { field: 'scalpCondition',  value: 'oily_scalp' },
+  scalpDry:                 { field: 'scalpCondition',  value: 'dry_scalp' },
+  // hairProblems
+  hairDryDamaged:           { field: 'hairProblems',    value: 'damaged_hair' },
+  hairFrizzy:               { field: 'hairProblems',    value: 'damaged_hair' },
+  hairBrittle:              { field: 'hairProblems',    value: 'damaged_hair' },
+  // climate
+  climateSunny:             { field: 'climate',         value: 'sunny' },
+  climateHumid:             { field: 'climate',         value: 'hot_humid' },
+  climateDry:               { field: 'climate',         value: 'dry_cold' },
+  climateCold:              { field: 'climate',         value: 'dry_cold' },
+  climateWindy:             { field: 'climate',         value: 'dry_cold' },
+};
+
+// Map app product category → CSV product_type token.
+function csvProductType(category: keyof typeof RELEVANT_FIELDS_BY_CATEGORY): string {
+  if (category === 'lips') return 'lips_eyes';
+  if (category === 'face') return 'face';
+  if (category === 'body') return 'body';
+  if (category === 'hair') return 'hair';
+  return 'face'; // 'nails' / 'other' → fall back to generic face rows
+}
+
+function ptMatch(rowPt: string, wantedPt: string): boolean {
+  return rowPt === '*' || rowPt === wantedPt;
+}
+
+/**
+ * Result of a CSV modifier lookup for one (ingredient, field, value, productType).
+ * Returns null when the CSV has no applicable row (→ caller falls back to rules).
+ */
+interface CsvCell {
+  score: number;          // 0–100 absolute suitability (clamped)
+  emoji: '✅' | '⚠️' | '⛔️';
+  override?: string;      // raw status override if present
+}
+
+function csvCellScore(
+  ingredientName: string,
+  field: string,
+  value: string,
+  csvPt: string,
+): CsvCell | null {
+  // Translate app field+value → CSV token. A wildcard ('*','*') row always
+  // applies regardless of field/value, so we accept those too.
+  const map = CSV_VALUE_MAP[value];
+  const wantField = map?.field ?? field;
+  const wantValue = map?.value ?? value;
+
+  const rows: ModifierRow[] = getModifierRows(ingredientName);
+  if (rows.length === 0) return null;
+
+  // Specificity: a row matching the exact field+value beats a wildcard row;
+  // an exact productType beats a '*' productType.
+  let best: { row: ModifierRow; rank: number } | null = null;
+  for (const row of rows) {
+    const [, rowPt, rowField, rowValue] = row;
+    if (!ptMatch(rowPt, csvPt)) continue;
+
+    const fieldExact = rowField === wantField;
+    const valueExact = rowValue === wantValue;
+    const wild = rowField === '*' && rowValue === '*';
+    if (!((fieldExact && valueExact) || wild)) continue;
+
+    // rank: prefer exact field/value (+2), then exact productType (+1)
+    let rank = 0;
+    if (fieldExact && valueExact) rank += 2;
+    if (rowPt !== '*') rank += 1;
+    if (!best || rank > best.rank) best = { row, rank };
+  }
+  if (!best) return null;
+
+  const cell = best.row[4];
+  const score100 = Math.min(100, Math.max(0, Math.round(cell.s)));
+  let emoji: '✅' | '⚠️' | '⛔️';
+  if (cell.o === '🟢') emoji = '✅';
+  else if (cell.o === '🔴') emoji = '⛔️';
+  else if (cell.o === '🟡') emoji = '⚠️';
+  else emoji = score100 >= 70 ? '✅' : score100 >= 35 ? '⚠️' : '⛔️';
+
+  return { score: score100, emoji, override: cell.o };
+}
+
 /**
  * Deterministic preference-match table + score.
  * @param ingredients product INCI list
@@ -963,6 +1081,7 @@ export function computePreferenceTable(
   if (!ingredients || ingredients.length === 0) return empty;
 
   const allowedFields = RELEVANT_FIELDS_BY_CATEGORY[detectCategory(productType)];
+  const csvPt = csvProductType(detectCategory(productType));
 
   // Candidate columns = selected preference values within the allowed fields.
   const candidates: { field: string; value: string; label: string }[] = [];
@@ -984,14 +1103,30 @@ export function computePreferenceTable(
 
   for (const cand of candidates) {
     const cells: PreferenceCell[] = [];
+    let scoreSum = 0;   // running sum of 0–10 per-cell scores
+    let scoreN   = 0;   // number of contributing cells
     for (const ing of ingredients) {
+      // 1) PRIMARY: absolute CSV modifier score (0–100 → 0–10) for this criterion.
+      const csv = csvCellScore(ing.name, cand.field, cand.value, csvPt);
+      if (csv) {
+        cells.push({ ingredient: ing.name, emoji: csv.emoji });
+        matched.add(ing.name);
+        scoreSum += csv.score;
+        scoreN++;
+        continue;
+      }
+      // 2) FALLBACK: hard-coded PROFILE_RULES delta → emoji → EMOJI_SCORE.
       const d = cellDelta(ing.name, cand.field, cand.value);
       if (d === 0) continue;
-      cells.push({ ingredient: ing.name, emoji: emojiFromDelta(d) });
+      const emoji = emojiFromDelta(d);
+      cells.push({ ingredient: ing.name, emoji });
       matched.add(ing.name);
+      scoreSum += EMOJI_SCORE[emoji];
+      scoreN++;
     }
     if (cells.length === 0) continue; // criterion not relevant for this list — omit
-    const colScore = cells.reduce((s, c) => s + EMOJI_SCORE[c.emoji], 0) / cells.length;
+
+    const colScore = scoreN > 0 ? scoreSum / scoreN : 0;
     columns.push({
       field: cand.field,
       value: cand.value,
