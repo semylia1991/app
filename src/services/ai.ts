@@ -47,8 +47,11 @@ export function computeProductScore(ingredients: Ingredient[]): number | null {
   let totalWeight = 0;
 
   ingredients.forEach((ing, idx) => {
-    // Position-based weight: first ingredient = highest weight
-    const weight = 1 / (idx + 1);
+    // Position-based weight: first ingredient = highest weight.
+    // Softened from 1/(idx+1) to 1/√(idx+1) so problematic ingredients in the
+    // middle/tail of the list still move the score (the old curve gave the
+    // first 2–3 positions ~60% of the total weight, masking everything after).
+    const weight = 1 / Math.sqrt(idx + 1);
     let s: number;
     if (typeof ing.score === 'number') {
       s = ing.score;
@@ -95,7 +98,7 @@ export interface AnalysisResult {
   // Optional: populated when userProfile is passed to analyzeProductImage
   personalNote?: string;
   // Optional: "Pay Attention" criteria — persisted to scan history
-  criteria?: { emoji: string; label: string; explanation: string }[];
+  criteria?: { emoji: string; label: string; explanation: string; ingredient?: string; relevant?: boolean }[];
   // Internal: image hash for lazy details cache lookup (not persisted)
   _imageHash?: string | null;
 }
