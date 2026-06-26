@@ -5,6 +5,7 @@ import { AnalysisResult, SerializedProfile } from '../services/ai';
 import { UserProfile } from './UserProfile';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { computePreferenceTable, PreferenceTable } from '../lib/personalScore';
 
 interface Props {
   lang: Language;
@@ -21,6 +22,8 @@ export interface Criterion {
   emoji: string;
   label: string;
   explanation: string;
+  ingredient?: string;
+  relevant?: boolean;
 }
 
 const FUNCTION_URL = '/api/gemini';
@@ -78,6 +81,9 @@ async function fetchCriteria(
     emoji: c.emoji ?? '⚠️',
     label: c.label ?? '',
     explanation: c.explanation ?? '',
+    ingredient: c.ingredient ?? '',
+    // Default true for backward compatibility with criteria cached before this field existed.
+    relevant: c.relevant !== false,
   })).filter((c: Criterion) => c.label);
 }
 
@@ -122,6 +128,65 @@ function CriterionRow({ c, lang }: { c: Criterion; lang: Language }) {
             ? <span style={{ fontSize: '0.78rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.55 }}>{c.explanation}</span>
             : <span style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic' }}>{LOADING[lang] ?? LOADING.en}</span>
           }
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Preference-match table (deterministic, from PROFILE_RULES) ────────────────
+const PT = {
+  title:    { en:'Preference match', ru:'Соответствие предпочтениям', de:'Übereinstimmung', uk:'Відповідність уподобанням', es:'Coincidencia', fr:'Correspondance', it:'Corrispondenza', tr:'Tercih uyumu' },
+  approx:   { en:'approximate — few signals', ru:'ориентировочно — мало данных', de:'ungefähr — wenige Signale', uk:'орієнтовно — мало даних', es:'aproximado — pocas señales', fr:'approximatif — peu de signaux', it:'approssimativo — pochi segnali', tr:'yaklaşık — az veri' },
+  capped:   { en:'limited — direct conflict present', ru:'ограничено — есть прямой конфликт', de:'begrenzt — direkter Konflikt', uk:'обмежено — прямий конфлікт', es:'limitado — conflicto directo', fr:'plafonné — conflit direct', it:'limitato — conflitto diretto', tr:'sınırlı — doğrudan çatışma' },
+  noEffect: { en:'No effect on preferences', ru:'Не влияют на предпочтения', de:'Ohne Einfluss', uk:'Не впливають', es:'Sin efecto', fr:'Sans effet', it:'Senza effetto', tr:'Etkisiz' },
+};
+
+function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: Language }) {
+  const [showIgnored, setShowIgnored] = useState(false);
+  const score = table.score ?? 0;
+  const color = score >= 8 ? '#2D9B5A' : score >= 5 ? '#E8A020' : '#D94040';
+  const tt = (m: Record<string, string>) => m[lang] ?? m.en;
+  const note = table.capped ? tt(PT.capped) : table.uncertain ? tt(PT.approx) : '';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '9px 13px', background: 'rgba(255,255,255,0.55)', border: `1.5px solid ${color}33`, borderRadius: 13 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 46 }}>
+          <span style={{ fontSize: '1.65rem', fontWeight: 800, color, lineHeight: 1, fontFamily: 'var(--font-sans)' }}>{score}</span>
+          <span style={{ fontSize: '0.66rem', color, opacity: 0.7 }}>/10</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{tt(PT.title)}</div>
+          {note && <div style={{ fontSize: '0.69rem', color: '#8A8078', fontStyle: 'italic', marginTop: 2 }}>{note}</div>}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {table.columns.map((col, i) => (
+          <div key={i}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ fontSize: '0.82rem', lineHeight: 1, flexShrink: 0 }}>{col.emoji}</span>
+              <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 500, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{col.label}</span>
+              <span style={{ fontSize: '0.69rem', color: '#8A8078', flexShrink: 0 }}>{col.score}/10</span>
+            </div>
+            <div style={{ paddingLeft: 22, marginTop: 3, display: 'flex', flexWrap: 'wrap', columnGap: 10, rowGap: 2 }}>
+              {col.cells.map((cell, j) => (
+                <span key={j} style={{ fontSize: '0.72rem', color: '#5A5550', fontFamily: 'var(--font-serif)' }}>{cell.emoji} {cell.ingredient}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {table.ignoredIngredients.length > 0 && (
+        <div onClick={() => setShowIgnored(s => !s)} style={{ cursor: 'pointer' }}>
+          <span style={{ fontSize: '0.7rem', color: '#8A8078' }}>{tt(PT.noEffect)}: {table.ignoredIngredients.length}</span>
+          {showIgnored && (
+            <div style={{ marginTop: 3, fontSize: '0.69rem', color: '#A8A098', lineHeight: 1.5, fontFamily: 'var(--font-serif)' }}>
+              {table.ignoredIngredients.join(', ')}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -227,33 +292,53 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     </div>
   );
 
-  if (loading) return (
-    <div className="flex items-center gap-2 py-3">
-      <Loader2 size={13} className="text-[#B8923A] animate-spin" />
-      <span style={{ fontSize: '0.78rem', color: '#B8923A', fontFamily: 'var(--font-sans)' }}>{t(L.analysing, lang)}</span>
-    </div>
-  );
+  // Deterministic preference-match table + score (no AI, instant, from PROFILE_RULES).
+  const prefTable = computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang);
+  const tableEl = prefTable.score !== null ? <PreferenceScoreTable table={prefTable} lang={lang} /> : null;
 
-  if (error) return (
-    <div className="flex items-center gap-2 py-2">
-      <p className="text-xs text-red-400 italic flex-1">{error}</p>
-      <button onClick={handleRetry} className="text-xs text-[#B8923A] underline">{t(L.retry, lang)}</button>
-    </div>
-  );
+  // AI criteria are a GAP-FILLER: show only those not already covered by the
+  // deterministic table, so the table stays authoritative and no contradictory
+  // duplicate rows appear for the same preference.
+  const tableLabels = new Set(prefTable.columns.map(c => c.label.toLowerCase().trim()));
 
-  if (!criteria) return (
-    <div className="flex items-center gap-2 py-3">
-      <Loader2 size={13} className="text-[#B8923A] animate-spin" />
-      <span style={{ fontSize: '0.78rem', color: '#B8923A', fontFamily: 'var(--font-sans)' }}>{t(L.analysing, lang)}</span>
-    </div>
-  );
+  let statusEl: React.ReactNode = null;
+  if (loading || !criteria) {
+    statusEl = (
+      <div className="flex items-center gap-2 py-3">
+        <Loader2 size={13} className="text-[#B8923A] animate-spin" />
+        <span style={{ fontSize: '0.78rem', color: '#B8923A', fontFamily: 'var(--font-sans)' }}>{t(L.analysing, lang)}</span>
+      </div>
+    );
+  } else if (error) {
+    statusEl = (
+      <div className="flex items-center gap-2 py-2">
+        <p className="text-xs text-red-400 italic flex-1">{error}</p>
+        <button onClick={handleRetry} className="text-xs text-[#B8923A] underline">{t(L.retry, lang)}</button>
+      </div>
+    );
+  } else {
+    // Show only criteria the model judged relevant AND not already in the table.
+    // `relevant !== false` keeps legacy cached criteria (saved before that field existed) visible.
+    const visible = criteria.filter(c =>
+      c.relevant !== false &&
+      !SKIP_LABELS.test(c.label) &&
+      !tableLabels.has(c.label.toLowerCase().trim())
+    );
+    if (visible.length) {
+      statusEl = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {visible.map((c, i) => <CriterionRow key={i} c={c} lang={lang} />)}
+        </div>
+      );
+    }
+  }
 
-  const visible = criteria.filter(c => !SKIP_LABELS.test(c.label));
-  if (!visible.length) return null;
+  if (!tableEl && !statusEl) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {visible.map((c, i) => <CriterionRow key={i} c={c} lang={lang} />)}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {tableEl}
+      {statusEl}
     </div>
   );
 }
