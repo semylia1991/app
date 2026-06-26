@@ -5,6 +5,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { INGREDIENTS_DB } from "./ingredients-db.js";
+import { hasModifiers } from "./ingredient-modifiers.js";
 
 // ── Supabase REST helpers (for ingredient_extras community cache) ──────────
 // Uses fetch() directly — no @supabase/supabase-js dependency in the server.
@@ -96,6 +97,104 @@ async function saveIngredientExtra(
     });
   } catch (e) {
     console.warn('[ingredient_extras] save failed:', e);
+  }
+}
+
+// ── Supabase REST helpers (for ingredient_modifier_extras community cache) ──
+// Mirrors the ingredient_extras flow above, but for the profile-aware
+// "preference match" modifiers used by the «Обрати внимание» block.
+// Each row maps (ingredient, productType, criteriaField, criteriaValue) →
+// absolute 0–100 suitability score + optional status override + reason.
+// Expected Supabase RPCs (same shape/pattern as get/upsert_ingredient_extras):
+//   get_ingredient_modifiers(p_names text[])        → rows below
+//   upsert_ingredient_modifier(p_inci_name, p_product_type, p_criteria_field,
+//     p_criteria_value, p_score_mod, p_status_override, p_lang, p_reason)
+interface IngredientModifierRow {
+  inci_name:       string;
+  product_type:    string;
+  criteria_field:  string;
+  criteria_value:  string;
+  score_mod:       number;
+  status_override: string | null;
+  reason:          string;
+}
+
+/**
+ * Batch lookup modifier rows for the given ingredient names in Supabase.
+ * Returns a map ingredient name → its modifier rows. Failures are silent.
+ */
+async function fetchIngredientModifiers(
+  names: string[],
+  langCode: string,
+): Promise<Map<string, IngredientModifierRow[]>> {
+  const out = new Map<string, IngredientModifierRow[]>();
+  if (names.length === 0) return out;
+  const cfg = getSupabaseConfig();
+  if (!cfg) return out;
+
+  try {
+    const res = await fetch(`${cfg.url}/rest/v1/rpc/get_ingredient_modifiers`, {
+      method: 'POST',
+      headers: {
+        'apikey': cfg.key,
+        'Authorization': `Bearer ${cfg.key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_names: names, p_lang: langCode }),
+    });
+    if (!res.ok) return out;
+    const rows = await res.json() as IngredientModifierRow[];
+    for (const r of rows) {
+      if (!r?.inci_name) continue;
+      const arr = out.get(r.inci_name);
+      if (arr) arr.push(r);
+      else out.set(r.inci_name, [r]);
+    }
+  } catch (e) {
+    console.warn('[ingredient_modifiers] fetch failed:', e);
+  }
+  return out;
+}
+
+/**
+ * Upsert one AI-generated modifier row into the community cache.
+ * Fire-and-forget — failures don't block the user response.
+ */
+async function saveIngredientModifier(
+  inciName: string,
+  productType: string,
+  criteriaField: string,
+  criteriaValue: string,
+  scoreMod: number,
+  statusOverride: string | null,
+  langCode: string,
+  reason: string,
+): Promise<void> {
+  const cfg = getSupabaseConfig();
+  if (!cfg) return;
+  if (!reason || reason.trim().length <= 1) return;
+
+  try {
+    await fetch(`${cfg.url}/rest/v1/rpc/upsert_ingredient_modifier`, {
+      method: 'POST',
+      headers: {
+        'apikey': cfg.key,
+        'Authorization': `Bearer ${cfg.key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        p_inci_name:       inciName,
+        p_product_type:    productType,
+        p_criteria_field:  criteriaField,
+        p_criteria_value:  criteriaValue,
+        p_score_mod:       Math.round(scoreMod),
+        p_status_override: statusOverride,
+        p_lang:            langCode,
+        p_reason:          reason.trim(),
+      }),
+    });
+  } catch (e) {
+    console.warn('[ingredient_modifiers] save failed:', e);
   }
 }
 
@@ -907,6 +1006,172 @@ ${unknownNames.map(n => `- ${n}`).join('\n')}
   }
 }
 
+// ── Background AI enrichment for the «Обрати внимание» modifier cache ────────
+// For ingredients that are NOT in the static INGREDIENT_MODIFIERS table (and
+// not already cached in Supabase), ask the AI to produce per-criterion
+// suitability modifiers and store them in `ingredient_modifier_extras`, so the
+// preference-match table can use real data next time instead of guessing.
+// Same principle as enrichUnknownsInBackground, but for profile modifiers.
+//
+// Criteria taxonomy mirrors ingredient_modifiers_full.csv exactly:
+//   product_type:   face | lips_eyes | body | hair | *
+//   criteria_field: skinType | skinSensitivity | skinConditions | ageRange |
+//                   climate | scalpCondition | hairProblems | *
+//   criteria_value: oily, dry | sensitive, fragrance_sensitive,
+//                   alcohol_sensitive, essential_oil_sensitive |
+//                   acne, redness, hyperpigmentation, dullness | anti_age |
+//                   sunny, dry_cold, hot_humid | oily_scalp, dry_scalp |
+//                   damaged_hair | *
+async function enrichModifiersInBackground(
+  ai: GoogleGenAI,
+  unknownNames: string[],
+  langCode: string,
+): Promise<void> {
+  if (unknownNames.length === 0) return;
+  if (unknownNames.length > 8) unknownNames = unknownNames.slice(0, 8); // cap to stay within timeout
+
+  const langName = Object.entries(LANGUAGE_NAME_TO_CODE).find(([, c]) => c === langCode)?.[0] ?? 'english';
+  const langNameCapitalized = langName.charAt(0).toUpperCase() + langName.slice(1);
+
+  const prompt = `
+You are a cosmetic safety analyst. For each INCI ingredient below, output its
+profile-aware suitability modifiers: how well it suits specific user criteria.
+
+Output ONLY valid JSON with this exact shape:
+{
+  "items": [
+    {
+      "ingredient": "<lowercase INCI as given>",
+      "modifiers": [
+        {
+          "product_type":    "face|lips_eyes|body|hair|*",
+          "criteria_field":  "skinType|skinSensitivity|skinConditions|ageRange|climate|scalpCondition|hairProblems|*",
+          "criteria_value":  "<one allowed value below, or * with field *>",
+          "score_mod":       <0-100 integer absolute suitability for that criterion>,
+          "status_override": "🟢|🟡|🔴|null",
+          "reason":          "<3-10 words in ${langNameCapitalized}>"
+        }
+      ]
+    }
+  ]
+}
+
+ALLOWED criteria_value PER criteria_field (use EXACTLY these tokens):
+- skinType:        oily | dry
+- skinSensitivity: sensitive | fragrance_sensitive | alcohol_sensitive | essential_oil_sensitive
+- skinConditions:  acne | redness | hyperpigmentation | dullness
+- ageRange:        anti_age
+- climate:         sunny | dry_cold | hot_humid
+- scalpCondition:  oily_scalp | dry_scalp
+- hairProblems:    damaged_hair
+- "*":             "*"   (a universal row that applies to any criterion)
+
+RULES:
+- score_mod: 0-100 absolute suitability. 70-100 = good ✅, 35-69 = caution ⚠️, 0-34 = bad ⛔️.
+- status_override: set 🟢/🟡/🔴 ONLY when you want to force the verdict regardless of score; otherwise "null".
+- Only emit modifiers that are TRUE and MEANINGFUL for the ingredient. Do NOT invent connections.
+- A neutral filler ingredient may have just ONE row with product_type "*", criteria_field "*", criteria_value "*" and a mid score (~70).
+- Emit at most 6 modifiers per ingredient. Skip ingredients you do not actually know.
+- reason: 3-10 words in ${langNameCapitalized}, factual, names the effect.
+- Output ONLY valid JSON, no markdown.
+
+INGREDIENTS:
+${unknownNames.map(n => `- ${n}`).join('\n')}
+`.trim();
+
+  const ALLOWED: Record<string, string[]> = {
+    skinType:        ['oily', 'dry'],
+    skinSensitivity: ['sensitive', 'fragrance_sensitive', 'alcohol_sensitive', 'essential_oil_sensitive'],
+    skinConditions:  ['acne', 'redness', 'hyperpigmentation', 'dullness'],
+    ageRange:        ['anti_age'],
+    climate:         ['sunny', 'dry_cold', 'hot_humid'],
+    scalpCondition:  ['oily_scalp', 'dry_scalp'],
+    hairProblems:    ['damaged_hair'],
+    '*':             ['*'],
+  };
+  const ALLOWED_PT = ['face', 'lips_eyes', 'body', 'hair', '*'];
+
+  try {
+    const response = await generateWithRetry(ai, {
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            items: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  ingredient: { type: Type.STRING },
+                  modifiers: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        product_type:    { type: Type.STRING },
+                        criteria_field:  { type: Type.STRING },
+                        criteria_value:  { type: Type.STRING },
+                        score_mod:       { type: Type.NUMBER },
+                        status_override: { type: Type.STRING },
+                        reason:          { type: Type.STRING },
+                      },
+                      required: ['product_type', 'criteria_field', 'criteria_value', 'score_mod', 'status_override', 'reason'],
+                    },
+                  },
+                },
+                required: ['ingredient', 'modifiers'],
+              },
+            },
+          },
+          required: ['items'],
+        },
+        temperature: 0.2,
+      },
+    }, 'enrichModifiers', MODEL_LITE);
+
+    const parsed = JSON.parse(response.text ?? '{}');
+    const items = (parsed?.items ?? []) as Array<{
+      ingredient: string;
+      modifiers: Array<{
+        product_type: string; criteria_field: string; criteria_value: string;
+        score_mod: number; status_override: string; reason: string;
+      }>;
+    }>;
+
+    const saves: Promise<void>[] = [];
+    let validCount = 0;
+    for (const it of items) {
+      const ing = (it.ingredient ?? '').trim().toLowerCase();
+      if (!ing || !Array.isArray(it.modifiers)) continue;
+      for (const m of it.modifiers) {
+        const pt    = (m.product_type ?? '').trim();
+        const field = (m.criteria_field ?? '').trim();
+        const value = (m.criteria_value ?? '').trim();
+        // Validate against the fixed taxonomy — drop anything off-spec.
+        if (!ALLOWED_PT.includes(pt)) continue;
+        if (!ALLOWED[field] || !ALLOWED[field].includes(value)) continue;
+        const score = Math.round(Number(m.score_mod));
+        if (!Number.isFinite(score) || score < 0 || score > 110) continue;
+        let override: string | null = (m.status_override ?? '').trim();
+        if (!['🟢', '🟡', '🔴'].includes(override)) override = null;
+        if (!m.reason || m.reason.trim().length <= 1) continue;
+        validCount++;
+        saves.push(saveIngredientModifier(
+          ing, pt, field, value, score, override, langCode, m.reason.trim(),
+        ));
+      }
+    }
+    await Promise.allSettled(saves);
+    if (validCount > 0) {
+      console.log(`[ingredient_modifiers] background-enriched ${validCount} modifier rows`);
+    }
+  } catch (e) {
+    console.warn('[ingredient_modifiers] background enrichment failed:', e);
+  }
+}
+
 async function applyLocalDbEnrichment(
   rawJson: string,
   language?: string,
@@ -1528,6 +1793,35 @@ CRITICAL RULES:
         temperature: 0,
       },
     }, "personalNote");
+
+    // ── Background: enrich the modifier cache for unknown ingredients ────────
+    // Same principle as the ingredients block: any INCI not covered by the
+    // static INGREDIENT_MODIFIERS table (and not yet in the Supabase modifier
+    // cache) gets AI-generated profile modifiers saved to Supabase, so the
+    // «Обрати внимание» preference table uses real data next time.
+    try {
+      const langCode = LANGUAGE_NAME_TO_CODE[(language ?? "").toLowerCase()] ?? "en";
+      const rawIngredients: any[] = Array.isArray((result as any).ingredients)
+        ? (result as any).ingredients : [];
+      const allNames = [...new Set(
+        rawIngredients
+          .map(i => String(i?.name ?? '').trim().toLowerCase())
+          .filter(Boolean),
+      )];
+      // Drop the ones already in the static table.
+      const notStatic = allNames.filter(n => !hasModifiers(n));
+      if (notStatic.length > 0) {
+        // Drop the ones already cached in Supabase, then enrich the rest.
+        const cached = await fetchIngredientModifiers(notStatic, langCode);
+        const trulyUnknown = notStatic.filter(n => !cached.has(n));
+        if (trulyUnknown.length > 0) {
+          void enrichModifiersInBackground(ai, trulyUnknown, langCode);
+        }
+      }
+    } catch (e) {
+      console.warn('[ingredient_modifiers] personalNote enrich trigger failed:', e);
+    }
+
     return { status: 200, rawText: response.text ?? "" };
   }
 
