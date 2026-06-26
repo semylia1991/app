@@ -5,7 +5,8 @@ import { AnalysisResult, SerializedProfile } from '../services/ai';
 import { UserProfile } from './UserProfile';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { computePreferenceTable, PreferenceTable } from '../lib/personalScore';
+import { computePreferenceTable, PreferenceTable, registerExtraModifiers, clearExtraModifiers } from '../lib/personalScore';
+import type { ModifierRow, ModifierReason } from '../lib/ingredient-modifiers';
 
 interface Props {
   lang: Language;
@@ -211,6 +212,9 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
   const [error, setError]       = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const fetchKeyRef = useRef<string>('');
+  // Bumped after Supabase-cached modifiers are loaded, to recompute the table.
+  const [extrasVersion, setExtrasVersion] = useState(0);
+  const extrasKeyRef = useRef<string>('');
 
   const hasProfile = !!userProfile && (
     userProfile.skinType.length > 0 || userProfile.skinConditions.length > 0 ||
@@ -260,6 +264,51 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     return () => { cancelled = true; };
   }, [fetchKey]);
 
+  // ── Load Supabase-cached modifiers for unknown ingredients ────────────────
+  // Ingredients missing from the static table may have AI-generated modifiers
+  // saved in Supabase by previous scans. Pull them so the preference table
+  // scores those ingredients with real data instead of skipping them.
+  useEffect(() => {
+    const names = (result?.ingredients ?? [])
+      .map(i => String(i?.name ?? '').trim().toLowerCase())
+      .filter(Boolean);
+    const key = `${result?.productName}|${result?.brand}|${lang}`;
+    if (names.length === 0 || key === extrasKeyRef.current) return;
+    extrasKeyRef.current = key;
+
+    let cancelled = false;
+    const langCode = lang;
+    clearExtraModifiers();
+
+    supabase
+      .rpc('get_ingredient_modifiers', { p_names: [...new Set(names)], p_lang: langCode })
+      .then(({ data, error }) => {
+        if (cancelled || error || !Array.isArray(data) || data.length === 0) return;
+        const rows: ModifierRow[] = data.map((r: any) => {
+          const reasonText = String(r.reason ?? '');
+          const reason: ModifierReason = {
+            en: reasonText, ru: reasonText, de: reasonText, uk: reasonText,
+            es: reasonText, fr: reasonText, it: reasonText, tr: reasonText,
+          };
+          return [
+            String(r.inci_name ?? '').toLowerCase(),
+            String(r.product_type ?? '*'),
+            String(r.criteria_field ?? '*'),
+            String(r.criteria_value ?? '*'),
+            {
+              s: Number(r.score_mod ?? 70),
+              o: r.status_override ? String(r.status_override) : undefined,
+              r: reason,
+            },
+          ] as ModifierRow;
+        });
+        registerExtraModifiers(rows);
+        setExtrasVersion(v => v + 1); // trigger table recompute
+      });
+
+    return () => { cancelled = true; };
+  }, [result?.productName, result?.brand, lang]);
+
   const handleSignIn = async () => {
     setSigningIn(true);
     await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
@@ -292,7 +341,10 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     </div>
   );
 
-  // Deterministic preference-match table + score (no AI, instant, from PROFILE_RULES).
+  // Deterministic preference-match table + score (instant, from the modifier
+  // table + Supabase cache). extrasVersion forces a recompute once cached
+  // modifiers for unknown ingredients have loaded.
+  void extrasVersion;
   const prefTable = computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang);
   const tableEl = prefTable.score !== null ? <PreferenceScoreTable table={prefTable} lang={lang} /> : null;
 
