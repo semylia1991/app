@@ -296,7 +296,7 @@ export function computePersonalScore(
   let totalWeight = 0;
 
   ingredients.forEach((ing, idx) => {
-    const weight = 1 / (idx + 1);
+    const weight = 1 / Math.sqrt(idx + 1);
     const score = adjustedIngredientScore(ing, profile);
     weightedSum += score * weight;
     totalWeight += weight;
@@ -343,7 +343,7 @@ export function scoreForSinglePreference(
   let weightedSum = 0;
   let totalWeight = 0;
   ingredients.forEach((ing, idx) => {
-    const weight = 1 / (idx + 1);
+    const weight = 1 / Math.sqrt(idx + 1);
     weightedSum += adjustedIngredientScore(ing, synthetic) * weight;
     totalWeight += weight;
   });
@@ -524,7 +524,7 @@ export function computeQuantumScore(
   let unknownCount = 0;
 
   ingredients.forEach((ing, idx) => {
-    const weight = 1 / (idx + 1);
+    const weight = 1 / Math.sqrt(idx + 1);
     const adjusted = adjustedIngredientScore(ing, profile);
 
     // Uncertainty: if the ingredient has no explicit score AND no DB entry,
@@ -759,7 +759,7 @@ export function computeAutonomousScore(
 
   for (let idx = 0; idx < ingredients.length; idx++) {
     const ing    = ingredients[idx];
-    const weight = 1 / (idx + 1);
+    const weight = 1 / Math.sqrt(idx + 1);
     const base   = statusNeutralBase(ing.status);
     const delta  = profileDeltaForIngredient(ing, profile);
 
@@ -849,5 +849,181 @@ export function computeAutonomousScore(
     conflictCount,
     benefitCount,
     matches: matchesFinal,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PREFERENCE TABLE  (deterministic — source = PROFILE_RULES only, "variant 1")
+// ───────────────────────────────────────────────────────────────────────────
+// Builds a sparse ingredient × criterion table and ONE 0–10 "preference match"
+// score, derived entirely from PROFILE_RULES. No AI call, fully deterministic.
+//
+// This answers a DIFFERENT question than computeProductScore: not "is the
+// formula good in the abstract" but "does this product suit the SELECTED
+// preferences". A clean formula can still score low here (e.g. fragrance for a
+// fragrance-sensitive profile).
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Cap the overall score when at least one criterion is a hard conflict (⛔️).
+// One direct contraindication shouldn't be outvoted by unrelated bonuses.
+// Flip CONFLICT_CAP_ENABLED to false for a plain (uncapped) average.
+const CONFLICT_CAP_ENABLED = true;
+const CONFLICT_CAP_VALUE    = 5;
+
+// Cell numeric values used to roll the table up into a score.
+const EMOJI_SCORE: Record<'✅' | '⚠️' | '⛔️', number> = { '✅': 10, '⚠️': 6, '⛔️': 1 };
+
+function emojiFromDelta(delta: number): '✅' | '⚠️' | '⛔️' {
+  if (delta > 0)  return '✅';
+  if (delta < -2) return '⛔️';
+  return '⚠️';
+}
+
+function emojiFromScore(score: number): '✅' | '⚠️' | '⛔️' {
+  if (score >= 7)   return '✅';
+  if (score >= 3.5) return '⚠️';
+  return '⛔️';
+}
+
+// Skip "unknown / none / any" pseudo-values — they carry no analytical meaning.
+const PREF_SKIP_VALUE = /unknown|none|^any$|climateany/i;
+
+// Which profile fields are meaningful for each product category.
+// Mirrors the server-side relevance table in gemini-handler (personalNote action).
+const RELEVANT_FIELDS_BY_CATEGORY: Record<string, string[]> = {
+  hair:  ['hairType', 'scalpCondition', 'hairProblems', 'climate'],
+  face:  ['skinType', 'skinSensitivity', 'skinConditions', 'ageRange', 'climate'],
+  body:  ['bodySkinType', 'climate'],
+  lips:  ['skinSensitivity', 'climate'],
+  nails: [],
+  other: ['skinSensitivity', 'climate'],
+};
+
+function detectCategory(productType: string): keyof typeof RELEVANT_FIELDS_BY_CATEGORY {
+  const t = (productType || '').toLowerCase();
+  if (/shampoo|conditioner|hair|scalp|волос|шампун|кондиционер|haar/.test(t))         return 'hair';
+  if (/lip|губ|lippen|lèvres|labbra|dudak/.test(t))                                    return 'lips';
+  if (/nail|cuticle|ногт|nagel|ongle|unghia|tırnak/.test(t))                           return 'nails';
+  if (/body|hand cream|foot cream|тела|для рук|для ног|körper|corps|corpo|vücut/.test(t)) return 'body';
+  if (/face|facial|serum|toner|cleanser|sunscreen|spf|moistur|essence|micellar|лиц|сыворот|тонер|очищ|крем|gesicht|sérum|viso/.test(t)) return 'face';
+  return 'other';
+}
+
+export interface PreferenceCell {
+  ingredient: string;
+  emoji: '✅' | '⚠️' | '⛔️';
+}
+
+export interface PreferenceColumn {
+  field: string;
+  value: string;
+  label: string;                 // localized criterion label
+  emoji: '✅' | '⚠️' | '⛔️';      // overall verdict for this criterion
+  score: number;                 // 0–10, one decimal
+  cells: PreferenceCell[];       // ingredients that affect this criterion
+}
+
+export interface PreferenceTable {
+  columns: PreferenceColumn[];   // only criteria with ≥1 matching ingredient
+  ignoredIngredients: string[];  // ingredients that affect no criterion
+  score: number | null;          // overall 0–10 (integer); null when no columns
+  capped: boolean;               // overall score was capped by a ⛔️ conflict
+  uncertain: boolean;            // few columns or mostly ⚠️ — show "approximate"
+}
+
+// Aggregate the PROFILE_RULES delta for one ingredient against one (field,value).
+function cellDelta(ingredientName: string, field: string, value: string): number {
+  const n = ingredientName.toLowerCase();
+  let delta = 0;
+  for (const rule of PROFILE_RULES) {
+    if (!rule.match.some(m => matchesIngredient(n, m))) continue;
+    const condValues = (rule.conditions as Record<string, string[]>)[field];
+    if (!condValues || !condValues.includes(value)) continue;
+    delta += rule.delta;
+  }
+  return delta;
+}
+
+/**
+ * Deterministic preference-match table + score.
+ * @param ingredients product INCI list
+ * @param profile     user profile
+ * @param productType used to scope which preference fields are relevant
+ * @param lang        label language
+ */
+export function computePreferenceTable(
+  ingredients: Ingredient[],
+  profile: UserProfile,
+  productType: string = '',
+  lang: string = 'en',
+): PreferenceTable {
+  const empty: PreferenceTable = {
+    columns: [], ignoredIngredients: [], score: null, capped: false, uncertain: false,
+  };
+  if (!ingredients || ingredients.length === 0) return empty;
+
+  const allowedFields = RELEVANT_FIELDS_BY_CATEGORY[detectCategory(productType)];
+
+  // Candidate columns = selected preference values within the allowed fields.
+  const candidates: { field: string; value: string; label: string }[] = [];
+  for (const field of allowedFields) {
+    const raw = (profile as unknown as Record<string, unknown>)[field];
+    const values: string[] = Array.isArray(raw) ? raw as string[] : (raw ? [String(raw)] : []);
+    const labelMap = PREFERENCE_LABELS[field];
+    if (!labelMap) continue;
+    for (const value of values) {
+      if (!value || PREF_SKIP_VALUE.test(value)) continue;
+      const lmap = labelMap[value];
+      if (!lmap) continue;
+      candidates.push({ field, value, label: lmap[lang] ?? lmap['en'] ?? value });
+    }
+  }
+
+  const matched = new Set<string>();
+  const columns: PreferenceColumn[] = [];
+
+  for (const cand of candidates) {
+    const cells: PreferenceCell[] = [];
+    for (const ing of ingredients) {
+      const d = cellDelta(ing.name, cand.field, cand.value);
+      if (d === 0) continue;
+      cells.push({ ingredient: ing.name, emoji: emojiFromDelta(d) });
+      matched.add(ing.name);
+    }
+    if (cells.length === 0) continue; // criterion not relevant for this list — omit
+    const colScore = cells.reduce((s, c) => s + EMOJI_SCORE[c.emoji], 0) / cells.length;
+    columns.push({
+      field: cand.field,
+      value: cand.value,
+      label: cand.label,
+      score: Math.round(colScore * 10) / 10,
+      emoji: emojiFromScore(colScore),
+      cells,
+    });
+  }
+
+  if (columns.length === 0) return empty;
+
+  const ignoredIngredients = ingredients
+    .map(i => i.name)
+    .filter(name => !matched.has(name));
+
+  let overall = columns.reduce((s, c) => s + c.score, 0) / columns.length;
+  const hasConflict = columns.some(c => c.emoji === '⛔️');
+  let capped = false;
+  if (CONFLICT_CAP_ENABLED && hasConflict && overall > CONFLICT_CAP_VALUE) {
+    overall = CONFLICT_CAP_VALUE;
+    capped = true;
+  }
+
+  const warnShare = columns.filter(c => c.emoji === '⚠️').length / columns.length;
+  const uncertain = columns.length < 2 || warnShare > 0.5;
+
+  return {
+    columns,
+    ignoredIngredients,
+    score: Math.round(overall),
+    capped,
+    uncertain,
   };
 }
