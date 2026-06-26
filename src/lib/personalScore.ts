@@ -1016,6 +1016,38 @@ interface CsvCell {
   override?: string;      // raw status override if present
 }
 
+// ── Runtime registry for Supabase-cached modifiers ─────────────────────────
+// The static INGREDIENT_MODIFIERS table ships with the code. Ingredients that
+// were unknown at build time get AI-generated modifiers saved to Supabase by
+// the server (enrichModifiersInBackground). The client can load those rows for
+// the current product and register them here so the preference table treats
+// previously-unknown ingredients exactly like known ones.
+const EXTRA_MODIFIERS = new Map<string, ModifierRow[]>();
+
+/** Merge externally-loaded modifier rows (e.g. from Supabase) into the registry. */
+export function registerExtraModifiers(rows: ModifierRow[]): void {
+  for (const row of rows) {
+    const key = row[0].toLowerCase();
+    const arr = EXTRA_MODIFIERS.get(key);
+    if (arr) arr.push(row);
+    else EXTRA_MODIFIERS.set(key, [row]);
+  }
+}
+
+/** Clear the runtime registry (call when switching products). */
+export function clearExtraModifiers(): void {
+  EXTRA_MODIFIERS.clear();
+}
+
+/** Static rows + any registered Supabase-cached rows for an ingredient. */
+function allModifierRows(ingredientName: string): ModifierRow[] {
+  const stat  = getModifierRows(ingredientName);
+  const extra = EXTRA_MODIFIERS.get(ingredientName.toLowerCase());
+  if (!extra || extra.length === 0) return stat;
+  if (stat.length === 0) return extra;
+  return [...stat, ...extra];
+}
+
 function csvCellScore(
   ingredientName: string,
   field: string,
@@ -1028,7 +1060,7 @@ function csvCellScore(
   const wantField = map?.field ?? field;
   const wantValue = map?.value ?? value;
 
-  const rows: ModifierRow[] = getModifierRows(ingredientName);
+  const rows: ModifierRow[] = allModifierRows(ingredientName);
   if (rows.length === 0) return null;
 
   // Specificity: a row matching the exact field+value beats a wildcard row;
