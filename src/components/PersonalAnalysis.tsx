@@ -215,6 +215,12 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
   // Bumped after Supabase-cached modifiers are loaded, to recompute the table.
   const [extrasVersion, setExtrasVersion] = useState(0);
   const extrasKeyRef = useRef<string>('');
+  // Deterministic score cached in Supabase (product+profile+lang). When present
+  // it overrides the freshly-computed score so reloads always show the same
+  // number, even while the modifier cache is still warming up.
+  const [cachedScore, setCachedScore] = useState<{ score: number; capped: boolean; uncertain: boolean } | null>(null);
+  const scoreKeyRef = useRef<string>('');
+  const extrasReadyRef = useRef<boolean>(false);
 
   const hasProfile = !!userProfile && (
     userProfile.skinType.length > 0 || userProfile.skinConditions.length > 0 ||
@@ -279,35 +285,103 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     let cancelled = false;
     const langCode = lang;
     clearExtraModifiers();
+    extrasReadyRef.current = false;
 
     supabase
       .rpc('get_ingredient_modifiers', { p_names: [...new Set(names)], p_lang: langCode })
       .then(({ data, error }) => {
-        if (cancelled || error || !Array.isArray(data) || data.length === 0) return;
-        const rows: ModifierRow[] = data.map((r: any) => {
-          const reasonText = String(r.reason ?? '');
-          const reason: ModifierReason = {
-            en: reasonText, ru: reasonText, de: reasonText, uk: reasonText,
-            es: reasonText, fr: reasonText, it: reasonText, tr: reasonText,
-          };
-          return [
-            String(r.inci_name ?? '').toLowerCase(),
-            String(r.product_type ?? '*'),
-            String(r.criteria_field ?? '*'),
-            String(r.criteria_value ?? '*'),
-            {
-              s: Number(r.score_mod ?? 70),
-              o: r.status_override ? String(r.status_override) : undefined,
-              r: reason,
-            },
-          ] as ModifierRow;
-        });
-        registerExtraModifiers(rows);
-        setExtrasVersion(v => v + 1); // trigger table recompute
+        if (cancelled) return;
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const rows: ModifierRow[] = data.map((r: any) => {
+            const reasonText = String(r.reason ?? '');
+            const reason: ModifierReason = {
+              en: reasonText, ru: reasonText, de: reasonText, uk: reasonText,
+              es: reasonText, fr: reasonText, it: reasonText, tr: reasonText,
+            };
+            return [
+              String(r.inci_name ?? '').toLowerCase(),
+              String(r.product_type ?? '*'),
+              String(r.criteria_field ?? '*'),
+              String(r.criteria_value ?? '*'),
+              {
+                s: Number(r.score_mod ?? 70),
+                o: r.status_override ? String(r.status_override) : undefined,
+                r: reason,
+              },
+            ] as ModifierRow;
+          });
+          registerExtraModifiers(rows);
+        }
+        // Modifier cache is now "warm" for this product (whether or not rows
+        // were found) → safe to persist the deterministic score.
+        extrasReadyRef.current = true;
+        setExtrasVersion(v => v + 1); // trigger table recompute + score persist
       });
 
     return () => { cancelled = true; };
   }, [result?.productName, result?.brand, lang]);
+
+  // ── Read cached deterministic score (product + profile + lang) ────────────
+  // If a score was computed and stored before, reuse it verbatim so the number
+  // is identical on every reload.
+  const scoreKey = (user && hasProfile && result?.ingredients?.length)
+    ? `${result.productName}|${result.brand}|${makeProfileKey(userProfile!)}|${lang}`
+    : '';
+
+  useEffect(() => {
+    if (!scoreKey || scoreKey === scoreKeyRef.current) return;
+    scoreKeyRef.current = scoreKey;
+    setCachedScore(null);
+
+    let cancelled = false;
+    supabase
+      .rpc('get_preference_score', { p_key: scoreKey })
+      .then(({ data, error }) => {
+        if (cancelled || error || !Array.isArray(data) || data.length === 0) return;
+        const row = data[0];
+        if (typeof row?.score === 'number') {
+          setCachedScore({
+            score: row.score,
+            capped: !!row.capped,
+            uncertain: !!row.uncertain,
+          });
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [scoreKey]);
+
+  // ── Persist the deterministic score once the modifier cache is warm ───────
+  // Runs after Supabase modifiers have loaded (extrasReadyRef). Only writes
+  // when there was no cached score yet — the first warm computation wins and
+  // every later reload reads it back, so the number never drifts.
+  useEffect(() => {
+    if (!scoreKey) return;
+    if (!extrasReadyRef.current) return;   // wait until modifier cache is warm
+    if (cachedScore) return;               // already have a stored score
+    if (!user || !hasProfile) return;
+    const tbl = computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang);
+    if (tbl.score === null) return;        // nothing to store
+
+    let cancelled = false;
+    supabase
+      .rpc('upsert_preference_score', {
+        p_key:       scoreKey,
+        p_score:     tbl.score,
+        p_capped:    tbl.capped,
+        p_uncertain: tbl.uncertain,
+        p_payload:   null,
+      })
+      .then(() => {
+        if (cancelled) return;
+        // Adopt the stored value locally so this session is stable too.
+        setCachedScore({ score: tbl.score as number, capped: tbl.capped, uncertain: tbl.uncertain });
+      });
+
+    return () => { cancelled = true; };
+    // extrasVersion is included so this re-runs after modifiers finish loading.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoreKey, extrasVersion, cachedScore]);
 
   const handleSignIn = async () => {
     setSigningIn(true);
@@ -345,7 +419,13 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
   // table + Supabase cache). extrasVersion forces a recompute once cached
   // modifiers for unknown ingredients have loaded.
   void extrasVersion;
-  const prefTable = computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang);
+  const computedTable = computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang);
+
+  // If a deterministic score was cached in Supabase, show it verbatim so the
+  // number is identical across reloads. Otherwise use the freshly computed one.
+  const prefTable: PreferenceTable = cachedScore
+    ? { ...computedTable, score: cachedScore.score, capped: cachedScore.capped, uncertain: cachedScore.uncertain }
+    : computedTable;
   const tableEl = prefTable.score !== null ? <PreferenceScoreTable table={prefTable} lang={lang} /> : null;
 
   // AI criteria are a GAP-FILLER: show only those not already covered by the
