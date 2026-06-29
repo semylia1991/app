@@ -20,6 +20,38 @@ function normalizeName(name: string): string {
     .trim();
 }
 
+/**
+ * Rebuild an ingredient list from the authoritative product_scores row.
+ *
+ * The canonical row (name + status + score) is the single source of truth, so
+ * EVERY scan of the same product shows an identical list and badge — regardless
+ * of small variations in what the AI read this time. Descriptions are carried
+ * over from the current ingredients by name match when available; any gaps are
+ * refilled by hydrate() / the lazy per-ingredient fetch in the UI.
+ *
+ * Returns a NEW array; inputs are not mutated. If the canonical row is empty,
+ * the original list is returned unchanged (defensive — never blank out a card).
+ */
+function applyCanonicalCard(
+  current: Ingredient[],
+  canonical: { ingredients: Array<{ name: string; status: string; score: number }> },
+): Ingredient[] {
+  if (!canonical?.ingredients?.length) return current;
+
+  // Map current descriptions by normalized name so we don't lose localized text.
+  const descByName = new Map<string, string>();
+  for (const ing of current ?? []) {
+    if (ing.description) descByName.set(normalizeName(ing.name), ing.description);
+  }
+
+  return canonical.ingredients.map(i => ({
+    name:        i.name,
+    status:      i.status as Ingredient['status'],
+    score:       Number(i.score),
+    description: descByName.get(normalizeName(i.name)) ?? '',
+  }));
+}
+
 export interface Ingredient {
   name: string;
   status: "🟢" | "🟡" | "🔴";
@@ -574,16 +606,13 @@ export async function analyzeProductImageStream(
   // Step 1: race the fastest path — hash cache (cheapest, ~150ms)
   const hashCached = await hashCachePromise;
   if (hashCached) {
-    // Apply canonical scores even to cached results — in case this product
-    // was cached before product_scores table existed, or scored differently.
+    // Apply the canonical product card so a cached result matches the
+    // authoritative row exactly (handles products cached before product_scores
+    // existed, or scored differently at the time).
     if (hashCached.productName && hashCached.brand) {
       const canonical = await getCanonicalScore(hashCached.brand, hashCached.productName).catch(() => null);
       if (canonical) {
-        const sm = new Map<string, number>(canonical.ingredients.map(i => [normalizeName(i.name), Number(i.score)]));
-        hashCached.ingredients = hashCached.ingredients.map(ing => {
-          const s = sm.get(normalizeName(ing.name));
-          return s !== undefined ? { ...ing, score: s } : ing;
-        });
+        hashCached.ingredients = applyCanonicalCard(hashCached.ingredients, canonical);
       }
     }
     queueMicrotask(() => onLateUpdate({
@@ -609,14 +638,10 @@ export async function analyzeProductImageStream(
       language,
     ).catch(() => null);
     if (nameCached) {
-      // Apply canonical scores (same as hash hit path)
+      // Apply the canonical product card (same as hash-hit path)
       const canonical2 = await getCanonicalScore(nameCached.brand, nameCached.productName).catch(() => null);
       if (canonical2) {
-        const sm = new Map<string, number>(canonical2.ingredients.map(i => [normalizeName(i.name), Number(i.score)]));
-        nameCached.ingredients = nameCached.ingredients.map(ing => {
-          const s = sm.get(normalizeName(ing.name));
-          return s !== undefined ? { ...ing, score: s } : ing;
-        });
+        nameCached.ingredients = applyCanonicalCard(nameCached.ingredients, canonical2);
       }
       if (imageHash) {
         saveToCache(nameCached.productName, nameCached.brand, language, nameCached, imageHash).catch(() => {});
@@ -651,19 +676,16 @@ export async function analyzeProductImageStream(
   let canonicalIngredients = fast.ingredients;
   if (fast.productName && fast.brand) {
     const existing = await getCanonicalScore(fast.brand, fast.productName).catch(() => null);
-    if (existing) {
-      // Restore canonical ingredient scores from the stored authoritative row.
-      // This ensures the score badge is identical across all languages/scans.
-      const scoreMap = new Map<string, number>(
-        existing.ingredients.map(i => [normalizeName(i.name), Number(i.score)])
-      );
-      canonicalIngredients = fast.ingredients.map(ing => {
-        const s = scoreMap.get(normalizeName(ing.name));
-        return s !== undefined ? { ...ing, score: s } : ing;
-      });
-      console.log('[product_scores] HIT:', fast.brand, fast.productName, '→', existing.score);
+    if (existing && existing.ingredients.length > 0) {
+      // ── Canonical product card: first scan defines the card forever ─────────
+      // Rebuild the list ENTIRELY from the stored authoritative row so repeat
+      // scans show an identical ingredient list + score, even if the AI read a
+      // slightly different set this time. hydrate() refills descriptions.
+      canonicalIngredients = applyCanonicalCard(fast.ingredients, existing);
+      console.log('[product_scores] HIT (full card):', fast.brand, fast.productName, '→', existing.score);
     } else {
-      // First scan — save the score so future scans use this value.
+      // First scan — save the score AND the ingredient list so every future
+      // scan reproduces this exact card. First writer wins (ON CONFLICT DO NOTHING).
       const computedScore = computeProductScore(fast.ingredients);
       if (computedScore !== null) {
         saveCanonicalScore(
