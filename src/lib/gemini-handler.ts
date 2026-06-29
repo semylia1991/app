@@ -1393,7 +1393,13 @@ export async function handleGeminiRequest(
         parts: [
           { text: `Look at this cosmetic product photo and extract ONLY the product name and the brand name.
 Return strict JSON with exactly two fields: "productName" and "brand".
-If you cannot read either, return an empty string for that field.
+
+CANONICALIZATION RULES (critical — the same physical product MUST yield identical output every time):
+- "brand": the canonical brand name in Latin script, exactly as the company writes it (e.g. "CeraVe", "La Roche-Posay", "The Ordinary"). No legal suffixes (Inc, GmbH, S.A.), no taglines.
+- "productName": the product line name as printed on the package. Do NOT include: volume/size (30ml, 50g, 1.7oz), region/edition tags (EU, US, Travel Size), batch text, or marketing adjectives ("New", "Improved", "Limited").
+- Use the singular canonical spelling. Do not translate the name into another language; keep it as printed.
+- If you cannot read either field, return an empty string for that field.
+
 Do not analyze ingredients. Do not write descriptions. Just identify.` },
           { inlineData: { data: imageData, mimeType } },
         ],
@@ -1408,7 +1414,9 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
           },
           required: ["productName", "brand"],
         },
-        temperature: 0.1,
+        // Deterministic: same photo of the same product → same name/brand → cache key is stable.
+        temperature: 0,
+        topP: 1,
         maxOutputTokens: 60,
       },
     });
@@ -1445,8 +1453,12 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
       config: {
         responseMimeType: "application/json",
         responseSchema: buildAnalysisFastSchema(withNote),
-        temperature: 0.4,
-        topP: 0.9,
+        // Deterministic: reading ingredients off a label is a perception task,
+        // not a creative one. temperature 0 → the same product yields the same
+        // ingredient list on every scan. Descriptions are filled from the local
+        // DB via hydrate(), so lowering temperature does not flatten the text.
+        temperature: 0,
+        topP: 1,
       },
     }, "analyzeFast", MODEL_LITE);
     // ↑ MODEL_LITE (gemini-2.5-flash-lite) — ~2× faster than Flash 2.0 for this task.
@@ -1511,8 +1523,9 @@ Do not analyze ingredients. Do not write descriptions. Just identify.` },
       config: {
         responseMimeType: "application/json",
         responseSchema: buildAnalysisSchema(withNote),
-        temperature: 0.4,
-        topP: 0.9,
+        // Deterministic — same product → same ingredient list (see analyzeFast).
+        temperature: 0,
+        topP: 1,
       },
     }, "analyze");
 
