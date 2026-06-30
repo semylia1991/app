@@ -158,6 +158,44 @@ export async function hashImage(base64: string): Promise<string | null> {
   }
 }
 
+// ── Хэш состава (вторичный ключ дедупликации, вариант 4) ──────────────────────
+//
+// Stable SHA-256 over the SORTED, normalized, de-duplicated ingredient names.
+// Unlike the image hash (sensitive to angle/light) and the name key (sensitive
+// to AI naming drift), the composition is the product's true "fingerprint":
+// two photos of the same label yield the same ingredient set → the same hash.
+//
+// This is a POST-AI key — it needs the ingredient list, which only exists after
+// analyzeFast. It cannot skip the AI call; its job is to DEDUPE cards so a
+// repeat scan whose product name drifted ("Cream" vs "Lotion") still maps to
+// the one canonical card instead of spawning a divergent one.
+//
+// Returns null for empty input or on error (caller skips the key gracefully).
+export async function computeIngredientsHash(
+  ingredients: Array<{ name: string }>,
+): Promise<string | null> {
+  try {
+    if (!ingredients || ingredients.length === 0) return null;
+    const canonical = Array.from(
+      new Set(
+        ingredients
+          .map(i => normalizeIngredientName(i.name))
+          .filter(Boolean),
+      ),
+    ).sort();
+    if (canonical.length === 0) return null;
+    const joined = canonical.join('|');
+    const bytes = new TextEncoder().encode(joined);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  } catch (e) {
+    console.warn('[cache] computeIngredientsHash failed:', e);
+    return null;
+  }
+}
+
 // ── Cache key (по имени продукта) ─────────────────────────────────────────────
 
 /**
@@ -232,6 +270,30 @@ export async function getCachedByHash(
   }
 }
 
+// ── Уровень 1.6: поиск по хэшу состава (вторичный ключ, вариант 4) ────────────
+//
+// Finds an existing card whose ingredient composition matches, regardless of
+// how the product was named this time. Dedupes repeat scans with drifted names.
+// Mirrors getCachedByHash: one indexed SELECT, then hydrate() for the language.
+export async function getCachedByIngredients(
+  ingredientsHash: string,
+  lang: string,
+): Promise<AnalysisResult | null> {
+  if (!ingredientsHash) return null;
+  try {
+    const { data, error } = await supabase.rpc('get_cached_by_ingredients', {
+      p_ingredients_hash: ingredientsHash,
+      p_lang: lang,
+    });
+    if (error || !data) return null;
+    console.log('[cache] INGREDIENTS HIT:', ingredientsHash.slice(0, 12) + '…');
+    return await hydrate(data as AnalysisResult, toLangCode(lang));
+  } catch (e) {
+    console.warn('[cache] ingredients lookup error:', e);
+    return null;
+  }
+}
+
 // ── Уровень 2: поиск по имени продукта ───────────────────────────────────────
 
 export async function getCachedAnalysis(
@@ -293,14 +355,21 @@ export async function saveToCache(
     return entry ? { ...ing, description: '' } : ing;
   });
 
+  // Variant 4: compute the composition hash from the FULL ingredient list
+  // (use the original result, not the description-stripped copy — names are the
+  // same either way, but this keeps intent clear). Stored so future scans with
+  // a drifted product name can still find this exact card.
+  const ingredientsHash = await computeIngredientsHash(result.ingredients);
+
   try {
     const { error } = await supabase.rpc('cache_product', {
-      p_cache_key:    cacheKey,
-      p_product_name: productName,
-      p_brand:        brand,
-      p_lang:         lang,
-      p_result:       cacheable,
-      p_image_hash:   imageHash ?? null,
+      p_cache_key:        cacheKey,
+      p_product_name:     productName,
+      p_brand:            brand,
+      p_lang:             lang,
+      p_result:           cacheable,
+      p_image_hash:       imageHash ?? null,
+      p_ingredients_hash: ingredientsHash ?? null,
     });
     if (error) console.warn('[cache] write error:', error.message);
     else console.log('[cache] SAVED:', cacheKey);
@@ -317,10 +386,17 @@ export async function getCanonicalScore(
   productName: string,
 ): Promise<{ score: number; ingredients: Array<{ name: string; status: string; score: number }> } | null> {
   if (!brand || !productName) return null;
+  // Normalize with the SAME rules as the name cache (normCacheSegment) so the
+  // canonical-by-name lookup is just as tolerant to AI naming drift (case,
+  // diacritics, apostrophes, hyphens, volume/region suffixes). Read and write
+  // both normalize, so the keys always agree.
+  const nBrand = normCacheSegment(brand, 'brand');
+  const nName  = normCacheSegment(productName, 'name');
+  if (!nBrand || !nName) return null;
   try {
     const { data, error } = await supabase.rpc('get_product_score', {
-      p_brand:        brand,
-      p_product_name: productName,
+      p_brand:        nBrand,
+      p_product_name: nName,
     });
     if (error || !data || !data.length) return null;
     const row = data[0];
@@ -343,17 +419,22 @@ export async function saveCanonicalScore(
   ingredients: Array<{ name: string; status: string; score: number }>,
 ): Promise<void> {
   if (!brand || !productName || score == null) return;
+  // Normalize key with the SAME rules used on read (getCanonicalScore) and by
+  // the name cache, so "CeraVe" and "cerave" map to one canonical row.
+  const nBrand = normCacheSegment(brand, 'brand');
+  const nName  = normCacheSegment(productName, 'name');
+  if (!nBrand || !nName) return;
   // Strip descriptions before storing — language-agnostic
   const stripped = ingredients.map(({ name, status, score: s }) => ({ name, status, score: s }));
   try {
     const { error } = await supabase.rpc('save_product_score', {
-      p_brand:        brand,
-      p_product_name: productName,
+      p_brand:        nBrand,
+      p_product_name: nName,
       p_score:        score,
       p_ingredients:  stripped,
     });
     if (error) console.warn('[product_scores] save error:', error.message);
-    else console.log('[product_scores] SAVED:', brand, productName, score);
+    else console.log('[product_scores] SAVED:', nBrand, nName, score);
   } catch (e) {
     console.warn('[product_scores] save exception:', e);
   }
