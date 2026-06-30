@@ -1,7 +1,7 @@
 // All Gemini calls go through the Netlify Function /api/gemini.
 // The API key is NEVER sent to the browser.
 
-import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage, hydrate, toLangCode, getCanonicalScore, saveCanonicalScore } from './productCache';
+import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage, hydrate, toLangCode, getCanonicalScore, saveCanonicalScore, getCachedByIngredients, computeIngredientsHash } from './productCache';
 import { lookupIngredient } from '../lib/ingredients-db';
 
 const FUNCTION_URL = "/api/gemini";
@@ -668,6 +668,40 @@ export async function analyzeProductImageStream(
     usage: '', benefits: '', sideEffects: '', warnings: '',
     interactions: '', alternatives: [],
   };
+
+  // ── Variant 4: secondary dedup by composition hash ─────────────────────────
+  // The name cache (Step 2) can miss when the AI named the product slightly
+  // differently this time. The composition is a more stable fingerprint: if a
+  // prior card has the SAME normalized ingredient set, reuse it instead of
+  // building a divergent one. This is post-AI (analyzeFast already ran), so it
+  // costs no extra Gemini call — it only prevents duplicate/divergent cards.
+  const ingredientsHash = await computeIngredientsHash(fast.ingredients).catch(() => null);
+  if (ingredientsHash) {
+    const ingCached = await getCachedByIngredients(ingredientsHash, language).catch(() => null);
+    if (ingCached) {
+      // Apply the canonical card on the prior identity (same as other hit paths).
+      if (ingCached.productName && ingCached.brand) {
+        const canonical3 = await getCanonicalScore(ingCached.brand, ingCached.productName).catch(() => null);
+        if (canonical3) {
+          ingCached.ingredients = applyCanonicalCard(ingCached.ingredients, canonical3);
+        }
+      }
+      // Save the current image hash so a future scan of THIS exact photo hits L0.
+      if (imageHash) {
+        saveToCache(ingCached.productName, ingCached.brand, language, ingCached, imageHash).catch(() => {});
+      }
+      queueMicrotask(() => onLateUpdate({
+        usage:        ingCached.usage,
+        benefits:     ingCached.benefits,
+        sideEffects:  ingCached.sideEffects,
+        warnings:     ingCached.warnings,
+        interactions: ingCached.interactions,
+        alternatives: ingCached.alternatives,
+      }));
+      schedulePersonalNote(ingCached);
+      return ingCached;
+    }
+  }
 
   // ── Canonical score: same product always shows the same score ─────────────
   // On FIRST scan: compute score from ingredients, save to product_scores.
