@@ -233,6 +233,98 @@ export function buildCacheKey(productName: string, brand: string, lang: string):
   return `${normCacheSegment(brand, 'brand')}|${normCacheSegment(productName, 'name')}|${lang}`;
 }
 
+// ── Frozen translations (общий перевод свободного текста) ─────────────────────
+//
+// Language-INDEPENDENT product key: brand|name, normalized the same way as the
+// name cache. Used to store one frozen translation per language per product, so
+// every user in a given language sees the SAME translation and nobody re-pays
+// for a Gemini translate call once the first user has triggered it.
+export function canonicalProductKey(brand: string, productName: string): string | null {
+  const b = normCacheSegment(brand, 'brand');
+  const n = normCacheSegment(productName, 'name');
+  if (!b || !n) return null;
+  return `${b}|${n}`;
+}
+
+// Free-text payload of a translated card (everything except ingredients, which
+// are localized separately by hydrate(), and except personal/transient fields).
+type TranslatedPayload = Omit<AnalysisResult, 'ingredients' | 'personalNote' | 'shopLinks' | '_imageHash'>;
+
+// Read a frozen translation for (product, lang). Returns null on miss.
+export async function getFrozenTranslation(
+  productKey: string,
+  langCode: string,
+): Promise<TranslatedPayload | null> {
+  if (!productKey || langCode === 'en') return null; // 'en' is the source — no translation row
+  try {
+    const { data, error } = await supabase.rpc('get_translation', {
+      p_cache_key: productKey,
+      p_lang:      langCode,
+    });
+    if (error || !data) return null;
+    console.log('[translation] FROZEN HIT:', productKey, langCode);
+    return data as TranslatedPayload;
+  } catch (e) {
+    console.warn('[translation] get error:', e);
+    return null;
+  }
+}
+
+// Freeze a translation for (product, lang). First writer wins (ON CONFLICT DO
+// NOTHING in SQL) — so the translation, once set, is stable for all users.
+export async function saveFrozenTranslation(
+  productKey: string,
+  langCode: string,
+  payload: TranslatedPayload,
+): Promise<void> {
+  if (!productKey || langCode === 'en') return;
+  // Defensive strip of any personal/transient fields that must never be shared.
+  const { personalNote, shopLinks, _imageHash, ...clean } =
+    payload as TranslatedPayload & { personalNote?: unknown; shopLinks?: unknown; _imageHash?: unknown };
+  void personalNote; void shopLinks; void _imageHash;
+  try {
+    const { error } = await supabase.rpc('save_translation', {
+      p_cache_key: productKey,
+      p_lang:      langCode,
+      p_payload:   clean,
+    });
+    if (error) console.warn('[translation] save error:', error.message);
+    else console.log('[translation] FROZEN:', productKey, langCode);
+  } catch (e) {
+    console.warn('[translation] save exception:', e);
+  }
+}
+
+// ── Frozen personal texts (personalNote / AI criteria) ────────────────────────
+//
+// Generic first-writer-wins store for per-profile AI texts. The caller builds
+// the key: `${kind}|${ingredientsHash}|${profileKey}|${lang}` — everything the
+// text depends on. Same product + same profile + same language → same wording,
+// forever, with no repeat Gemini call.
+export async function getFrozenPersonalText<T>(key: string): Promise<T | null> {
+  if (!key) return null;
+  try {
+    const { data, error } = await supabase.rpc('get_personal_text', { p_key: key });
+    if (error || !data) return null;
+    console.log('[personal_texts] FROZEN HIT:', key.slice(0, 40) + '…');
+    return data as T;
+  } catch (e) {
+    console.warn('[personal_texts] get error:', e);
+    return null;
+  }
+}
+
+export async function saveFrozenPersonalText(key: string, payload: unknown): Promise<void> {
+  if (!key || payload == null) return;
+  try {
+    const { error } = await supabase.rpc('save_personal_text', { p_key: key, p_payload: payload });
+    if (error) console.warn('[personal_texts] save error:', error.message);
+    else console.log('[personal_texts] FROZEN:', key.slice(0, 40) + '…');
+  } catch (e) {
+    console.warn('[personal_texts] save exception:', e);
+  }
+}
+
 /**
  * Normalise an INCI ingredient name for canonical score matching.
  * Exported so App.tsx and other consumers can apply the same logic.
@@ -338,8 +430,11 @@ export async function saveToCache(
   if (!productName || !brand) return;
   const cacheKey = buildCacheKey(productName, brand, lang);
 
-  const { personalNote, shopLinks, ...cacheable } = result;
-  void personalNote; void shopLinks;
+  const { personalNote, shopLinks, canonicalScore, ...cacheable } = result;
+  void personalNote; void shopLinks; void canonicalScore;
+  // canonicalScore is intentionally NOT persisted in product_cache: its single
+  // source of truth is product_scores, re-attached at runtime on every read.
+  // Persisting it here would leave a stale copy if product_scores is rebuilt.
 
   // ── Strip ingredient descriptions before storing ───────────────────────────
   // Descriptions are language-specific. By dropping them for KNOWN ingredients
@@ -417,6 +512,7 @@ export async function saveCanonicalScore(
   productName: string,
   score: number,
   ingredients: Array<{ name: string; status: string; score: number }>,
+  ingredientsHash?: string | null,
 ): Promise<void> {
   if (!brand || !productName || score == null) return;
   // Normalize key with the SAME rules used on read (getCanonicalScore) and by
@@ -428,14 +524,38 @@ export async function saveCanonicalScore(
   const stripped = ingredients.map(({ name, status, score: s }) => ({ name, status, score: s }));
   try {
     const { error } = await supabase.rpc('save_product_score', {
-      p_brand:        nBrand,
-      p_product_name: nName,
-      p_score:        score,
-      p_ingredients:  stripped,
+      p_brand:            nBrand,
+      p_product_name:     nName,
+      p_score:            score,
+      p_ingredients:      stripped,
+      p_ingredients_hash: ingredientsHash ?? null,
     });
     if (error) console.warn('[product_scores] save error:', error.message);
     else console.log('[product_scores] SAVED:', nBrand, nName, score);
   } catch (e) {
     console.warn('[product_scores] save exception:', e);
+  }
+}
+
+// ── Canonical score by COMPOSITION (idea #3) ──────────────────────────────────
+//
+// Finds the frozen canonical row whose ingredient set matches, regardless of
+// what the AI named the product this time. This is the score-side twin of
+// getCachedByIngredients: even a full name drift cannot split the product into
+// two canonical rows with different scores.
+export async function getCanonicalScoreByIngredients(
+  ingredientsHash: string,
+): Promise<{ score: number; ingredients: Array<{ name: string; status: string; score: number }> } | null> {
+  if (!ingredientsHash) return null;
+  try {
+    const { data, error } = await supabase.rpc('get_product_score_by_ingredients', {
+      p_ingredients_hash: ingredientsHash,
+    });
+    if (error || !data) return null;
+    console.log('[product_scores] INGREDIENTS HIT:', ingredientsHash.slice(0, 12) + '…');
+    return data as { score: number; ingredients: Array<{ name: string; status: string; score: number }> };
+  } catch (e) {
+    console.warn('[product_scores] ingredients lookup error:', e);
+    return null;
   }
 }
