@@ -914,6 +914,9 @@ function detectCategory(productType: string): keyof typeof RELEVANT_FIELDS_BY_CA
 export interface PreferenceCell {
   ingredient: string;
   emoji: '✅' | '⚠️' | '⛔️';
+  // Absolute 0–100 suitability of THIS ingredient for THIS criterion.
+  // Used by the UI to rank importance and hide neutral (~70) components.
+  score: number;
   // Short localized explanation (3–5 words) of WHY this ingredient affects
   // the criterion. Present when the modifier source (CSV / Supabase) has one.
   reason?: string;
@@ -1149,7 +1152,7 @@ export function computePreferenceTable(
         const reason = csv.reason
           ? ((csv.reason as unknown as Record<string, string>)[lang] ?? csv.reason.en ?? undefined)
           : undefined;
-        cells.push({ ingredient: ing.name, emoji: csv.emoji, reason });
+        cells.push({ ingredient: ing.name, emoji: csv.emoji, score: csv.score, reason });
         matched.add(ing.name);
         scoreSum += csv.score;
         scoreN++;
@@ -1159,7 +1162,7 @@ export function computePreferenceTable(
       const d = cellDelta(ing.name, cand.field, cand.value);
       if (d === 0) continue;
       const emoji = emojiFromDelta(d);
-      cells.push({ ingredient: ing.name, emoji });
+      cells.push({ ingredient: ing.name, emoji, score: EMOJI_SCORE[emoji] });
       matched.add(ing.name);
       scoreSum += EMOJI_SCORE[emoji];
       scoreN++;
