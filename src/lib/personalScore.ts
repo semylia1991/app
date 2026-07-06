@@ -12,6 +12,7 @@ import type { Ingredient } from '../services/ai';
 import type { UserProfile } from '../components/UserProfile';
 import { lookupIngredient } from './ingredients-db';
 import { getModifierRows, type ModifierRow } from './ingredient-modifiers';
+import { positionWeight } from './scoring';
 
 // ── Ingredient name → penalty/bonus rules ──────────────────────────────────
 
@@ -297,7 +298,7 @@ export function computePersonalScore(
   let totalWeight = 0;
 
   ingredients.forEach((ing, idx) => {
-    const weight = 1 / Math.sqrt(idx + 1);
+    const weight = positionWeight(idx);
     const score = adjustedIngredientScore(ing, profile);
     weightedSum += score * weight;
     totalWeight += weight;
@@ -344,7 +345,7 @@ export function scoreForSinglePreference(
   let weightedSum = 0;
   let totalWeight = 0;
   ingredients.forEach((ing, idx) => {
-    const weight = 1 / Math.sqrt(idx + 1);
+    const weight = positionWeight(idx);
     weightedSum += adjustedIngredientScore(ing, synthetic) * weight;
     totalWeight += weight;
   });
@@ -525,7 +526,7 @@ export function computeQuantumScore(
   let unknownCount = 0;
 
   ingredients.forEach((ing, idx) => {
-    const weight = 1 / Math.sqrt(idx + 1);
+    const weight = positionWeight(idx);
     const adjusted = adjustedIngredientScore(ing, profile);
 
     // Uncertainty: if the ingredient has no explicit score AND no DB entry,
@@ -760,7 +761,7 @@ export function computeAutonomousScore(
 
   for (let idx = 0; idx < ingredients.length; idx++) {
     const ing    = ingredients[idx];
-    const weight = 1 / Math.sqrt(idx + 1);
+    const weight = positionWeight(idx);
     const base   = statusNeutralBase(ing.status);
     const delta  = profileDeltaForIngredient(ing, profile);
 
