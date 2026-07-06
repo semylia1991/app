@@ -78,17 +78,14 @@ export function CompareSection({ lang, current, currentCriteria, user, onRegiste
   const pickedCriteria = picked ? extractCriteria(picked) : [];
 
   const renderScore = (r: AnalysisResult) => {
+    // Numeric score is computed internally but never displayed —
+    // only the 🟢/🟡/🔴 verdict (same thresholds as the main screen).
     const s = r.canonicalScore ?? computeProductScore(r.ingredients);
     if (s === null) return <div style={{ ...sectionBodyStyle, color: '#8A8078', fontStyle: 'italic' }}>—</div>;
-    const rounded = Math.round(s);
-    const color = rounded >= 8 ? '#2D9B5A' : rounded >= 5 ? '#E8A020' : '#D94040';
+    const emoji = s >= 7.5 ? '🟢' : s >= 5 ? '🟡' : '🔴';
     return (
       <div style={{ ...sectionBodyStyle, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: '1.2rem', fontWeight: 700, color, fontFamily: 'var(--font-sans)', lineHeight: 1 }}>{rounded}</span>
-        <span style={{ fontSize: '0.7rem', color, opacity: 0.75 }}>/10</span>
-        <div style={{ flex: 1, height: 5, background: 'rgba(0,0,0,0.07)', borderRadius: 8, overflow: 'hidden', minWidth: 30 }}>
-          <div style={{ height: '100%', width: `${rounded * 10}%`, background: color, borderRadius: 8 }} />
-        </div>
+        <span style={{ fontSize: '1.15rem', lineHeight: 1 }} aria-hidden>{emoji}</span>
       </div>
     );
   };
