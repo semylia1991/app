@@ -26,3 +26,26 @@ export function positionWeight(idx: number): number {
   if (idx < 10) return 2;
   return 1;
 }
+
+/* ── Unified 0–100 verdict scale ──────────────────────────────────────────────
+ * All user-facing indicators (🟢/🟡/🔴) are derived from a SINGLE 0–100 scale
+ * with SINGLE thresholds:  🟢 ≥ 75   🟡 ≥ 50   🔴 < 50.
+ *
+ * Internal storage stays as-is for backward compatibility with caches:
+ *   • product / ingredient scores: 0–10  (ingredients-db, AI, Supabase
+ *     canonical cache) — normalized here via toScore100()
+ *   • preference-match score: already 0–100 (Supabase preference cache)
+ *
+ * ⚠️ Do NOT rescale stored values — existing Supabase rows would be off 10×.
+ * Normalize at the edge (here), never in the data.
+ */
+
+/** Convert an internal 0–10 product/ingredient score to the unified 0–100 scale. */
+export function toScore100(score10: number): number {
+  return Math.round(score10 * 10);
+}
+
+/** Verdict emoji from a unified 0–100 score:  🟢 ≥ 75, 🟡 ≥ 50, 🔴 < 50. */
+export function verdictEmoji100(score100: number): '🟢' | '🟡' | '🔴' {
+  return score100 >= 75 ? '🟢' : score100 >= 50 ? '🟡' : '🔴';
+}
