@@ -10,6 +10,7 @@ import { t, Language, loadLanguage } from './i18n';
 import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription, fetchPreferenceExplanation, fetchDetails, applyCanonicalCard } from './services/ai';
 import { getCanonicalScore } from './services/productCache';
 import { computeAutonomousScore, computePreferenceTable } from './lib/personalScore';
+import { toScore100, verdictEmoji100 } from './lib/scoring';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -51,15 +52,13 @@ const DISCLAIMER_BANNER_TEXT: Record<Language, string> = {
 // Emoji-only indicator rendered in CollapsibleSection headers (always visible).
 // The numeric score is still computed internally (weights, caching, sorting)
 // but is NEVER shown to the user — only the 🟢/🟡/🔴 verdict.
-function productScoreEmoji(score: number): '🟢' | '🟡' | '🔴' {
-  return score >= 7.5 ? '🟢' : score >= 5 ? '🟡' : '🔴';
-}
-
+// The internal 0–10 product score is normalized to the unified 0–100 scale:
+// 🟢 ≥ 75, 🟡 ≥ 50, 🔴 < 50 (same thresholds as the preference verdict).
 function ScoreBadge({ score }: { score: number | null }) {
   if (score === null) return null;
   return (
     <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden>
-      {productScoreEmoji(score)}
+      {verdictEmoji100(toScore100(score))}
     </span>
   );
 }
@@ -1117,8 +1116,7 @@ export default function App() {
                       result.ingredients, userProfile, result.productType ?? '', lang
                     ).score;
                     if (s === null) return null;
-                    const emoji = s >= 75 ? '🟢' : s >= 50 ? '🟡' : '🔴';
-                    return <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden>{emoji}</span>;
+                    return <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden>{verdictEmoji100(s)}</span>;
                   })()}
                 >
                   <PersonalAnalysis
