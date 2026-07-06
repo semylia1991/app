@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { supabase, ScanRecord } from '../lib/supabase';
 import { t, Language } from '../i18n';
 import { AnalysisResult, computeProductScore } from '../services/ai';
+import { toScore100, verdictEmoji100 } from '../lib/scoring';
 
 interface Criterion { emoji: string; label: string; explanation: string; ingredient?: string; relevant?: boolean; }
 
@@ -78,11 +79,11 @@ export function CompareSection({ lang, current, currentCriteria, user, onRegiste
   const pickedCriteria = picked ? extractCriteria(picked) : [];
 
   const renderScore = (r: AnalysisResult) => {
-    // Numeric score is computed internally but never displayed —
-    // only the 🟢/🟡/🔴 verdict (same thresholds as the main screen).
+    // Numeric score is computed internally but never displayed — only the
+    // 🟢/🟡/🔴 verdict on the unified 0–100 scale (🟢 ≥ 75, 🟡 ≥ 50, 🔴 < 50).
     const s = r.canonicalScore ?? computeProductScore(r.ingredients);
     if (s === null) return <div style={{ ...sectionBodyStyle, color: '#8A8078', fontStyle: 'italic' }}>—</div>;
-    const emoji = s >= 7.5 ? '🟢' : s >= 5 ? '🟡' : '🔴';
+    const emoji = verdictEmoji100(toScore100(s));
     return (
       <div style={{ ...sectionBodyStyle, display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: '1.15rem', lineHeight: 1 }} aria-hidden>{emoji}</span>
