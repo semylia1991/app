@@ -6,6 +6,7 @@ import { UserProfile } from './UserProfile';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { computePreferenceTable, PreferenceTable, registerExtraModifiers, clearExtraModifiers } from '../lib/personalScore';
+import { computeIngredientsHash, getFrozenPersonalText, saveFrozenPersonalText } from '../services/productCache';
 import type { ModifierRow, ModifierReason } from '../lib/ingredient-modifiers';
 
 interface Props {
@@ -97,8 +98,21 @@ export async function prefetchPersonalNote(
   const cached = criteriaCache.get(key);
   if (cached) return cached;
   try {
+    // Frozen shared copy first (composition + profile + language)
+    const ingHash = await computeIngredientsHash(result.ingredients ?? []).catch(() => null);
+    const frozenKey = ingHash ? `criteria|${ingHash}|${makeProfileKey(profile)}|${lang}` : '';
+    if (frozenKey) {
+      const frozen = await getFrozenPersonalText<{ criteria: Criterion[] }>(frozenKey).catch(() => null);
+      if (frozen && Array.isArray(frozen.criteria) && frozen.criteria.length > 0) {
+        criteriaCache.set(key, frozen.criteria);
+        return frozen.criteria;
+      }
+    }
     const items = await fetchCriteria(result, profile, lang);
     criteriaCache.set(key, items);
+    if (frozenKey && items.length > 0) {
+      saveFrozenPersonalText(frozenKey, { criteria: items }).catch(() => {});
+    }
     return items;
   } catch {
     return [];
@@ -221,6 +235,9 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
   const [cachedScore, setCachedScore] = useState<{ score: number; capped: boolean; uncertain: boolean } | null>(null);
   const scoreKeyRef = useRef<string>('');
   const extrasReadyRef = useRef<boolean>(false);
+  // Signals for stable score rendering (see scoreKey + display gating below)
+  const [ingHash, setIngHash] = useState<string>('');
+  const [extrasReady, setExtrasReady] = useState<boolean>(false);
 
   const hasProfile = !!userProfile && (
     userProfile.skinType.length > 0 || userProfile.skinConditions.length > 0 ||
@@ -252,20 +269,44 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     const cached = criteriaCache.get(fetchKey);
     if (cached) { setCriteria(cached); setLoading(false); return; }
 
-    // 3. Fetch fresh
+    // 3. Frozen shared copy in Supabase → 4. fetch fresh + freeze
     let cancelled = false;
     setLoading(true);
     setError(null);
     setCriteria(null);
 
-    fetchCriteria(result, userProfile!, lang)
-      .then(items => {
+    (async () => {
+      // Frozen criteria are keyed on composition + profile + language — same
+      // inputs → the exact same wording every time, no repeat Gemini call.
+      const ingHashLocal = await computeIngredientsHash(result.ingredients ?? []).catch(() => null);
+      const frozenKey = ingHashLocal
+        ? `criteria|${ingHashLocal}|${makeProfileKey(userProfile!)}|${lang}`
+        : '';
+
+      if (frozenKey) {
+        const frozen = await getFrozenPersonalText<{ criteria: Criterion[] }>(frozenKey).catch(() => null);
+        if (!cancelled && frozen && Array.isArray(frozen.criteria) && frozen.criteria.length > 0) {
+          criteriaCache.set(fetchKey, frozen.criteria);
+          setCriteria(frozen.criteria);
+          setLoading(false);
+          return;
+        }
+      }
+
+      try {
+        const items = await fetchCriteria(result, userProfile!, lang);
         if (cancelled) return;
         criteriaCache.set(fetchKey, items);
         setCriteria(items);
-      })
-      .catch(e => { if (!cancelled) setError(e.message ?? 'Error'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+        if (frozenKey && items.length > 0) {
+          saveFrozenPersonalText(frozenKey, { criteria: items }).catch(() => {});
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message ?? 'Error');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
     return () => { cancelled = true; };
   }, [fetchKey]);
@@ -286,12 +327,18 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     const langCode = lang;
     clearExtraModifiers();
     extrasReadyRef.current = false;
+    setExtrasReady(false);
 
     supabase
       .rpc('get_ingredient_modifiers', { p_names: [...new Set(names)], p_lang: langCode })
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (!error && Array.isArray(data) && data.length > 0) {
+        // Network/RPC error → do NOT mark the cache warm: freezing a score
+        // computed WITHOUT modifiers would lock in a wrong number forever
+        // (first writer wins). The live table still renders; freezing simply
+        // waits for a session where the modifiers actually loaded.
+        if (error) return;
+        if (Array.isArray(data) && data.length > 0) {
           const rows: ModifierRow[] = data.map((r: any) => {
             const reasonText = String(r.reason ?? '');
             const reason: ModifierReason = {
@@ -315,6 +362,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
         // Modifier cache is now "warm" for this product (whether or not rows
         // were found) → safe to persist the deterministic score.
         extrasReadyRef.current = true;
+        setExtrasReady(true);
         setExtrasVersion(v => v + 1); // trigger table recompute + score persist
       });
 
@@ -324,8 +372,28 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
   // ── Read cached deterministic score (product + profile + lang) ────────────
   // If a score was computed and stored before, reuse it verbatim so the number
   // is identical on every reload.
-  const scoreKey = (user && hasProfile && result?.ingredients?.length)
-    ? `${result.productName}|${result.brand}|${makeProfileKey(userProfile!)}|${lang}`
+  // ── Stable score key: composition hash + profile ───────────────────────────
+  // The OLD key was `productName|brand|profile|lang`, which had two flaws:
+  //  • productName/brand are TRANSLATED when the user switches language, and
+  //    can drift between scans → the same product froze many separate rows,
+  //    each computed at a different time with a different modifier-DB state →
+  //    the user saw different numbers per language / per scan.
+  //  • lang has no business in a NUMBER's key — the score is language-agnostic.
+  // The composition hash is built from canonical INCI names (sorted,
+  // normalized), identical across languages and naming drift. `v2|` prefix
+  // separates new rows from legacy ones.
+  useEffect(() => {
+    let cancelled = false;
+    const ings = result?.ingredients ?? [];
+    if (ings.length === 0) { setIngHash(''); return; }
+    computeIngredientsHash(ings)
+      .then(h => { if (!cancelled) setIngHash(h ?? ''); })
+      .catch(() => { if (!cancelled) setIngHash(''); });
+    return () => { cancelled = true; };
+  }, [result?.ingredients]);
+
+  const scoreKey = (user && hasProfile && ingHash)
+    ? `v2|${ingHash}|${makeProfileKey(userProfile!)}`
     : '';
 
   useEffect(() => {
@@ -422,11 +490,17 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
   const computedTable = computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang);
 
   // If a deterministic score was cached in Supabase, show it verbatim so the
-  // number is identical across reloads. Otherwise use the freshly computed one.
+  // number is identical across reloads. Otherwise use the freshly computed one —
+  // but ONLY once the modifier cache is warm: rendering the cold (pre-modifier)
+  // number first and letting it visibly change moments later is exactly the
+  // "score keeps changing" experience we are eliminating.
+  const scoreDisplayReady = !!cachedScore || extrasReady;
   const prefTable: PreferenceTable = cachedScore
     ? { ...computedTable, score: cachedScore.score, capped: cachedScore.capped, uncertain: cachedScore.uncertain }
     : computedTable;
-  const tableEl = prefTable.score !== null ? <PreferenceScoreTable table={prefTable} lang={lang} /> : null;
+  const tableEl = scoreDisplayReady && prefTable.score !== null
+    ? <PreferenceScoreTable table={prefTable} lang={lang} />
+    : null;
 
   // AI criteria are a GAP-FILLER: show only those not already covered by the
   // deterministic table, so the table stays authoritative and no contradictory
