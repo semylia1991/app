@@ -7,8 +7,8 @@ import ReactMarkdown from 'react-markdown';
 import type { User } from '@supabase/supabase-js';
 
 import { t, Language, loadLanguage } from './i18n';
-import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription, fetchPreferenceExplanation, fetchDetails } from './services/ai';
-import { getCanonicalScore, normalizeIngredientName } from './services/productCache';
+import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription, fetchPreferenceExplanation, fetchDetails, applyCanonicalCard } from './services/ai';
+import { getCanonicalScore } from './services/productCache';
 import { computeAutonomousScore } from './lib/personalScore';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -750,21 +750,13 @@ export default function App() {
                 <ScanHistory
                   user={user} lang={lang} refreshKey={scanHistoryKey}
                   onSelect={async (r, scanLang) => {
-                    // Apply canonical ingredient scores so history shows the
-                    // same score as a fresh scan of the same product.
+                    // Rebuild the FULL canonical card (list + order + scores),
+                    // not just merge scores by name — so history shows exactly
+                    // the same composition and badge as a fresh scan.
                     if (r.brand && r.productName) {
                       const canonical = await getCanonicalScore(r.brand, r.productName).catch(() => null);
                       if (canonical) {
-                        const sm = new Map<string, number>(
-                          canonical.ingredients.map(i => [normalizeIngredientName(i.name), Number(i.score)])
-                        );
-                        r = {
-                          ...r,
-                          ingredients: r.ingredients.map(ing => {
-                            const s = sm.get(normalizeIngredientName(ing.name));
-                            return s !== undefined ? { ...ing, score: s } : ing;
-                          }),
-                        };
+                        r = { ...r, ingredients: applyCanonicalCard(r.ingredients, canonical), canonicalScore: canonical.score };
                       }
                     }
                     originalResult.current = r;
@@ -1064,7 +1056,7 @@ export default function App() {
                   title={t[lang].ingredients}
                   icon={<Leaf size={15} />}
                   collapseLabel={cl}
-                  headerBadge={<ScoreBadge score={computeProductScore(result.ingredients)} />}
+                  headerBadge={<ScoreBadge score={result.canonicalScore ?? computeProductScore(result.ingredients)} />}
                 >
                       {result.ingredients.length === 0 ? (
                         <p style={{ fontSize: '0.8rem', color: '#8A8078', fontStyle: 'italic' }}>
@@ -1078,7 +1070,7 @@ export default function App() {
                            'Ingredients not found. Please photograph the INCI label up close.'}
                         </p>
                       ) : (() => {
-                        const productScore = computeProductScore(result.ingredients);
+                        const productScore = result.canonicalScore ?? computeProductScore(result.ingredients);
                         // Standard mathematical rounding: 3.3→3, 5.7→6
                         const productScoreRounded = productScore !== null ? Math.round(productScore) : null;
                         const scoreColor = productScore === null ? '#8A8078'
