@@ -6,6 +6,7 @@ import { UserProfile } from './UserProfile';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { computePreferenceTable, PreferenceTable, registerExtraModifiers, clearExtraModifiers } from '../lib/personalScore';
+import { verdictEmoji100 } from '../lib/scoring';
 import { computeIngredientsHash, getFrozenPersonalText, saveFrozenPersonalText } from '../services/productCache';
 import type { ModifierRow, ModifierReason } from '../lib/ingredient-modifiers';
 
@@ -209,10 +210,11 @@ const PT_LEGEND: { emoji: '🟢' | '🟡' | '🔴'; title: Record<string, string
 const CIRCLE: Record<'✅' | '⚠️' | '⛔️', '🟢' | '🟡' | '🔴'> = { '✅': '🟢', '⚠️': '🟡', '⛔️': '🔴' };
 
 function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: Language }) {
-  const score = table.score ?? 0;
-  const color = score >= 75 ? '#2D9B5A' : score >= 50 ? '#E8A020' : '#D94040';
-  // Verdict emoji derived from the internal score — the number itself is never shown.
-  const verdict = PT_LEGEND[score >= 75 ? 0 : score >= 50 ? 1 : 2];
+  const score = table.score ?? 0; // already on the unified 0–100 scale
+  const emoji = verdictEmoji100(score);
+  const color = emoji === '🟢' ? '#2D9B5A' : emoji === '🟡' ? '#E8A020' : '#D94040';
+  // Verdict derived from the internal score — the number itself is never shown.
+  const verdict = PT_LEGEND[emoji === '🟢' ? 0 : emoji === '🟡' ? 1 : 2];
   const tt = (m: Record<string, string>) => m[lang] ?? m.en;
   const note = table.capped ? tt(PT.capped) : table.uncertain ? tt(PT.approx) : '';
 
