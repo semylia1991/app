@@ -78,7 +78,7 @@ export function CompareSection({ lang, current, currentCriteria, user, onRegiste
   const pickedCriteria = picked ? extractCriteria(picked) : [];
 
   const renderScore = (r: AnalysisResult) => {
-    const s = computeProductScore(r.ingredients);
+    const s = r.canonicalScore ?? computeProductScore(r.ingredients);
     if (s === null) return <div style={{ ...sectionBodyStyle, color: '#8A8078', fontStyle: 'italic' }}>—</div>;
     const rounded = Math.round(s);
     const color = rounded >= 8 ? '#2D9B5A' : rounded >= 5 ? '#E8A020' : '#D94040';
