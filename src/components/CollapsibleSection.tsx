@@ -9,17 +9,24 @@ interface Props {
   defaultOpen?: boolean;
   collapseLabel?: string;
   // Optional badge rendered in the header (always visible, between title and chevron).
-  // Used e.g. for the Yuka-style score on the Ingredients / PersonalNote rows.
+  // Used e.g. for the 🟢/🟡/🔴 verdict on the Ingredients / PersonalNote rows.
   headerBadge?: React.ReactNode;
+  // Fired each time the section transitions from closed → open.
+  // Used e.g. to lazily fetch product details on first expand.
+  onOpen?: () => void;
 }
 
-export function CollapsibleSection({ title, icon, children, defaultOpen = false, collapseLabel, headerBadge }: Props) {
+export function CollapsibleSection({ title, icon, children, defaultOpen = false, collapseLabel, headerBadge, onOpen }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <div className="section-row">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const next = !isOpen;
+          setIsOpen(next);
+          if (next) onOpen?.();
+        }}
         style={{
           width: '100%', display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', padding: '16px 24px',
