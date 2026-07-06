@@ -11,7 +11,7 @@
 import type { Ingredient } from '../services/ai';
 import type { UserProfile } from '../components/UserProfile';
 import { lookupIngredient } from './ingredients-db';
-import { getModifierRows, type ModifierRow } from './ingredient-modifiers';
+import { getModifierRows, type ModifierRow, type ModifierReason } from './ingredient-modifiers';
 import { positionWeight } from './scoring';
 
 // ── Ingredient name → penalty/bonus rules ──────────────────────────────────
@@ -914,6 +914,9 @@ function detectCategory(productType: string): keyof typeof RELEVANT_FIELDS_BY_CA
 export interface PreferenceCell {
   ingredient: string;
   emoji: '✅' | '⚠️' | '⛔️';
+  // Short localized explanation (3–5 words) of WHY this ingredient affects
+  // the criterion. Present when the modifier source (CSV / Supabase) has one.
+  reason?: string;
 }
 
 export interface PreferenceColumn {
@@ -1015,6 +1018,7 @@ interface CsvCell {
   score: number;          // 0–100 absolute suitability (clamped)
   emoji: '✅' | '⚠️' | '⛔️';
   override?: string;      // raw status override if present
+  reason?: ModifierReason; // localized short explanation from the modifier row
 }
 
 // ── Runtime registry for Supabase-cached modifiers ─────────────────────────
@@ -1092,7 +1096,7 @@ function csvCellScore(
   else if (cell.o === '🟡') emoji = '⚠️';
   else emoji = score100 >= 70 ? '✅' : score100 >= 35 ? '⚠️' : '⛔️';
 
-  return { score: score100, emoji, override: cell.o };
+  return { score: score100, emoji, override: cell.o, reason: cell.r };
 }
 
 /**
@@ -1142,7 +1146,10 @@ export function computePreferenceTable(
       // 1) PRIMARY: absolute CSV modifier score (0–100 → 0–10) for this criterion.
       const csv = csvCellScore(ing.name, cand.field, cand.value, csvPt);
       if (csv) {
-        cells.push({ ingredient: ing.name, emoji: csv.emoji });
+        const reason = csv.reason
+          ? ((csv.reason as unknown as Record<string, string>)[lang] ?? csv.reason.en ?? undefined)
+          : undefined;
+        cells.push({ ingredient: ing.name, emoji: csv.emoji, reason });
         matched.add(ing.name);
         scoreSum += csv.score;
         scoreN++;
