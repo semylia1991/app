@@ -9,7 +9,7 @@ import type { User } from '@supabase/supabase-js';
 import { t, Language, loadLanguage } from './i18n';
 import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription, fetchPreferenceExplanation, fetchDetails, applyCanonicalCard } from './services/ai';
 import { getCanonicalScore } from './services/productCache';
-import { computeAutonomousScore } from './lib/personalScore';
+import { computeAutonomousScore, computePreferenceTable } from './lib/personalScore';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
@@ -48,34 +48,55 @@ const DISCLAIMER_BANNER_TEXT: Record<Language, string> = {
   tr: 'Bu analiz yalnızca bilgilendirme amaçlıdır ve tıbbi tavsiye değildir. Cilt bakımı rutininizi değiştirmeden önce bir doktora veya dermatoloğa danışın.',
 };
 
-// Compact score chip rendered in CollapsibleSection headers (always visible)
-// for the Ingredients and Personal Note rows.
+// Emoji-only indicator rendered in CollapsibleSection headers (always visible).
+// The numeric score is still computed internally (weights, caching, sorting)
+// but is NEVER shown to the user — only the 🟢/🟡/🔴 verdict.
+function productScoreEmoji(score: number): '🟢' | '🟡' | '🔴' {
+  return score >= 7.5 ? '🟢' : score >= 5 ? '🟡' : '🔴';
+}
+
 function ScoreBadge({ score }: { score: number | null }) {
   if (score === null) return null;
-  // Standard mathematical rounding: 3.3→3, 5.7→6
-  const rounded = Math.round(score);
-  const color = score >= 7.5 ? '#2D9B5A' : score >= 5 ? '#E8A020' : '#D94040';
   return (
-    <span
+    <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden>
+      {productScoreEmoji(score)}
+    </span>
+  );
+}
+
+// ── Ingredient status legend (shown when the Ingredients section is open) ──
+const ING_LEGEND: Record<Language, { g: string; y: string; r: string }> = {
+  en: { g: 'Suitable',              y: 'Suitable with reservations',       r: 'Not suitable' },
+  ru: { g: 'Подходит',              y: 'Подходит с оговорками',            r: 'Не подходит' },
+  de: { g: 'Geeignet',              y: 'Bedingt geeignet',                 r: 'Nicht geeignet' },
+  uk: { g: 'Підходить',             y: 'Підходить із застереженнями',      r: 'Не підходить' },
+  es: { g: 'Adecuado',              y: 'Adecuado con reservas',            r: 'No adecuado' },
+  fr: { g: 'Convient',              y: 'Convient avec réserves',           r: 'Ne convient pas' },
+  it: { g: 'Adatto',                y: 'Adatto con riserve',               r: 'Non adatto' },
+  tr: { g: 'Uygun',                 y: 'Şartlı uygun',                     r: 'Uygun değil' },
+};
+
+function IngredientLegend({ lang }: { lang: Language }) {
+  const l = ING_LEGEND[lang] ?? ING_LEGEND.en;
+  const item = (emoji: string, label: string) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>{emoji}</span>
+      <span style={{ fontSize: '0.78rem', color: '#5A5550', fontFamily: 'var(--font-sans)', fontWeight: 500 }}>{label}</span>
+    </span>
+  );
+  return (
+    <div
       style={{
-        display: 'inline-flex',
-        alignItems: 'baseline',
-        gap: 1,
-        padding: '3px 9px',
-        borderRadius: 999,
-        background: `${color}18`,
-        border: `1px solid ${color}55`,
-        fontFamily: 'var(--font-sans)',
-        fontWeight: 700,
-        color,
-        fontSize: '0.78rem',
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
+        display: 'flex', flexWrap: 'wrap', gap: '6px 16px',
+        padding: '10px 14px', marginBottom: 12,
+        background: 'rgba(255,255,255,0.6)',
+        border: '1px solid rgba(221,213,200,0.6)', borderRadius: 14,
       }}
     >
-      {rounded}
-      <span style={{ fontSize: '0.62rem', opacity: 0.75, fontWeight: 600 }}>/10</span>
-    </span>
+      {item('🟢', l.g)}
+      {item('🟡', l.y)}
+      {item('🔴', l.r)}
+    </div>
   );
 }
 
@@ -1069,55 +1090,36 @@ export default function App() {
                            lang === 'tr' ? 'İçerikler bulunamadı. Lütfen INCI etiketini yakından fotoğraflayın.' :
                            'Ingredients not found. Please photograph the INCI label up close.'}
                         </p>
-                      ) : (() => {
-                        const productScore = result.canonicalScore ?? computeProductScore(result.ingredients);
-                        // Standard mathematical rounding: 3.3→3, 5.7→6
-                        const productScoreRounded = productScore !== null ? Math.round(productScore) : null;
-                        const scoreColor = productScore === null ? '#8A8078'
-                          : productScore >= 7.5 ? '#2D9B5A'
-                          : productScore >= 5 ? '#E8A020'
-                          : '#D94040';
-                        const scoreLabel = productScore === null ? '' :
-                          lang === 'ru' ? (productScore >= 7.5 ? 'Отличный состав' : productScore >= 5 ? 'Хороший состав' : 'Состав вызывает опасения') :
-                          lang === 'uk' ? (productScore >= 7.5 ? 'Чудовий склад' : productScore >= 5 ? 'Хороший склад' : 'Склад викликає занепокоєння') :
-                          lang === 'de' ? (productScore >= 7.5 ? 'Ausgezeichnete Formel' : productScore >= 5 ? 'Gute Formel' : 'Formel bedenklich') :
-                          lang === 'es' ? (productScore >= 7.5 ? 'Fórmula excelente' : productScore >= 5 ? 'Buena fórmula' : 'Fórmula preocupante') :
-                          lang === 'fr' ? (productScore >= 7.5 ? 'Excellente formule' : productScore >= 5 ? 'Bonne formule' : 'Formule préoccupante') :
-                          lang === 'it' ? (productScore >= 7.5 ? 'Formula eccellente' : productScore >= 5 ? 'Buona formula' : 'Formula preoccupante') :
-                          lang === 'tr' ? (productScore >= 7.5 ? 'Mükemmel formül' : productScore >= 5 ? 'İyi formül' : 'Formül endişe verici') :
-                          (productScore >= 7.5 ? 'Excellent formula' : productScore >= 5 ? 'Good formula' : 'Formula of concern');
-                        return (
-                          <>
-                            {productScore !== null && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', marginBottom: 12, background: 'rgba(255,255,255,0.6)', borderRadius: 14, border: `1.5px solid ${scoreColor}22` }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 64 }}>
-                                  <span style={{ fontSize: '2rem', fontWeight: 800, color: scoreColor, lineHeight: 1, fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em' }}>
-                                    {productScoreRounded}
-                                  </span>
-                                  <span style={{ fontSize: '0.72rem', color: scoreColor, opacity: 0.75, fontFamily: 'var(--font-sans)', marginTop: 1 }}>/10</span>
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ height: 8, background: 'rgba(0,0,0,0.07)', borderRadius: 8, overflow: 'hidden', marginBottom: 6 }}>
-                                    <div style={{ height: '100%', width: `${productScore * 10}%`, background: scoreColor, borderRadius: 8, transition: 'width 0.6s ease' }} />
-                                  </div>
-                                  <span style={{ fontSize: '0.8rem', color: scoreColor, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{scoreLabel}</span>
-                                </div>
-                              </div>
-                            )}
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                              {result.ingredients.map((ing, idx) => (
-                                <IngredientItem key={`${ing.name}-${idx}`} ing={ing} lang={lang} />
-                              ))}
-                            </ul>
-                          </>
-                        );
-                      })()}
+                      ) : (
+                        <>
+                          {/* Numeric score is intentionally hidden — the verdict emoji in
+                              the section header is derived from it. Here we only explain
+                              what the per-ingredient 🟢/🟡/🔴 marks mean. */}
+                          <IngredientLegend lang={lang} />
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                            {result.ingredients.map((ing, idx) => (
+                              <IngredientItem key={`${ing.name}-${idx}`} ing={ing} lang={lang} />
+                            ))}
+                          </ul>
+                        </>
+                      )}
                     </CollapsibleSection>
 
                 <CollapsibleSection
                   title={t[lang].noteSection}
                   icon={<NotebookPen size={15} />}
                   collapseLabel={cl}
+                  headerBadge={(() => {
+                    // Deterministic preference score (0–100) — computed internally,
+                    // surfaced ONLY as a 🟢/🟡/🔴 verdict, never as a number.
+                    if (!userProfile || !result.ingredients?.length) return null;
+                    const s = computePreferenceTable(
+                      result.ingredients, userProfile, result.productType ?? '', lang
+                    ).score;
+                    if (s === null) return null;
+                    const emoji = s >= 75 ? '🟢' : s >= 50 ? '🟡' : '🔴';
+                    return <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden>{emoji}</span>;
+                  })()}
                 >
                   <PersonalAnalysis
                     lang={lang} result={result} user={user} userProfile={userProfile}
