@@ -1,8 +1,9 @@
 // All Gemini calls go through the Netlify Function /api/gemini.
 // The API key is NEVER sent to the browser.
 
-import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage, hydrate, toLangCode, getCanonicalScore, saveCanonicalScore, getCachedByIngredients, computeIngredientsHash } from './productCache';
+import { getCachedByHash, getCachedAnalysis, saveToCache, hashImage, hydrate, toLangCode, getCanonicalScore, saveCanonicalScore, getCachedByIngredients, computeIngredientsHash, canonicalProductKey, getFrozenTranslation, saveFrozenTranslation, getCanonicalScoreByIngredients, getFrozenPersonalText, saveFrozenPersonalText } from './productCache';
 import { lookupIngredient } from '../lib/ingredients-db';
+import { positionWeight } from '../lib/scoring';
 
 const FUNCTION_URL = "/api/gemini";
 
@@ -32,7 +33,7 @@ function normalizeName(name: string): string {
  * Returns a NEW array; inputs are not mutated. If the canonical row is empty,
  * the original list is returned unchanged (defensive — never blank out a card).
  */
-function applyCanonicalCard(
+export function applyCanonicalCard(
   current: Ingredient[],
   canonical: { ingredients: Array<{ name: string; status: string; score: number }> },
 ): Ingredient[] {
@@ -65,33 +66,32 @@ export interface Ingredient {
  * 🟢 = 10, 🟡 = 5, 🔴 = 0 (from local DB)
  * For AI-only ingredients, use the score field if present.
  */
+/**
+ * Resolve the EFFECTIVE numeric score of one ingredient — the exact value
+ * computeProductScore uses. Single source of the resolution chain:
+ * explicit score → local DB → status fallback (🟢 8 / 🟡 5 / 🔴 1).
+ * The canonical-score payload MUST use this same resolver, otherwise the
+ * server-side validation (which recomputes the score from the payload)
+ * would reject honest writes.
+ */
+export function effectiveIngredientScore(ing: { name: string; status: string; score?: number }): number {
+  if (typeof ing.score === 'number') return ing.score;
+  const dbEntry = lookupIngredient(ing.name);
+  if (dbEntry) return dbEntry.score;
+  return ing.status === '🟢' ? 8 : ing.status === '🟡' ? 5 : 1;
+}
+
 export function computeProductScore(ingredients: Ingredient[]): number | null {
   if (!ingredients || ingredients.length === 0) return null;
-
-  // Fixed fallback when neither score nor DB lookup is available.
-  // Must match the values used in productCache.hydrateScores so the score
-  // is identical regardless of where the ingredients came from
-  // (fresh AI response, old cache without score, scan history, etc).
-  const fallbackByStatus = (status: string) =>
-    status === '🟢' ? 8 : status === '🟡' ? 5 : 1;
 
   let weightedSum = 0;
   let totalWeight = 0;
 
   ingredients.forEach((ing, idx) => {
-    // Position-based weight: first ingredient = highest weight.
-    // Softened from 1/(idx+1) to 1/√(idx+1) so problematic ingredients in the
-    // middle/tail of the list still move the score (the old curve gave the
-    // first 2–3 positions ~60% of the total weight, masking everything after).
-    const weight = 1 / Math.sqrt(idx + 1);
-    let s: number;
-    if (typeof ing.score === 'number') {
-      s = ing.score;
-    } else {
-      // Score missing — try local DB (this happens for very old cached scans)
-      const dbEntry = lookupIngredient(ing.name);
-      s = dbEntry ? dbEntry.score : fallbackByStatus(ing.status);
-    }
+    // Bucket-based position weight (top-5 / middle-5 / tail = 3 / 2 / 1):
+    // permutations WITHIN a bucket cannot change the score — see lib/scoring.ts.
+    const weight = positionWeight(idx);
+    const s = effectiveIngredientScore(ing);
     weightedSum += s * weight;
     totalWeight += weight;
   });
@@ -131,6 +131,10 @@ export interface AnalysisResult {
   personalNote?: string;
   // Optional: "Pay Attention" criteria — persisted to scan history
   criteria?: { emoji: string; label: string; explanation: string; ingredient?: string; relevant?: boolean }[];
+  // Frozen product score from product_scores (single source of truth for the
+  // badge). When present, the UI shows THIS number instead of recomputing from
+  // the ingredient list — immune to any list drift along the way.
+  canonicalScore?: number;
   // Internal: image hash for lazy details cache lookup (not persisted)
   _imageHash?: string | null;
 }
@@ -346,28 +350,49 @@ export async function translateAnalysisResult(
   result: AnalysisResult,
   targetLanguage: string,
 ): Promise<AnalysisResult> {
+  const langCode = toLangCode(targetLanguage);
+
   // ── Strip ingredients from the translation payload ─────────────────────────
   // Ingredient descriptions come from the local DB / ingredient_extras on the
   // client side, so they don't need to go through AI translation. This shrinks
   // the request payload by ~50%, makes translation faster, and removes the risk
   // of AI dropping `score` / changing `status` emojis.
-  const { ingredients, ...toTranslate } = result;
+  // canonicalScore is a NUMBER, not text — it must never round-trip through the
+  // translator (risk of being dropped) nor be taken from a frozen payload
+  // (could be stale). We re-attach it from the source result at the end.
+  const { ingredients, canonicalScore, ...toTranslate } = result;
   void ingredients;
 
-  const translated = await callFunction<Omit<AnalysisResult, 'ingredients'>>({
-    action: "translate",
-    result: toTranslate,
-    targetLanguage,
-  });
+  // Language-independent product key for the shared frozen-translation store.
+  const productKey = canonicalProductKey(result.brand, result.productName);
 
-  // Re-localise ingredient descriptions on the new language via hydrate().
-  // This consults local DB (L0) first, then Supabase ingredient_extras (L1)
-  // for unknown INCI. The whole call is async because L1 may fetch.
+  // ── 1. Try the GLOBAL frozen translation ───────────────────────────────────
+  // If any user has already translated this product into this language, reuse
+  // that exact text — consistent for everyone, and no Gemini call.
+  let translated = productKey
+    ? await getFrozenTranslation(productKey, langCode).catch(() => null)
+    : null;
+
+  // ── 2. Miss → translate via Gemini, then FREEZE (first writer wins) ─────────
+  if (!translated) {
+    translated = await callFunction<Omit<AnalysisResult, 'ingredients'>>({
+      action: "translate",
+      result: toTranslate,
+      targetLanguage,
+    });
+    if (productKey) {
+      saveFrozenTranslation(productKey, langCode, translated).catch(() => {});
+    }
+  }
+
+  // ── 3. Re-localise ingredient descriptions for the new language ─────────────
+  // hydrate() consults local DB (L0) first, then Supabase ingredient_extras (L1)
+  // for unknown INCI. Ingredients are NEVER taken from the frozen payload.
   const fullResult: AnalysisResult = {
     ...translated,
     ingredients: result.ingredients,
+    canonicalScore,
   };
-  const langCode = toLangCode(targetLanguage);
   return await hydrate(fullResult, langCode);
 }
 
@@ -494,18 +519,50 @@ export async function askFollowUpQuestion(
   return data.answer;
 }
 
+/**
+ * Stable key of a serialized profile — FIXED field order, so the same profile
+ * always yields the same key regardless of object property order.
+ */
+export function serializedProfileKey(p: SerializedProfile): string {
+  return [
+    p.skinType ?? '', p.skinSensitivity ?? '', p.skinConditions ?? '',
+    p.ageRange ?? '', p.hairType ?? '', p.scalpCondition ?? '',
+    p.hairProblems ?? '', p.bodySkinType ?? '', p.climate ?? '',
+    p.allergies ?? '',
+  ].join(',');
+}
+
 export async function generatePersonalNote(
   result: AnalysisResult,
   serializedProfile: SerializedProfile,
   language: string,
 ): Promise<string> {
+  // ── Frozen note: same composition + same profile + same language → the exact
+  // same wording on every repeat scan, and no repeat Gemini call. temperature 0
+  // makes runs CLOSE, freezing makes them IDENTICAL.
+  const ingHash = await computeIngredientsHash(result.ingredients ?? []).catch(() => null);
+  const noteKey = ingHash
+    ? `note|${ingHash}|${serializedProfileKey(serializedProfile)}|${toLangCode(language)}`
+    : '';
+
+  if (noteKey) {
+    const frozen = await getFrozenPersonalText<{ note: string }>(noteKey).catch(() => null);
+    if (frozen && typeof frozen.note === 'string' && frozen.note.length > 0) {
+      return frozen.note;
+    }
+  }
+
   const data = await callFunction<{ personalNote: string }>({
     action: "personalNote",
     result,
     userProfile: serializedProfile,
     language: LANGUAGE_NAMES[language] || language,
   });
-  return data.personalNote ?? "";
+  const note = data.personalNote ?? "";
+  if (noteKey && note) {
+    saveFrozenPersonalText(noteKey, { note }).catch(() => {});
+  }
+  return note;
 }
 
 // ─── Two-stage analysis ─────────────────────────────────────────────────────
@@ -613,6 +670,7 @@ export async function analyzeProductImageStream(
       const canonical = await getCanonicalScore(hashCached.brand, hashCached.productName).catch(() => null);
       if (canonical) {
         hashCached.ingredients = applyCanonicalCard(hashCached.ingredients, canonical);
+        hashCached.canonicalScore = canonical.score;
       }
     }
     queueMicrotask(() => onLateUpdate({
@@ -642,6 +700,7 @@ export async function analyzeProductImageStream(
       const canonical2 = await getCanonicalScore(nameCached.brand, nameCached.productName).catch(() => null);
       if (canonical2) {
         nameCached.ingredients = applyCanonicalCard(nameCached.ingredients, canonical2);
+        nameCached.canonicalScore = canonical2.score;
       }
       if (imageHash) {
         saveToCache(nameCached.productName, nameCached.brand, language, nameCached, imageHash).catch(() => {});
@@ -684,6 +743,7 @@ export async function analyzeProductImageStream(
         const canonical3 = await getCanonicalScore(ingCached.brand, ingCached.productName).catch(() => null);
         if (canonical3) {
           ingCached.ingredients = applyCanonicalCard(ingCached.ingredients, canonical3);
+          ingCached.canonicalScore = canonical3.score;
         }
       }
       // Save the current image hash so a future scan of THIS exact photo hits L0.
@@ -708,25 +768,37 @@ export async function analyzeProductImageStream(
   // On SUBSEQUENT scans: product_scores already has a value → first writer wins,
   // so the score never changes even if AI produces slightly different ingredients.
   let canonicalIngredients = fast.ingredients;
+  let canonicalScoreValue: number | undefined;
   if (fast.productName && fast.brand) {
-    const existing = await getCanonicalScore(fast.brand, fast.productName).catch(() => null);
+    // Primary: canonical row by (normalized) name. Fallback: by COMPOSITION —
+    // if the AI named this product differently than the first scan did, the
+    // ingredient hash still finds the one frozen row, so the score cannot split.
+    let existing = await getCanonicalScore(fast.brand, fast.productName).catch(() => null);
+    if (!existing && ingredientsHash) {
+      existing = await getCanonicalScoreByIngredients(ingredientsHash).catch(() => null);
+    }
     if (existing && existing.ingredients.length > 0) {
       // ── Canonical product card: first scan defines the card forever ─────────
       // Rebuild the list ENTIRELY from the stored authoritative row so repeat
       // scans show an identical ingredient list + score, even if the AI read a
       // slightly different set this time. hydrate() refills descriptions.
       canonicalIngredients = applyCanonicalCard(fast.ingredients, existing);
+      canonicalScoreValue = existing.score;
       console.log('[product_scores] HIT (full card):', fast.brand, fast.productName, '→', existing.score);
     } else {
       // First scan — save the score AND the ingredient list so every future
       // scan reproduces this exact card. First writer wins (ON CONFLICT DO NOTHING).
+      // The composition hash is stored alongside, so future scans can find this
+      // row even if the AI names the product differently.
       const computedScore = computeProductScore(fast.ingredients);
       if (computedScore !== null) {
+        canonicalScoreValue = computedScore;
         saveCanonicalScore(
           fast.brand,
           fast.productName,
           computedScore,
-          fast.ingredients.map(i => ({ name: i.name, status: i.status, score: i.score ?? 5 })),
+          fast.ingredients.map(i => ({ name: i.name, status: i.status, score: effectiveIngredientScore(i) })),
+          ingredientsHash,
         ).catch(() => {});
       }
     }
@@ -738,6 +810,7 @@ export async function analyzeProductImageStream(
     productType:  fast.productType,
     analysis:     fast.analysis,
     ingredients:  canonicalIngredients,
+    canonicalScore: canonicalScoreValue,
     shelfLife:    fast.shelfLife,
     personalNote: fast.personalNote,
     _imageHash:   imageHash,
