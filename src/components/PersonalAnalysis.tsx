@@ -157,37 +157,96 @@ const PT = {
   noEffect: { en:'No effect on preferences', ru:'Не влияют на предпочтения', de:'Ohne Einfluss', uk:'Не впливають', es:'Sin efecto', fr:'Sans effet', it:'Senza effetto', tr:'Etkisiz' },
 };
 
+// ── Verdict legend (shown when the "Pay attention" block is open) ─────────────
+// The numeric 0–100 score is still computed and cached internally; the user
+// only ever sees the 🟢/🟡/🔴 verdict explained below.
+const PT_LEGEND: { emoji: '🟢' | '🟡' | '🔴'; title: Record<string, string>; desc: Record<string, string> }[] = [
+  {
+    emoji: '🟢',
+    title: { en:'Suitable', ru:'Подходит', de:'Geeignet', uk:'Підходить', es:'Adecuado', fr:'Convient', it:'Adatto', tr:'Uygun' },
+    desc: {
+      en:'The formula generally matches your preferences.',
+      ru:'Формула в целом соответствует вашим предпочтениям.',
+      de:'Die Formel entspricht insgesamt Ihren Präferenzen.',
+      uk:'Формула загалом відповідає вашим уподобанням.',
+      es:'La fórmula en general coincide con tus preferencias.',
+      fr:'La formule correspond globalement à vos préférences.',
+      it:'La formula corrisponde in generale alle tue preferenze.',
+      tr:'Formül genel olarak tercihlerinize uyuyor.',
+    },
+  },
+  {
+    emoji: '🟡',
+    title: { en:'Fair', ru:'Нормально', de:'Akzeptabel', uk:'Нормально', es:'Aceptable', fr:'Correct', it:'Accettabile', tr:'Orta' },
+    desc: {
+      en:'Some components may cause discomfort under certain conditions.',
+      ru:'В составе есть компоненты, которые при определённых условиях могут вызывать дискомфорт.',
+      de:'Einige Inhaltsstoffe können unter bestimmten Bedingungen Unbehagen verursachen.',
+      uk:'У складі є компоненти, які за певних умов можуть викликати дискомфорт.',
+      es:'Algunos componentes pueden causar molestias en ciertas condiciones.',
+      fr:'Certains composants peuvent causer de l\u2019inconfort dans certaines conditions.',
+      it:'Alcuni componenti possono causare disagio in determinate condizioni.',
+      tr:'Bazı bileşenler belirli koşullarda rahatsızlığa neden olabilir.',
+    },
+  },
+  {
+    emoji: '🔴',
+    title: { en:'Not suitable', ru:'Не подходит', de:'Nicht geeignet', uk:'Не підходить', es:'No adecuado', fr:'Ne convient pas', it:'Non adatto', tr:'Uygun değil' },
+    desc: {
+      en:'The formula contains components that may conflict with your preferences.',
+      ru:'Формула содержит компоненты, которые могут конфликтовать с вашими предпочтениями.',
+      de:'Die Formel enthält Inhaltsstoffe, die mit Ihren Präferenzen in Konflikt stehen können.',
+      uk:'Формула містить компоненти, які можуть конфліктувати з вашими уподобаннями.',
+      es:'La fórmula contiene componentes que pueden entrar en conflicto con tus preferencias.',
+      fr:'La formule contient des composants pouvant entrer en conflit avec vos préférences.',
+      it:'La formula contiene componenti che possono entrare in conflitto con le tue preferenze.',
+      tr:'Formül, tercihlerinizle çelişebilecek bileşenler içeriyor.',
+    },
+  },
+];
+
+// Map internal cell/column marks to the same circles used everywhere else.
+const CIRCLE: Record<'✅' | '⚠️' | '⛔️', '🟢' | '🟡' | '🔴'> = { '✅': '🟢', '⚠️': '🟡', '⛔️': '🔴' };
+
 function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: Language }) {
   const [showIgnored, setShowIgnored] = useState(false);
   const score = table.score ?? 0;
-  const color = score >= 80 ? '#2D9B5A' : score >= 50 ? '#E8A020' : '#D94040';
+  const color = score >= 75 ? '#2D9B5A' : score >= 50 ? '#E8A020' : '#D94040';
+  // Verdict emoji derived from the internal score — the number itself is never shown.
+  const verdict = PT_LEGEND[score >= 75 ? 0 : score >= 50 ? 1 : 2];
   const tt = (m: Record<string, string>) => m[lang] ?? m.en;
   const note = table.capped ? tt(PT.capped) : table.uncertain ? tt(PT.approx) : '';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '9px 13px', background: 'rgba(255,255,255,0.55)', border: `1.5px solid ${color}33`, borderRadius: 13 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 46 }}>
-          <span style={{ fontSize: '1.65rem', fontWeight: 800, color, lineHeight: 1, fontFamily: 'var(--font-sans)' }}>{score}</span>
-          <span style={{ fontSize: '0.66rem', color, opacity: 0.7 }}>/100</span>
-        </div>
+      {/* Verdict card: emoji + status + its legend line (only the matching one) */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 13px', background: 'rgba(255,255,255,0.55)', border: `1.5px solid ${color}33`, borderRadius: 13 }}>
+        <span style={{ fontSize: '1.5rem', lineHeight: 1.2, flexShrink: 0 }} aria-hidden>{verdict.emoji}</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{tt(PT.title)}</div>
-          {note && <div style={{ fontSize: '0.69rem', color: '#8A8078', fontStyle: 'italic', marginTop: 2 }}>{note}</div>}
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>
+            {verdict.title[lang] ?? verdict.title.en}
+          </div>
+          <div style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5, marginTop: 2 }}>
+            {verdict.desc[lang] ?? verdict.desc.en}
+          </div>
+          {note && <div style={{ fontSize: '0.69rem', color: '#8A8078', fontStyle: 'italic', marginTop: 3 }}>{note}</div>}
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+      {/* Criteria affected by this formula: criterion → ingredients + short WHY */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {table.columns.map((col, i) => (
           <div key={i}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontSize: '0.82rem', lineHeight: 1, flexShrink: 0 }}>{col.emoji}</span>
-              <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 500, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{col.label}</span>
-              <span style={{ fontSize: '0.69rem', color: '#8A8078', flexShrink: 0 }}>{col.score}/100</span>
+              <span style={{ fontSize: '0.9rem', lineHeight: 1, flexShrink: 0 }}>{CIRCLE[col.emoji]}</span>
+              <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{col.label}</span>
             </div>
-            <div style={{ paddingLeft: 22, marginTop: 3, display: 'flex', flexWrap: 'wrap', columnGap: 10, rowGap: 2 }}>
+            <div style={{ paddingLeft: 24, marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
               {col.cells.map((cell, j) => (
-                <span key={j} style={{ fontSize: '0.72rem', color: '#5A5550', fontFamily: 'var(--font-serif)' }}>{cell.emoji} {cell.ingredient}</span>
+                <span key={j} style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5 }}>
+                  <span style={{ color: '#3A3530', fontWeight: 500 }}>{cell.ingredient}</span>
+                  {cell.reason ? <> — {cell.reason}</> : null}
+                </span>
               ))}
             </div>
           </div>
