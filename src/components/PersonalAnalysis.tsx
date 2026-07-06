@@ -209,13 +209,31 @@ const PT_LEGEND: { emoji: '🟢' | '🟡' | '🔴'; title: Record<string, string
 const CIRCLE: Record<'✅' | '⚠️' | '⛔️', '🟢' | '🟡' | '🔴'> = { '✅': '🟢', '⚠️': '🟡', '⛔️': '🔴' };
 
 function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: Language }) {
-  const [showIgnored, setShowIgnored] = useState(false);
   const score = table.score ?? 0;
   const color = score >= 75 ? '#2D9B5A' : score >= 50 ? '#E8A020' : '#D94040';
   // Verdict emoji derived from the internal score — the number itself is never shown.
   const verdict = PT_LEGEND[score >= 75 ? 0 : score >= 50 ? 1 : 2];
   const tt = (m: Record<string, string>) => m[lang] ?? m.en;
   const note = table.capped ? tt(PT.capped) : table.uncertain ? tt(PT.approx) : '';
+
+  // ── Display-level filtering (the internal score still uses ALL cells) ──
+  // A component is worth showing only when it actively AFFECTS the criterion:
+  //   • any ⚠️ / ⛔️ (caution or conflict), or
+  //   • a strongly beneficial ✅ (score ≥ 85).
+  // Neutral fillers (~70, generic ✅) are hidden entirely. Within a criterion
+  // we keep at most the 3 most important components, ranked by how far the
+  // cell score deviates from neutral (70) — conflicts and strong actives first.
+  const NEUTRAL = 70;
+  const displayColumns = table.columns
+    .map(col => ({
+      ...col,
+      cells: col.cells
+        .filter(c => c.emoji !== '✅' || c.score >= 85)
+        .sort((a, b) => Math.abs(b.score - NEUTRAL) - Math.abs(a.score - NEUTRAL))
+        .slice(0, 3),
+    }))
+    // Only criteria that still have at least one acting component.
+    .filter(col => col.cells.length > 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -233,34 +251,25 @@ function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: L
         </div>
       </div>
 
-      {/* Criteria affected by this formula: criterion → ingredients + short WHY */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {table.columns.map((col, i) => (
-          <div key={i}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontSize: '0.9rem', lineHeight: 1, flexShrink: 0 }}>{CIRCLE[col.emoji]}</span>
-              <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{col.label}</span>
+      {/* Criteria with acting components only: criterion → top 1–3 ingredients + short WHY */}
+      {displayColumns.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {displayColumns.map((col, i) => (
+            <div key={i}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: '0.9rem', lineHeight: 1, flexShrink: 0 }}>{CIRCLE[col.emoji]}</span>
+                <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{col.label}</span>
+              </div>
+              <div style={{ paddingLeft: 24, marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {col.cells.map((cell, j) => (
+                  <span key={j} style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5 }}>
+                    <span style={{ color: '#3A3530', fontWeight: 500 }}>{cell.ingredient}</span>
+                    {cell.reason ? <> — {cell.reason}</> : null}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div style={{ paddingLeft: 24, marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {col.cells.map((cell, j) => (
-                <span key={j} style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5 }}>
-                  <span style={{ color: '#3A3530', fontWeight: 500 }}>{cell.ingredient}</span>
-                  {cell.reason ? <> — {cell.reason}</> : null}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {table.ignoredIngredients.length > 0 && (
-        <div onClick={() => setShowIgnored(s => !s)} style={{ cursor: 'pointer' }}>
-          <span style={{ fontSize: '0.7rem', color: '#8A8078' }}>{tt(PT.noEffect)}: {table.ignoredIngredients.length}</span>
-          {showIgnored && (
-            <div style={{ marginTop: 3, fontSize: '0.69rem', color: '#A8A098', lineHeight: 1.5, fontFamily: 'var(--font-serif)' }}>
-              {table.ignoredIngredients.join(', ')}
-            </div>
-          )}
+          ))}
         </div>
       )}
     </div>
