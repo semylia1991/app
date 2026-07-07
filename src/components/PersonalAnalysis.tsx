@@ -230,9 +230,18 @@ function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: L
   // ingredients often carry a 🟡 override with a neutral reason and would
   // otherwise leak through. Max 3 components per criterion, most acting first.
   const NEUTRAL = 70;
-  const NEUTRAL_TEXT = /нейтральн|нейтральн(ий|і)|neutral|generally\s+(safe|well[\s-]?tolerated)|well[\s-]?tolerated|无影响|neutre|neutrale|nötr|sin\s+efecto|ohne\s+einfluss/i;
+  // Neutral fillers AND generic praise ("excellent all-around moisturizer",
+  // "good for most skin", …) — such cached AI reasons are not criterion-specific
+  // and would otherwise show up under EVERY criterion.
+  const NEUTRAL_TEXT = /нейтральн|нейтральн(ий|і)|neutral|generally\s+(safe|well[\s-]?tolerated)|well[\s-]?tolerated|无影响|neutre|neutrale|nötr|sin\s+efecto|ohne\s+einfluss|all[\s-]?around|good\s+for\s+most|suitable\s+for\s+all|mimics\s+skin/i;
+  // Supabase-cached AI reasons are stored in ONE language and replicated to
+  // all: in a Cyrillic UI (ru/uk) a Latin-only reason is a foreign cached row.
+  // Such cells are hidden (kept only for hard ⛔️ conflicts, without the text).
+  const cyrillicUI = lang === 'ru' || lang === 'uk';
+  const foreignReason = (r?: string): boolean => !!r && cyrillicUI && !/[а-яёіїєґ]/i.test(r);
   const isActing = (c: (typeof table.columns)[number]['cells'][number]): boolean => {
     if (c.reason && NEUTRAL_TEXT.test(c.reason)) return false;
+    if (foreignReason(c.reason) && c.emoji !== '⛔️') return false;
     if (c.emoji === '⛔️') return true;
     if (c.emoji === '⚠️') return c.score <= 65;
     return c.score >= 85; // ✅
@@ -277,7 +286,7 @@ function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: L
                 {col.cells.map((cell, j) => (
                   <span key={j} style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5 }}>
                     <span style={{ color: '#3A3530', fontWeight: 500 }}>{cell.ingredient}</span>
-                    {cell.reason ? <> — {cell.reason}</> : null}
+                    {cell.reason && !foreignReason(cell.reason) ? <> — {cell.reason}</> : null}
                   </span>
                 ))}
               </div>
@@ -333,6 +342,11 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     : '';
 
   useEffect(() => {
+    // AI criteria block was removed from the UI (deterministic preference
+    // table is the single source of truth). Skip the Gemini call entirely —
+    // no reason to spend the user's AI quota on an invisible block.
+    return;
+    // eslint-disable-next-line no-unreachable
     if (!fetchKey) return;
     if (fetchKey === fetchKeyRef.current) return;
     fetchKeyRef.current = fetchKey;
@@ -583,49 +597,14 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     ? <PreferenceScoreTable table={prefTable} lang={lang} />
     : null;
 
-  // AI criteria are a GAP-FILLER: show only those not already covered by the
-  // deterministic table, so the table stays authoritative and no contradictory
-  // duplicate rows appear for the same preference.
-  const tableLabels = new Set(prefTable.columns.map(c => c.label.toLowerCase().trim()));
-
-  let statusEl: React.ReactNode = null;
-  if (loading || !criteria) {
-    statusEl = (
-      <div className="flex items-center gap-2 py-3">
-        <Loader2 size={13} className="text-[#B8923A] animate-spin" />
-        <span style={{ fontSize: '0.78rem', color: '#B8923A', fontFamily: 'var(--font-sans)' }}>{t(L.analysing, lang)}</span>
-      </div>
-    );
-  } else if (error) {
-    statusEl = (
-      <div className="flex items-center gap-2 py-2">
-        <p className="text-xs text-red-400 italic flex-1">{error}</p>
-        <button onClick={handleRetry} className="text-xs text-[#B8923A] underline">{t(L.retry, lang)}</button>
-      </div>
-    );
-  } else {
-    // Show only criteria the model judged relevant AND not already in the table.
-    // `relevant !== false` keeps legacy cached criteria (saved before that field existed) visible.
-    const visible = criteria.filter(c =>
-      c.relevant !== false &&
-      !SKIP_LABELS.test(c.label) &&
-      !tableLabels.has(c.label.toLowerCase().trim())
-    );
-    if (visible.length) {
-      statusEl = (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {visible.map((c, i) => <CriterionRow key={i} c={c} lang={lang} />)}
-        </div>
-      );
-    }
-  }
-
-  if (!tableEl && !statusEl) return null;
+  // AI criteria block ("enlarged pores", "dullness", …) intentionally removed:
+  // it duplicated the deterministic table, cost an extra Gemini call and often
+  // arrived in a mixed language. The preference table above is authoritative.
+  if (!tableEl) return null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {tableEl}
-      {statusEl}
     </div>
   );
 }
