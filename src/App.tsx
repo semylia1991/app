@@ -16,7 +16,6 @@ import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
 import { LegalModal, PrivacyPolicyContent, ImpressumContent, AGBContent } from './components/LegalModals';
 import { UserGuideModal } from './components/UserGuideModal';
-import { fetchProductImage } from './lib/productImage';
 import { AlternativesSection } from './components/AlternativesSection';
 import { WhereToBuy } from './components/WhereToBuy';
 import { CollapsibleSection } from './components/CollapsibleSection';
@@ -299,44 +298,6 @@ function BenefitsSection({ text }: { text: string }) {
         }
         return <p key={i}>{block}</p>;
       })}
-    </div>
-  );
-}
-
-function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: string; userPhoto?: string | null }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchProductImage(name, brand).then((url) => {
-      if (!cancelled) {
-        if (url) { setSrc(url); setState('loaded'); }
-        else if (userPhoto) { setSrc(userPhoto); setState('loaded'); }
-        else { setState('error'); }
-      }
-    });
-    return () => { cancelled = true; };
-  }, [name, brand, userPhoto]);
-
-  if (state === 'error') return null;
-
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-      <div style={{
-        width: 80, height: 80,
-        border: '0.5px solid #DDD5C8',
-        background: '#FAF7F2',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        overflow: 'hidden',
-      }}>
-        {state === 'loading' && (
-          <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid #DDD5C8', borderTopColor: '#2D5A3D' }} className="animate-spin" />
-        )}
-        {state === 'loaded' && src && (
-          <img src={src} alt={name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} onError={() => setState('error')} />
-        )}
-      </div>
     </div>
   );
 }
@@ -1071,7 +1032,7 @@ export default function App() {
               )}
 
               {/* Product header */}
-              <div style={{ padding: '32px 32px 24px', textAlign: 'center', borderBottom: '0.5px solid #DDD5C8' }}>
+              <div style={{ padding: '20px 32px 16px', textAlign: 'center', borderBottom: '0.5px solid #DDD5C8' }}>
                 {isSharedView && (
                   <div style={{
                     marginBottom: 20,
@@ -1097,21 +1058,19 @@ export default function App() {
                   </div>
                 )}
 
-                <p style={{ fontSize: '0.58rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#8A8078', marginBottom: 16, fontFamily: 'var(--font-sans)' }}>
+                <p style={{ fontSize: '0.55rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#8A8078', marginBottom: 8, fontFamily: 'var(--font-sans)' }}>
                   {t[lang].ingredientAnalysis}
                 </p>
 
-                <ProductHeroImage name={result.productName} brand={result.brand} userPhoto={scanPhotoUrl} />
-
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 300, color: '#1A1410', marginBottom: 6, letterSpacing: '0.04em' }}>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.25rem, 4.5vw, 1.6rem)', fontWeight: 300, color: '#1A1410', marginBottom: 4, letterSpacing: '0.04em' }}>
                   {originalResult.current?.productName ?? result.productName}
                 </h3>
-                <p style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic', letterSpacing: '0.08em', fontFamily: 'var(--font-serif)' }}>
+                <p style={{ fontSize: '0.7rem', color: '#8A8078', fontStyle: 'italic', letterSpacing: '0.08em', fontFamily: 'var(--font-serif)' }}>
                   {originalResult.current?.brand ?? result.brand}
                 </p>
 
                 {isTranslating && (
-                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#2D5A3D', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#2D5A3D', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
                     <Loader2 size={11} className="animate-spin" />
                     {t[lang].translating}
                   </div>
@@ -1328,9 +1287,9 @@ export default function App() {
                 <button
                   onClick={handleReset}
                   aria-label="Close"
-                  style={{ position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.05)', border: 'none', cursor: 'pointer', color: '#8A8078', zIndex: 2 }}
+                  style={{ position: 'absolute', top: 14, right: 14, width: 44, height: 44, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.05)', border: 'none', cursor: 'pointer', color: '#8A8078', zIndex: 2 }}
                 >
-                  <X size={16} />
+                  <X size={24} />
                 </button>
 
                 <div style={{ height: 2, background: 'linear-gradient(to right, transparent, #B8923A, transparent)' }} />
