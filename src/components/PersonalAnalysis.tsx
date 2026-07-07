@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LogIn, Settings, Loader2, ChevronDown } from 'lucide-react';
 import { Language } from '../i18n';
 import { AnalysisResult, SerializedProfile } from '../services/ai';
@@ -609,11 +609,15 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     </div>
   );
 
-  // Deterministic preference-match table + score (instant, from the modifier
-  // table + Supabase cache). extrasVersion forces a recompute once cached
-  // modifiers for unknown ingredients have loaded.
-  void extrasVersion;
-  const computedTable = computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang);
+  // Deterministic preference-match table + score. Memoized so the O(n×m)
+  // ingredient×criterion pass runs only when its real inputs change — not on
+  // every unrelated re-render of the card. `extrasVersion` is in the deps so
+  // the table recomputes once Supabase-cached modifiers for unknown
+  // ingredients have loaded.
+  const computedTable = useMemo(
+    () => computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang),
+    [result.ingredients, userProfile, result.productType, lang, extrasVersion],
+  );
 
   // If a deterministic score was cached in Supabase, show it verbatim so the
   // number is identical across reloads. Otherwise use the freshly computed one —
