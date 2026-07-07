@@ -11,6 +11,7 @@ const fr: Translations = {
     chooseFromGallery: "Choisir dans la galerie",
     analyzeProduct: "Analyser le produit",
     anotherProduct: "Scanner un autre produit",
+    showDetails: "Voir les détails",
     consent: "J'accepte que ma photo soit traitée pour l'analyse IA. Mes données ne seront utilisées que pour cette analyse et ne seront pas sauvegardées.",
     consentWithdrawal: "Vous pouvez retirer ce consentement à tout moment en rechargeant la page sans uploader une nouvelle photo.",
     cookieBanner: "Nous utilisons des cookies et des outils d'analyse (PostHog). Les cookies analytiques ne sont activés qu'avec votre consentement.",
