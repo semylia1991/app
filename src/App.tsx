@@ -65,14 +65,14 @@ function ScoreBadge({ score }: { score: number | null }) {
 
 // ── Ingredient status legend (shown when the Ingredients section is open) ──
 const ING_LEGEND: Record<Language, { g: string; y: string; r: string }> = {
-  en: { g: 'Suitable',              y: 'Suitable with reservations',       r: 'Not suitable' },
-  ru: { g: 'Подходит',              y: 'Подходит с оговорками',            r: 'Не подходит' },
-  de: { g: 'Geeignet',              y: 'Bedingt geeignet',                 r: 'Nicht geeignet' },
-  uk: { g: 'Підходить',             y: 'Підходить із застереженнями',      r: 'Не підходить' },
-  es: { g: 'Adecuado',              y: 'Adecuado con reservas',            r: 'No adecuado' },
-  fr: { g: 'Convient',              y: 'Convient avec réserves',           r: 'Ne convient pas' },
-  it: { g: 'Adatto',                y: 'Adatto con riserve',               r: 'Non adatto' },
-  tr: { g: 'Uygun',                 y: 'Şartlı uygun',                     r: 'Uygun değil' },
+  en: { g: 'Good formula',        y: 'Some nuances',              r: 'Has debatable components' },
+  ru: { g: 'Хороший состав',      y: 'Есть нюансы',               r: 'Есть спорные компоненты' },
+  de: { g: 'Gute Formel',         y: 'Einige Nuancen',            r: 'Enthält umstrittene Stoffe' },
+  uk: { g: 'Хороший склад',       y: 'Є нюанси',                  r: 'Є спірні компоненти' },
+  es: { g: 'Buena fórmula',       y: 'Algunos matices',           r: 'Tiene componentes discutibles' },
+  fr: { g: 'Bonne formule',       y: 'Quelques nuances',          r: 'Contient des composants discutables' },
+  it: { g: 'Buona formula',       y: 'Alcune sfumature',          r: 'Contiene componenti discutibili' },
+  tr: { g: 'İyi formül',          y: 'Bazı nüanslar',             r: 'Tartışmalı bileşenler içeriyor' },
 };
 
 // Shows ONE line only — the verdict matching the emoji in the section header,
