@@ -209,6 +209,44 @@ const PT_LEGEND: { emoji: '🟢' | '🟡' | '🔴'; title: Record<string, string
 // Map internal cell/column marks to the same circles used everywhere else.
 const CIRCLE: Record<'✅' | '⚠️' | '⛔️', '🟢' | '🟡' | '🔴'> = { '✅': '🟢', '⚠️': '🟡', '⛔️': '🔴' };
 
+// One collapsible criterion row: header (circle + label + chevron) that expands
+// to reveal the acting ingredients and their short explanations.
+function CriterionCollapsible({
+  emoji, label, cells, foreignReason,
+}: {
+  emoji: '🟢' | '🟡' | '🔴';
+  label: string;
+  cells: { ingredient: string; reason?: string }[];
+  foreignReason: (r?: string) => boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+          background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: '0.9rem', lineHeight: 1, flexShrink: 0 }}>{emoji}</span>
+        <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{label}</span>
+        <ChevronDown size={12} style={{ color: '#8A8078', flexShrink: 0, transition: 'transform 0.18s', transform: open ? 'rotate(180deg)' : 'rotate(0)' }} />
+      </button>
+      {open && (
+        <div style={{ paddingLeft: 24, marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {cells.map((cell, j) => (
+            <span key={j} style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5 }}>
+              <span style={{ color: '#3A3530', fontWeight: 500 }}>{cell.ingredient}</span>
+              {cell.reason && !foreignReason(cell.reason) ? <> — {cell.reason}</> : null}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: Language }) {
   const score = table.score ?? 0; // already on the unified 0–100 scale
   const emoji = verdictEmoji100(score);
@@ -273,24 +311,17 @@ function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: L
         </div>
       </div>
 
-      {/* Criteria with acting components only: criterion → top 1–3 ingredients + short WHY */}
+      {/* Criteria with acting components only: collapsible criterion → top 1–3 ingredients + short WHY */}
       {displayColumns.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {displayColumns.map((col, i) => (
-            <div key={i}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ fontSize: '0.9rem', lineHeight: 1, flexShrink: 0 }}>{CIRCLE[col.emoji]}</span>
-                <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{col.label}</span>
-              </div>
-              <div style={{ paddingLeft: 24, marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {col.cells.map((cell, j) => (
-                  <span key={j} style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5 }}>
-                    <span style={{ color: '#3A3530', fontWeight: 500 }}>{cell.ingredient}</span>
-                    {cell.reason && !foreignReason(cell.reason) ? <> — {cell.reason}</> : null}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <CriterionCollapsible
+              key={i}
+              emoji={CIRCLE[col.emoji]}
+              label={col.label}
+              cells={col.cells}
+              foreignReason={foreignReason}
+            />
           ))}
         </div>
       )}
