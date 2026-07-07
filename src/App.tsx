@@ -1118,35 +1118,15 @@ export default function App() {
                 )}
               </div>
 
-              {/* Sections */}
+              {/* Sections — full analysis (Stage 2). Stage 1 is a modal overlay
+                  rendered separately; heavy sections here stay unmounted until
+                  the user taps "See details". */}
               <div>
+                {showDetails && (<>
                 <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={15} />} defaultOpen collapseLabel={cl}>
                   <div className="prose-luxury"><ReactMarkdown>{result.analysis}</ReactMarkdown></div>
                 </CollapsibleSection>
 
-                {/* Stage 1 — light card: two buttons while heavy sections stay unmounted */}
-                {!showDetails && (
-                  <div style={{ padding: '20px 28px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <button
-                      onClick={() => setShowDetails(true)}
-                      className="luxury-btn"
-                      style={{ width: '100%', padding: 14 }}
-                    >
-                      <span>{t[lang].showDetails}</span>
-                      <ChevronDown size={13} />
-                    </button>
-                    <button
-                      onClick={handleReset}
-                      className="outline-btn"
-                      style={{ width: '100%', padding: 13 }}
-                    >
-                      {t[lang].anotherProduct}
-                    </button>
-                  </div>
-                )}
-
-                {/* Stage 2 — full analysis, revealed on tap (data already warm) */}
-                {showDetails && (<>
                 <CollapsibleSection
                   title={t[lang].ingredients}
                   icon={<Leaf size={15} />}
@@ -1320,6 +1300,75 @@ export default function App() {
                 </div>
               </div>
               )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Stage 1 — preview modal shown right after a scan, before the full
+            card is revealed. Buttons: "See details" opens the full analysis
+            (data warmed in the background); "Another product" resets. */}
+        <AnimatePresence>
+          {result && !showDetails && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={(e) => e.target === e.currentTarget && handleReset()}
+              style={{ background: 'rgba(44,62,50,0.55)', backdropFilter: 'blur(4px)' }}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 32, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.97 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="luxury-card w-full max-w-sm overflow-hidden relative"
+              >
+                {/* Close (X) — back to scanning */}
+                <button
+                  onClick={handleReset}
+                  aria-label="Close"
+                  style={{ position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.05)', border: 'none', cursor: 'pointer', color: '#8A8078', zIndex: 2 }}
+                >
+                  <X size={16} />
+                </button>
+
+                <div style={{ height: 2, background: 'linear-gradient(to right, transparent, #B8923A, transparent)' }} />
+
+                <div className="p-7 flex flex-col gap-5">
+                  {/* Leaf + name + brand */}
+                  <div className="text-center">
+                    <span className="text-3xl">🌿</span>
+                    <h2 className="font-serif text-2xl text-[#1A1410] mt-2 leading-snug" style={{ letterSpacing: '0.04em', fontWeight: 300 }}>
+                      {originalResult.current?.productName ?? result.productName}
+                    </h2>
+                    <p style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic', letterSpacing: '0.08em', fontFamily: 'var(--font-serif)', marginTop: 4 }}>
+                      {originalResult.current?.brand ?? result.brand}
+                    </p>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{ height: '0.5px', background: 'linear-gradient(to right, transparent, #D4C3A3, transparent)' }} />
+
+                  {/* Analysis text */}
+                  <div className="prose-luxury"><ReactMarkdown>{result.analysis}</ReactMarkdown></div>
+
+                  {isTranslating && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#2D5A3D', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                      <Loader2 size={11} className="animate-spin" />
+                      {t[lang].translating}
+                    </div>
+                  )}
+
+                  {/* Action */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button onClick={() => setShowDetails(true)} className="luxury-btn" style={{ width: '100%', padding: 14 }}>
+                      <span>{t[lang].showDetails}</span>
+                      <ChevronDown size={13} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
