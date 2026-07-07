@@ -10,6 +10,7 @@ export interface Translations {
   chooseFromGallery: string;
   analyzeProduct: string;
   anotherProduct: string;
+  showDetails: string;
   consent: string;
   consentWithdrawal: string;
   cookieBanner: string;
