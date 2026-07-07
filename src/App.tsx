@@ -75,26 +75,24 @@ const ING_LEGEND: Record<Language, { g: string; y: string; r: string }> = {
   tr: { g: 'Uygun',                 y: 'Şartlı uygun',                     r: 'Uygun değil' },
 };
 
-function IngredientLegend({ lang }: { lang: Language }) {
+// Shows ONE line only — the verdict matching the emoji in the section header,
+// so the legend and the header circle always agree.
+function IngredientLegend({ lang, score }: { lang: Language; score: number | null }) {
+  if (score === null) return null;
   const l = ING_LEGEND[lang] ?? ING_LEGEND.en;
-  const item = (emoji: string, label: string) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-      <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>{emoji}</span>
-      <span style={{ fontSize: '0.78rem', color: '#5A5550', fontFamily: 'var(--font-sans)', fontWeight: 500 }}>{label}</span>
-    </span>
-  );
+  const emoji = verdictEmoji100(toScore100(score));
+  const label = emoji === '🟢' ? l.g : emoji === '🟡' ? l.y : l.r;
   return (
     <div
       style={{
-        display: 'flex', flexWrap: 'wrap', gap: '6px 16px',
+        display: 'flex', alignItems: 'center', gap: 8,
         padding: '10px 14px', marginBottom: 12,
         background: 'rgba(255,255,255,0.6)',
         border: '1px solid rgba(221,213,200,0.6)', borderRadius: 14,
       }}
     >
-      {item('🟢', l.g)}
-      {item('🟡', l.y)}
-      {item('🔴', l.r)}
+      <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>{emoji}</span>
+      <span style={{ fontSize: '0.8rem', color: '#3A3530', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>{label}</span>
     </div>
   );
 }
@@ -1094,7 +1092,7 @@ export default function App() {
                           {/* Numeric score is intentionally hidden — the verdict emoji in
                               the section header is derived from it. Here we only explain
                               what the per-ingredient 🟢/🟡/🔴 marks mean. */}
-                          <IngredientLegend lang={lang} />
+                          <IngredientLegend lang={lang} score={result.canonicalScore ?? computeProductScore(result.ingredients)} />
                           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                             {result.ingredients.map((ing, idx) => (
                               <IngredientItem key={`${ing.name}-${idx}`} ing={ing} lang={lang} />
