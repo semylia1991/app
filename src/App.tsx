@@ -839,7 +839,8 @@ export default function App() {
           logo={<img src={logo} alt="logo" style={{ width: 30, height: 30, objectFit: 'contain' }} />}
         />
 
-        {/* Hero */}
+        {/* Hero — hidden once a product card is shown (redundant above the card) */}
+        {!result && (
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -853,27 +854,28 @@ export default function App() {
             {t[lang].title}
           </h1>
 
-          {!result && (
-            <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
-              <button
-                onClick={() => setIsGuideOpen(true)}
-                className="gold-btn"
-                style={{ padding: '12px 28px', display: 'inline-flex', alignItems: 'center', gap: 10 }}
-              >
-                <span style={{ fontSize: 9 }}>✦</span>
-                <span>{t[lang].userGuide}</span>
-                <span style={{ fontSize: 9 }}>✦</span>
-              </button>
-            </div>
-          )}
+          <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={() => setIsGuideOpen(true)}
+              className="gold-btn"
+              style={{ padding: '12px 28px', display: 'inline-flex', alignItems: 'center', gap: 10 }}
+            >
+              <span style={{ fontSize: 9 }}>✦</span>
+              <span>{t[lang].userGuide}</span>
+              <span style={{ fontSize: 9 }}>✦</span>
+            </button>
+          </div>
         </motion.div>
+        )}
 
-        {/* Gold ornament divider */}
+        {/* Gold ornament divider — only on the upload screen, with the hero */}
+        {!result && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 20 }}>
           <div style={{ height: '0.5px', width: 48, background: 'linear-gradient(to right, transparent, #B8923A)' }} />
           <span style={{ color: '#B8923A', fontSize: 10 }}>✦</span>
           <div style={{ height: '0.5px', width: 48, background: 'linear-gradient(to left, transparent, #B8923A)' }} />
         </div>
+        )}
       </header>
 
       {/* ── MAIN ── */}
