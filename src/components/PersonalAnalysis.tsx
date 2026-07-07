@@ -219,18 +219,29 @@ function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: L
   const note = table.capped ? tt(PT.capped) : table.uncertain ? tt(PT.approx) : '';
 
   // ── Display-level filtering (the internal score still uses ALL cells) ──
-  // A component is worth showing only when it actively AFFECTS the criterion:
-  //   • any ⚠️ / ⛔️ (caution or conflict), or
-  //   • a strongly beneficial ✅ (score ≥ 85).
-  // Neutral fillers (~70, generic ✅) are hidden entirely. Within a criterion
-  // we keep at most the 3 most important components, ranked by how far the
-  // cell score deviates from neutral (70) — conflicts and strong actives first.
+  // NEUTRAL components are NEVER shown. A cell survives only when it truly
+  // ACTS on the criterion:
+  //   • ⛔️ conflict — always shown;
+  //   • ⚠️ caution  — only when its score is clearly below neutral (≤ 65);
+  //     Supabase-cached "no data" rows default to 70 and are hidden;
+  //   • ✅ benefit  — only when strongly beneficial (score ≥ 85).
+  // Additionally, any cell whose reason TEXT says "neutral / generally safe /
+  // well tolerated" (in any app language) is dropped — AI-cached rows for rare
+  // ingredients often carry a 🟡 override with a neutral reason and would
+  // otherwise leak through. Max 3 components per criterion, most acting first.
   const NEUTRAL = 70;
+  const NEUTRAL_TEXT = /нейтральн|нейтральн(ий|і)|neutral|generally\s+(safe|well[\s-]?tolerated)|well[\s-]?tolerated|无影响|neutre|neutrale|nötr|sin\s+efecto|ohne\s+einfluss/i;
+  const isActing = (c: (typeof table.columns)[number]['cells'][number]): boolean => {
+    if (c.reason && NEUTRAL_TEXT.test(c.reason)) return false;
+    if (c.emoji === '⛔️') return true;
+    if (c.emoji === '⚠️') return c.score <= 65;
+    return c.score >= 85; // ✅
+  };
   const displayColumns = table.columns
     .map(col => ({
       ...col,
       cells: col.cells
-        .filter(c => c.emoji !== '✅' || c.score >= 85)
+        .filter(isActing)
         .sort((a, b) => Math.abs(b.score - NEUTRAL) - Math.abs(a.score - NEUTRAL))
         .slice(0, 3),
     }))
