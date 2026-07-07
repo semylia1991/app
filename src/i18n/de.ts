@@ -11,6 +11,7 @@ const de: Translations = {
     chooseFromGallery: "Aus Galerie wählen",
     analyzeProduct: "Produkt analysieren",
     anotherProduct: "Anderes Produkt scannen",
+    showDetails: "Mehr anzeigen",
     consent: "Ich stimme zu, dass mein Foto für die KI-Analyse verarbeitet wird. Meine Daten werden nur für diese Analyse verwendet und nicht gespeichert.",
     consentWithdrawal: "Sie können diese Einwilligung jederzeit widerrufen, indem Sie die Seite neu laden, ohne ein neues Foto hochzuladen (Art. 7 Abs. 3 DSGVO).",
     cookieBanner: "Wir verwenden Cookies und Analyse-Tools (PostHog) gemäß § 25 TDDDG. Analyse-Cookies werden nur mit Ihrer ausdrücklichen Einwilligung aktiviert.",
