@@ -1,6 +1,6 @@
 import logo from './logo.png'
 import posthog from 'posthog-js'
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart, ChevronDown, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -729,6 +729,19 @@ export default function App() {
 
   const cl = t[lang].collapse;
 
+  // Preference-match score for the "Обрати внимание" header badge (🟢/🟡/🔴).
+  // Memoized at the card level so the O(n×m) ingredient×criterion pass runs
+  // only when the composition, profile, or language changes — not on every
+  // unrelated re-render (typing in AskAI, toggling other sections, etc.).
+  // The section body (PersonalAnalysis) memoizes its own copy the same way,
+  // so the heavy table is no longer computed twice per render.
+  const notePreferenceScore = useMemo<number | null>(() => {
+    if (!result || !userProfile || !result.ingredients?.length) return null;
+    return computePreferenceTable(
+      result.ingredients, userProfile, result.productType ?? '', lang,
+    ).score;
+  }, [result, userProfile, lang]);
+
   /* Subscription page */
   if (showSubscriptionPage && user) {
     return (
@@ -1107,14 +1120,10 @@ export default function App() {
                   icon={<NotebookPen size={15} />}
                   collapseLabel={cl}
                   headerBadge={(() => {
-                    // Deterministic preference score (0–100) — computed internally,
-                    // surfaced ONLY as a 🟢/🟡/🔴 verdict, never as a number.
-                    if (!userProfile || !result.ingredients?.length) return null;
-                    const s = computePreferenceTable(
-                      result.ingredients, userProfile, result.productType ?? '', lang
-                    ).score;
-                    if (s === null) return null;
-                    return <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden>{verdictEmoji100(s)}</span>;
+                    // Uses the card-level memoized score (see notePreferenceScore) —
+                    // shown ONLY as a 🟢/🟡/🔴 verdict, never as a number.
+                    if (notePreferenceScore === null) return null;
+                    return <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden>{verdictEmoji100(notePreferenceScore)}</span>;
                   })()}
                 >
                   <PersonalAnalysis
