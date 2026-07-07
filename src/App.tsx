@@ -397,6 +397,11 @@ export default function App() {
   // Defer mounting of Compare & WhereToBuy blocks until the browser is idle —
   // they're not on the critical path, so let the main analysis paint first.
   const [secondaryReady, setSecondaryReady] = useState(false);
+  // Two-stage card reveal: after a scan we first show a light card (photo,
+  // name, analysis text, two buttons). The heavy sections mount only when the
+  // user taps "See details" — which gives free "invisible time" to warm up
+  // scores, the preference table and product details in the background.
+  const [showDetails, setShowDetails] = useState(false);
   // Track whether details have been fetched (lazy — only when productInfo opens)
   const [detailsFetched, setDetailsFetched] = useState(false);
   // Store image hash so fetchDetails can use it for cache write
@@ -467,6 +472,37 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [result]);
 
+  // Background warm-up during the "read" phase (before "See details" is tapped).
+  // Prefetch product details while the user is looking at the light card, so the
+  // full reveal is instant. Runs once per product, only if details aren't loaded.
+  useEffect(() => {
+    if (!result || showDetails || detailsFetched) return;
+    if (result.usage && result.benefits) return; // already have them
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number };
+    let cancelled = false;
+    const warm = () => {
+      if (cancelled) return;
+      setDetailsFetched(true);
+      fetchDetails(result, lang)
+        .then((details) => {
+          if (cancelled) return;
+          setResult(prev => {
+            if (!prev) return prev;
+            const merged: AnalysisResult = { ...prev, ...details };
+            originalResult.current = merged;
+            translationCache.current.set(lang, merged);
+            return merged;
+          });
+        })
+        .catch((e) => console.warn('[warm details] failed:', e));
+    };
+    const id = typeof w.requestIdleCallback === 'function'
+      ? w.requestIdleCallback(warm, { timeout: 2000 })
+      : window.setTimeout(warm, 600);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, showDetails]);
+
   useEffect(() => {
     const loadFromUrl = () => {
       const shareId = new URLSearchParams(window.location.search).get('share');
@@ -490,6 +526,7 @@ export default function App() {
             originalResult.current = r;
             translationCache.current = new Map([[lang, r]]);
             setResult(r);
+            setShowDetails(false);
             setIsSharedView(true);
           }
           setSharedLoading(false);
@@ -611,6 +648,7 @@ export default function App() {
       originalResult.current = analysisWithShops;
       translationCache.current = new Map([[lang, analysisWithShops]]);
       setResult(analysisWithShops);
+      setShowDetails(false);
       setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
@@ -794,6 +832,7 @@ export default function App() {
                     const sourceLang = (scanLang ?? lang) as Language;
                     translationCache.current = new Map([[sourceLang, r]]);
                     setResult(r);
+                    setShowDetails(false);
                     if (scanLang && scanLang !== lang) void setLang(scanLang as Language);
                   }}
                 />
@@ -1085,6 +1124,29 @@ export default function App() {
                   <div className="prose-luxury"><ReactMarkdown>{result.analysis}</ReactMarkdown></div>
                 </CollapsibleSection>
 
+                {/* Stage 1 — light card: two buttons while heavy sections stay unmounted */}
+                {!showDetails && (
+                  <div style={{ padding: '20px 28px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button
+                      onClick={() => setShowDetails(true)}
+                      className="luxury-btn"
+                      style={{ width: '100%', padding: 14 }}
+                    >
+                      <span>{t[lang].showDetails}</span>
+                      <ChevronDown size={13} />
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="outline-btn"
+                      style={{ width: '100%', padding: 13 }}
+                    >
+                      {t[lang].anotherProduct}
+                    </button>
+                  </div>
+                )}
+
+                {/* Stage 2 — full analysis, revealed on tap (data already warm) */}
+                {showDetails && (<>
                 <CollapsibleSection
                   title={t[lang].ingredients}
                   icon={<Leaf size={15} />}
@@ -1228,9 +1290,11 @@ export default function App() {
                     </CollapsibleSection>
                   </>
                 )}
+                </>)}
               </div>
 
-              {/* Footer actions */}
+              {/* Footer actions — only in the expanded (details) view */}
+              {showDetails && (
               <div style={{ padding: '20px 28px 32px', borderTop: '0.5px solid #DDD5C8' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.7rem', color: 'rgba(138,128,120,0.7)', marginBottom: 20, lineHeight: 1.7 }}>
                   <span style={{ flexShrink: 0 }}>⚠</span>
@@ -1255,6 +1319,7 @@ export default function App() {
                   </button>
                 </div>
               </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
