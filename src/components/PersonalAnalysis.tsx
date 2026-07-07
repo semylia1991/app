@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LogIn, Settings, Loader2, ChevronDown } from 'lucide-react';
 import { Language } from '../i18n';
-import { AnalysisResult, SerializedProfile } from '../services/ai';
+import { AnalysisResult, SerializedProfile, fetchPreferenceExplanation, type Ingredient } from '../services/ai';
 import { UserProfile } from './UserProfile';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
@@ -206,20 +206,47 @@ const PT_LEGEND: { emoji: '🟢' | '🟡' | '🔴'; title: Record<string, string
   },
 ];
 
-// Map internal cell/column marks to the same circles used everywhere else.
-const CIRCLE: Record<'✅' | '⚠️' | '⛔️', '🟢' | '🟡' | '🔴'> = { '✅': '🟢', '⚠️': '🟡', '⛔️': '🔴' };
+// Cache of AI one-sentence explanations, keyed by lang + criterion + composition.
+// Prevents re-calling the model when the same criterion is expanded again.
+const explanationCache = new Map<string, string>();
 
 // One collapsible criterion row: header (circle + label + chevron) that expands
 // to reveal the acting ingredients and their short explanations.
 function CriterionCollapsible({
-  emoji, label, cells, foreignReason,
+  emoji, label, cells, foreignReason, ingredients, lang,
 }: {
   emoji: '🟢' | '🟡' | '🔴';
   label: string;
   cells: { ingredient: string; reason?: string }[];
   foreignReason: (r?: string) => boolean;
+  ingredients: Ingredient[];
+  lang: Language;
 }) {
   const [open, setOpen] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [loadingExpl, setLoadingExpl] = useState(false);
+
+  // On first expand: fetch a single-sentence, why-this-colour explanation
+  // (names 1–3 responsible ingredients). Cached per criterion+composition+lang.
+  useEffect(() => {
+    if (!open || explanation !== null || loadingExpl) return;
+    const key = `${lang}|${label}|${cells.map(c => c.ingredient).join(',')}`;
+    const cached = explanationCache.get(key);
+    if (cached !== undefined) { setExplanation(cached); return; }
+    let cancelled = false;
+    setLoadingExpl(true);
+    fetchPreferenceExplanation(ingredients, label, lang)
+      .then((text) => {
+        const clean = (text ?? '').trim();
+        if (clean) explanationCache.set(key, clean);
+        if (!cancelled) setExplanation(clean);
+      })
+      .catch(() => { if (!cancelled) setExplanation(''); })
+      .finally(() => { if (!cancelled) setLoadingExpl(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   return (
     <div>
       <button
@@ -234,8 +261,20 @@ function CriterionCollapsible({
         <ChevronDown size={12} style={{ color: '#8A8078', flexShrink: 0, transition: 'transform 0.18s', transform: open ? 'rotate(180deg)' : 'rotate(0)' }} />
       </button>
       {open && (
-        <div style={{ paddingLeft: 24, marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {cells.map((cell, j) => (
+        <div style={{ paddingLeft: 24, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* One-sentence "why this colour" summary */}
+          {loadingExpl && explanation === null ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#B8923A', fontFamily: 'var(--font-sans)' }}>
+              <Loader2 size={11} className="animate-spin" />
+            </span>
+          ) : explanation ? (
+            <span style={{ fontSize: '0.75rem', color: '#3A3530', fontFamily: 'var(--font-serif)', lineHeight: 1.55 }}>
+              {explanation.replace(/[\s\u2705\u26A0\u26D4\uFE0F]+$/u, '')}
+            </span>
+          ) : null}
+
+          {/* Fallback / detail: the acting ingredients with their short reasons */}
+          {(!explanation) && cells.map((cell, j) => (
             <span key={j} style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5 }}>
               <span style={{ color: '#3A3530', fontWeight: 500 }}>{cell.ingredient}</span>
               {cell.reason && !foreignReason(cell.reason) ? <> — {cell.reason}</> : null}
@@ -247,7 +286,7 @@ function CriterionCollapsible({
   );
 }
 
-function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: Language }) {
+function PreferenceScoreTable({ table, lang, ingredients }: { table: PreferenceTable; lang: Language; ingredients: Ingredient[] }) {
   const score = table.score ?? 0; // already on the unified 0–100 scale
   const emoji = verdictEmoji100(score);
   const color = emoji === '🟢' ? '#2D9B5A' : emoji === '🟡' ? '#E8A020' : '#D94040';
@@ -317,10 +356,12 @@ function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: L
           {displayColumns.map((col, i) => (
             <CriterionCollapsible
               key={i}
-              emoji={CIRCLE[col.emoji]}
+              emoji={verdictEmoji100(col.score)}
               label={col.label}
               cells={col.cells}
               foreignReason={foreignReason}
+              ingredients={ingredients}
+              lang={lang}
             />
           ))}
         </div>
@@ -629,7 +670,7 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     ? { ...computedTable, score: cachedScore.score, capped: cachedScore.capped, uncertain: cachedScore.uncertain }
     : computedTable;
   const tableEl = scoreDisplayReady && prefTable.score !== null
-    ? <PreferenceScoreTable table={prefTable} lang={lang} />
+    ? <PreferenceScoreTable table={prefTable} lang={lang} ingredients={result.ingredients ?? []} />
     : null;
 
   // AI criteria block ("enlarged pores", "dullness", …) intentionally removed:
