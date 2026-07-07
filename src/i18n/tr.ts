@@ -11,6 +11,7 @@ const tr: Translations = {
     chooseFromGallery: "Galeriden seç",
     analyzeProduct: "Ürünü analiz et",
     anotherProduct: "Başka ürün tara",
+    showDetails: "Ayrıntıları gör",
     consent: "Fotoğrafımın yapay zeka analizi için işleneceğini kabul ediyorum. Verilerim yalnızca bu analiz için kullanılacak ve kaydedilmeyecektir.",
     consentWithdrawal: "Bu onayı istediğiniz zaman yeni fotoğraf yüklemeden sayfayı yenileyerek geri alabilirsiniz.",
     cookieBanner: "Deneyiminizi geliştirmek için çerezler ve analiz araçları (PostHog) kullanıyoruz. Analiz çerezleri yalnızca onayınızla etkinleştirilir.",
