@@ -1397,6 +1397,7 @@ Return strict JSON with exactly two fields: "productName" and "brand".
 CANONICALIZATION RULES (critical — the same physical product MUST yield identical output every time):
 - "brand": the canonical brand name in Latin script, exactly as the company writes it (e.g. "CeraVe", "La Roche-Posay", "The Ordinary"). No legal suffixes (Inc, GmbH, S.A.), no taglines.
 - "productName": the product line name as printed on the package. Do NOT include: volume/size (30ml, 50g, 1.7oz), region/edition tags (EU, US, Travel Size), batch text, or marketing adjectives ("New", "Improved", "Limited").
+- FIELD SEPARATION: the brand belongs ONLY in "brand". "productName" must NOT contain or repeat the brand name. Wrong: brand="CeraVe", productName="CeraVe Moisturizing Cream". Right: brand="CeraVe", productName="Moisturizing Cream".
 - Use the singular canonical spelling. Do not translate the name into another language; keep it as printed.
 - If you cannot read either field, return an empty string for that field.
 
