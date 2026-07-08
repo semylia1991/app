@@ -620,20 +620,12 @@ export default function App() {
       } as any);
       await subscription.incrementScans();
 
-      // ── Load details in background ────────────────────────────────────────
-      const langAtDetails = lang;
-      fetchDetails(analysisWithShops, langAtDetails)
-        .then((details) => {
-          setDetailsFetched(true);
-          setResult(prev => {
-            if (!prev) return prev;
-            const merged: AnalysisResult = { ...prev, ...details };
-            originalResult.current = merged;
-            translationCache.current.set(langAtDetails, merged);
-            return merged;
-          });
-        })
-        .catch((e) => console.warn('[scan] background details failed:', e));
+      // ── Details are loaded LAZILY ─────────────────────────────────────────
+      // analyzeDetails is intentionally NOT started here anymore. It fires only
+      // when the user opens the "Product info" section (onOpen handler on that
+      // CollapsibleSection below). Scans where the user never opens the block
+      // no longer pay for the Gemini details call at all. Cache-hit scans still
+      // get details instantly via onLateUpdate from the cached row.
 
       const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
       localStorage.setItem('totalScanCount', String(totalScans));
