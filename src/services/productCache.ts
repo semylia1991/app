@@ -229,8 +229,28 @@ function normCacheSegment(s: string, type: 'brand' | 'name'): string {
   return r.replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Remove a duplicated brand from the head of the (normalized) product name.
+ * The AI occasionally packs the brand into productName ("CeraVe Moisturizing
+ * Cream" with brand="CeraVe" — or with brand="" on another scan). Stripping the
+ * duplicate deterministically makes both layouts produce the SAME key, without
+ * relying on the AI to follow the prompt rule. Inputs must already be
+ * normCacheSegment-normalized. If stripping would leave an empty name (the
+ * name IS the brand), the original is kept.
+ */
+function stripBrandFromName(nBrand: string, nName: string): string {
+  if (!nBrand || !nName || nName === nBrand) return nName;
+  if (nName.startsWith(nBrand + ' ')) {
+    const stripped = nName.slice(nBrand.length + 1).trim();
+    return stripped || nName;
+  }
+  return nName;
+}
+
 export function buildCacheKey(productName: string, brand: string, lang: string): string {
-  return `${normCacheSegment(brand, 'brand')}|${normCacheSegment(productName, 'name')}|${lang}`;
+  const nBrand = normCacheSegment(brand, 'brand');
+  const nName  = stripBrandFromName(nBrand, normCacheSegment(productName, 'name'));
+  return `${nBrand}|${nName}|${lang}`;
 }
 
 // ── Frozen translations (общий перевод свободного текста) ─────────────────────
@@ -241,7 +261,7 @@ export function buildCacheKey(productName: string, brand: string, lang: string):
 // for a Gemini translate call once the first user has triggered it.
 export function canonicalProductKey(brand: string, productName: string): string | null {
   const b = normCacheSegment(brand, 'brand');
-  const n = normCacheSegment(productName, 'name');
+  const n = stripBrandFromName(b, normCacheSegment(productName, 'name'));
   if (!b || !n) return null;
   return `${b}|${n}`;
 }
@@ -486,7 +506,7 @@ export async function getCanonicalScore(
   // diacritics, apostrophes, hyphens, volume/region suffixes). Read and write
   // both normalize, so the keys always agree.
   const nBrand = normCacheSegment(brand, 'brand');
-  const nName  = normCacheSegment(productName, 'name');
+  const nName  = stripBrandFromName(nBrand, normCacheSegment(productName, 'name'));
   if (!nBrand || !nName) return null;
   try {
     const { data, error } = await supabase.rpc('get_product_score', {
@@ -518,7 +538,7 @@ export async function saveCanonicalScore(
   // Normalize key with the SAME rules used on read (getCanonicalScore) and by
   // the name cache, so "CeraVe" and "cerave" map to one canonical row.
   const nBrand = normCacheSegment(brand, 'brand');
-  const nName  = normCacheSegment(productName, 'name');
+  const nName  = stripBrandFromName(nBrand, normCacheSegment(productName, 'name'));
   if (!nBrand || !nName) return;
   // Strip descriptions before storing — language-agnostic
   const stripped = ingredients.map(({ name, status, score: s }) => ({ name, status, score: s }));
