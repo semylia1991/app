@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LogIn, Settings, Loader2, ChevronDown } from 'lucide-react';
 import { Language } from '../i18n';
-import { AnalysisResult, SerializedProfile, fetchPreferenceExplanation, type Ingredient } from '../services/ai';
+import { AnalysisResult, SerializedProfile } from '../services/ai';
 import { UserProfile } from './UserProfile';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { computePreferenceTable, PreferenceTable, registerExtraModifiers, clearExtraModifiers } from '../lib/personalScore';
-import { verdictEmoji100 } from '../lib/scoring';
 import { computeIngredientsHash, getFrozenPersonalText, saveFrozenPersonalText } from '../services/productCache';
 import type { ModifierRow, ModifierReason } from '../lib/ingredient-modifiers';
 
@@ -19,6 +18,8 @@ interface Props {
   onLimitReached: () => void;
   onUsed: () => Promise<void>;
   onOpenProfile: () => void;
+  /** Reports the block verdict color (worst displayed circle) for the section-header dot */
+  onVerdict?: (color: string | null) => void;
 }
 
 export interface Criterion {
@@ -158,212 +159,84 @@ const PT = {
   noEffect: { en:'No effect on preferences', ru:'Не влияют на предпочтения', de:'Ohne Einfluss', uk:'Не впливають', es:'Sin efecto', fr:'Sans effet', it:'Senza effetto', tr:'Etkisiz' },
 };
 
-// ── Verdict legend (shown when the "Pay attention" block is open) ─────────────
-// The numeric 0–100 score is still computed and cached internally; the user
-// only ever sees the 🟢/🟡/🔴 verdict explained below.
-const PT_LEGEND: { emoji: '🟢' | '🟡' | '🔴'; title: Record<string, string>; desc: Record<string, string> }[] = [
-  {
-    emoji: '🟢',
-    title: { en:'Suitable', ru:'Подходит', de:'Geeignet', uk:'Підходить', es:'Adecuado', fr:'Convient', it:'Adatto', tr:'Uygun' },
-    desc: {
-      en:'The formula generally matches your preferences.',
-      ru:'Формула в целом соответствует вашим предпочтениям.',
-      de:'Die Formel entspricht insgesamt Ihren Präferenzen.',
-      uk:'Формула загалом відповідає вашим уподобанням.',
-      es:'La fórmula en general coincide con tus preferencias.',
-      fr:'La formule correspond globalement à vos préférences.',
-      it:'La formula corrisponde in generale alle tue preferenze.',
-      tr:'Formül genel olarak tercihlerinize uyuyor.',
-    },
-  },
-  {
-    emoji: '🟡',
-    title: { en:'Fair', ru:'Нормально', de:'Akzeptabel', uk:'Нормально', es:'Aceptable', fr:'Correct', it:'Accettabile', tr:'Orta' },
-    desc: {
-      en:'Some components may cause discomfort under certain conditions.',
-      ru:'В составе есть компоненты, которые при определённых условиях могут вызывать дискомфорт.',
-      de:'Einige Inhaltsstoffe können unter bestimmten Bedingungen Unbehagen verursachen.',
-      uk:'У складі є компоненти, які за певних умов можуть викликати дискомфорт.',
-      es:'Algunos componentes pueden causar molestias en ciertas condiciones.',
-      fr:'Certains composants peuvent causer de l\u2019inconfort dans certaines conditions.',
-      it:'Alcuni componenti possono causare disagio in determinate condizioni.',
-      tr:'Bazı bileşenler belirli koşullarda rahatsızlığa neden olabilir.',
-    },
-  },
-  {
-    emoji: '🔴',
-    title: { en:'Not suitable', ru:'Не подходит', de:'Nicht geeignet', uk:'Не підходить', es:'No adecuado', fr:'Ne convient pas', it:'Non adatto', tr:'Uygun değil' },
-    desc: {
-      en:'The formula contains components that may conflict with your preferences.',
-      ru:'Формула содержит компоненты, которые могут конфликтовать с вашими предпочтениями.',
-      de:'Die Formel enthält Inhaltsstoffe, die mit Ihren Präferenzen in Konflikt stehen können.',
-      uk:'Формула містить компоненти, які можуть конфліктувати з вашими уподобаннями.',
-      es:'La fórmula contiene componentes que pueden entrar en conflicto con tus preferencias.',
-      fr:'La formule contient des composants pouvant entrer en conflit avec vos préférences.',
-      it:'La formula contiene componenti che possono entrare in conflitto con le tue preferenze.',
-      tr:'Formül, tercihlerinizle çelişebilecek bileşenler içeriyor.',
-    },
-  },
-];
-
-// Cache of AI one-sentence explanations, keyed by lang + criterion + composition.
-// Prevents re-calling the model when the same criterion is expanded again.
-const explanationCache = new Map<string, string>();
-
-// One collapsible criterion row: header (circle + label + chevron) that expands
-// to reveal the acting ingredients and their short explanations.
-function CriterionCollapsible({
-  emoji, label, cells, foreignReason, ingredients, lang,
-}: {
-  emoji: '🟢' | '🟡' | '🔴';
-  label: string;
-  cells: { ingredient: string; reason?: string }[];
-  foreignReason: (r?: string) => boolean;
-  ingredients: Ingredient[];
-  lang: Language;
-}) {
-  const [open, setOpen] = useState(false);
-  const [explanation, setExplanation] = useState<string | null>(null);
-  const [loadingExpl, setLoadingExpl] = useState(false);
-
-  // On first expand: fetch a single-sentence, why-this-colour explanation
-  // (names 1–3 responsible ingredients). Cached per criterion+composition+lang.
-  useEffect(() => {
-    if (!open || explanation !== null || loadingExpl) return;
-    const key = `${lang}|${label}|${cells.map(c => c.ingredient).join(',')}`;
-    const cached = explanationCache.get(key);
-    if (cached !== undefined) { setExplanation(cached); return; }
-    let cancelled = false;
-    setLoadingExpl(true);
-    fetchPreferenceExplanation(ingredients, label, lang)
-      .then((text) => {
-        const clean = (text ?? '').trim();
-        if (clean) explanationCache.set(key, clean);
-        if (!cancelled) setExplanation(clean);
-      })
-      .catch(() => { if (!cancelled) setExplanation(''); })
-      .finally(() => { if (!cancelled) setLoadingExpl(false); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  return (
-    <div>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 7, width: '100%',
-          background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', textAlign: 'left',
-        }}
-      >
-        <span style={{ fontSize: '0.9rem', lineHeight: 1, flexShrink: 0 }}>{emoji}</span>
-        <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{label}</span>
-        <ChevronDown size={12} style={{ color: '#8A8078', flexShrink: 0, transition: 'transform 0.18s', transform: open ? 'rotate(180deg)' : 'rotate(0)' }} />
-      </button>
-      {open && (
-        <div style={{ paddingLeft: 24, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {/* One-sentence "why this colour" summary */}
-          {loadingExpl && explanation === null ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: '#B8923A', fontFamily: 'var(--font-sans)' }}>
-              <Loader2 size={11} className="animate-spin" />
-            </span>
-          ) : explanation ? (
-            <span style={{ fontSize: '0.75rem', color: '#3A3530', fontFamily: 'var(--font-serif)', lineHeight: 1.55 }}>
-              {explanation.replace(/[\s\u2705\u26A0\u26D4\uFE0F]+$/u, '')}
-            </span>
-          ) : null}
-
-          {/* Fallback / detail: the acting ingredients with their short reasons */}
-          {(!explanation) && cells.map((cell, j) => (
-            <span key={j} style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5 }}>
-              <span style={{ color: '#3A3530', fontWeight: 500 }}>{cell.ingredient}</span>
-              {cell.reason && !foreignReason(cell.reason) ? <> — {cell.reason}</> : null}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+// ── Verdict from displayed circles ────────────────────────────────────────────
+// The block-level verdict is derived from the SAME circles the user sees in
+// the rows (table columns + visible AI criteria): red if any ⛔️, yellow if any
+// ⚠️, green otherwise. No averaging "magic" — header and rows agree by
+// construction.
+type VerdictEmoji = '✅' | '⚠️' | '⛔️';
+const VERDICT_COLOR: Record<VerdictEmoji, string> = {
+  '✅': '#2D9B5A', '⚠️': '#E8A020', '⛔️': '#D94040',
+};
+function worstVerdict(emojis: VerdictEmoji[]): VerdictEmoji | null {
+  if (emojis.length === 0) return null;
+  if (emojis.includes('⛔️')) return '⛔️';
+  if (emojis.includes('⚠️')) return '⚠️';
+  return '✅';
 }
 
-function PreferenceScoreTable({ table, lang, ingredients }: { table: PreferenceTable; lang: Language; ingredients: Ingredient[] }) {
-  const score = table.score ?? 0; // already on the unified 0–100 scale
-  const emoji = verdictEmoji100(score);
-  const color = emoji === '🟢' ? '#2D9B5A' : emoji === '🟡' ? '#E8A020' : '#D94040';
-  // Verdict derived from the internal score — the number itself is never shown.
-  const verdict = PT_LEGEND[emoji === '🟢' ? 0 : emoji === '🟡' ? 1 : 2];
+// Reports the current verdict color to the parent (for the section-header dot).
+// A child component so the useEffect stays legal regardless of the parent's
+// early returns. Cleans up to null on unmount so a stale dot never lingers.
+function VerdictReporter({ color, onVerdict }: { color: string | null; onVerdict?: (c: string | null) => void }) {
+  const cbRef = useRef(onVerdict);
+  cbRef.current = onVerdict;
+  useEffect(() => { cbRef.current?.(color); }, [color]);
+  useEffect(() => () => { cbRef.current?.(null); }, []);
+  return null;
+}
+
+function PreferenceScoreTable({ table, lang }: { table: PreferenceTable; lang: Language }) {
+  const [showIgnored, setShowIgnored] = useState(false);
+  const score = table.score ?? 0;
+  // Chip color follows the WORST circle among the displayed columns — the same
+  // logic as the section verdict — not numeric thresholds. A table whose rows
+  // are all ✅ can no longer show a yellow chip just because the average
+  // landed below a cut-off (and vice versa).
+  const columnVerdict = worstVerdict(table.columns.map(c => c.emoji));
+  const color = columnVerdict ? VERDICT_COLOR[columnVerdict]
+    : score >= 80 ? '#2D9B5A' : score >= 50 ? '#E8A020' : '#D94040';
   const tt = (m: Record<string, string>) => m[lang] ?? m.en;
   const note = table.capped ? tt(PT.capped) : table.uncertain ? tt(PT.approx) : '';
 
-  // ── Display-level filtering (the internal score still uses ALL cells) ──
-  // NEUTRAL components are NEVER shown. A cell survives only when it truly
-  // ACTS on the criterion:
-  //   • ⛔️ conflict — always shown;
-  //   • ⚠️ caution  — only when its score is clearly below neutral (≤ 65);
-  //     Supabase-cached "no data" rows default to 70 and are hidden;
-  //   • ✅ benefit  — only when strongly beneficial (score ≥ 85).
-  // Additionally, any cell whose reason TEXT says "neutral / generally safe /
-  // well tolerated" (in any app language) is dropped — AI-cached rows for rare
-  // ingredients often carry a 🟡 override with a neutral reason and would
-  // otherwise leak through. Max 3 components per criterion, most acting first.
-  const NEUTRAL = 70;
-  // Neutral fillers AND generic praise ("excellent all-around moisturizer",
-  // "good for most skin", …) — such cached AI reasons are not criterion-specific
-  // and would otherwise show up under EVERY criterion.
-  const NEUTRAL_TEXT = /нейтральн|нейтральн(ий|і)|neutral|generally\s+(safe|well[\s-]?tolerated)|well[\s-]?tolerated|无影响|neutre|neutrale|nötr|sin\s+efecto|ohne\s+einfluss|all[\s-]?around|good\s+for\s+most|suitable\s+for\s+all|mimics\s+skin/i;
-  // Supabase-cached AI reasons are stored in ONE language and replicated to
-  // all: in a Cyrillic UI (ru/uk) a Latin-only reason is a foreign cached row.
-  // Such cells are hidden (kept only for hard ⛔️ conflicts, without the text).
-  const cyrillicUI = lang === 'ru' || lang === 'uk';
-  const foreignReason = (r?: string): boolean => !!r && cyrillicUI && !/[а-яёіїєґ]/i.test(r);
-  const isActing = (c: (typeof table.columns)[number]['cells'][number]): boolean => {
-    if (c.reason && NEUTRAL_TEXT.test(c.reason)) return false;
-    if (foreignReason(c.reason) && c.emoji !== '⛔️') return false;
-    if (c.emoji === '⛔️') return true;
-    if (c.emoji === '⚠️') return c.score <= 65;
-    return c.score >= 85; // ✅
-  };
-  const displayColumns = table.columns
-    .map(col => ({
-      ...col,
-      cells: col.cells
-        .filter(isActing)
-        .sort((a, b) => Math.abs(b.score - NEUTRAL) - Math.abs(a.score - NEUTRAL))
-        .slice(0, 3),
-    }))
-    // Only criteria that still have at least one acting component.
-    .filter(col => col.cells.length > 0);
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {/* Verdict card: emoji + status + its legend line (only the matching one) */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 13px', background: 'rgba(255,255,255,0.55)', border: `1.5px solid ${color}33`, borderRadius: 13 }}>
-        <span style={{ fontSize: '1.5rem', lineHeight: 1.2, flexShrink: 0 }} aria-hidden>{verdict.emoji}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '9px 13px', background: 'rgba(255,255,255,0.55)', border: `1.5px solid ${color}33`, borderRadius: 13 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 46 }}>
+          <span style={{ fontSize: '1.65rem', fontWeight: 800, color, lineHeight: 1, fontFamily: 'var(--font-sans)' }}>{score}</span>
+          <span style={{ fontSize: '0.66rem', color, opacity: 0.7 }}>/100</span>
+        </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>
-            {verdict.title[lang] ?? verdict.title.en}
-          </div>
-          <div style={{ fontSize: '0.74rem', color: '#5A5550', fontFamily: 'var(--font-serif)', lineHeight: 1.5, marginTop: 2 }}>
-            {verdict.desc[lang] ?? verdict.desc.en}
-          </div>
-          {note && <div style={{ fontSize: '0.69rem', color: '#8A8078', fontStyle: 'italic', marginTop: 3 }}>{note}</div>}
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{tt(PT.title)}</div>
+          {note && <div style={{ fontSize: '0.69rem', color: '#8A8078', fontStyle: 'italic', marginTop: 2 }}>{note}</div>}
         </div>
       </div>
 
-      {/* Criteria with acting components only: collapsible criterion → top 1–3 ingredients + short WHY */}
-      {displayColumns.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {displayColumns.map((col, i) => (
-            <CriterionCollapsible
-              key={i}
-              emoji={verdictEmoji100(col.score)}
-              label={col.label}
-              cells={col.cells}
-              foreignReason={foreignReason}
-              ingredients={ingredients}
-              lang={lang}
-            />
-          ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {table.columns.map((col, i) => (
+          <div key={i}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ fontSize: '0.82rem', lineHeight: 1, flexShrink: 0 }}>{col.emoji}</span>
+              <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 500, color: '#3A3530', fontFamily: 'var(--font-sans)' }}>{col.label}</span>
+              <span style={{ fontSize: '0.69rem', color: '#8A8078', flexShrink: 0 }}>{col.score}/100</span>
+            </div>
+            <div style={{ paddingLeft: 22, marginTop: 3, display: 'flex', flexWrap: 'wrap', columnGap: 10, rowGap: 2 }}>
+              {col.cells.map((cell, j) => (
+                <span key={j} style={{ fontSize: '0.72rem', color: '#5A5550', fontFamily: 'var(--font-serif)' }}>{cell.emoji} {cell.ingredient}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {table.ignoredIngredients.length > 0 && (
+        <div onClick={() => setShowIgnored(s => !s)} style={{ cursor: 'pointer' }}>
+          <span style={{ fontSize: '0.7rem', color: '#8A8078' }}>{tt(PT.noEffect)}: {table.ignoredIngredients.length}</span>
+          {showIgnored && (
+            <div style={{ marginTop: 3, fontSize: '0.69rem', color: '#A8A098', lineHeight: 1.5, fontFamily: 'var(--font-serif)' }}>
+              {table.ignoredIngredients.join(', ')}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -382,7 +255,7 @@ const L = {
 const t = (map: Record<string, string>, lang: Language) => map[lang] ?? map.en;
 
 // ── PersonalAnalysis ──────────────────────────────────────────────────────────
-export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfile }: Props) {
+export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfile, onVerdict }: Props) {
   const [criteria, setCriteria] = useState<Criterion[] | null>(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -414,11 +287,6 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     : '';
 
   useEffect(() => {
-    // AI criteria block was removed from the UI (deterministic preference
-    // table is the single source of truth). Skip the Gemini call entirely —
-    // no reason to spend the user's AI quota on an invisible block.
-    return;
-    // eslint-disable-next-line no-unreachable
     if (!fetchKey) return;
     if (fetchKey === fetchKeyRef.current) return;
     fetchKeyRef.current = fetchKey;
@@ -650,15 +518,11 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     </div>
   );
 
-  // Deterministic preference-match table + score. Memoized so the O(n×m)
-  // ingredient×criterion pass runs only when its real inputs change — not on
-  // every unrelated re-render of the card. `extrasVersion` is in the deps so
-  // the table recomputes once Supabase-cached modifiers for unknown
-  // ingredients have loaded.
-  const computedTable = useMemo(
-    () => computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang),
-    [result.ingredients, userProfile, result.productType, lang, extrasVersion],
-  );
+  // Deterministic preference-match table + score (instant, from the modifier
+  // table + Supabase cache). extrasVersion forces a recompute once cached
+  // modifiers for unknown ingredients have loaded.
+  void extrasVersion;
+  const computedTable = computePreferenceTable(result.ingredients ?? [], userProfile!, result.productType ?? '', lang);
 
   // If a deterministic score was cached in Supabase, show it verbatim so the
   // number is identical across reloads. Otherwise use the freshly computed one —
@@ -670,17 +534,64 @@ export function PersonalAnalysis({ lang, result, user, userProfile, onOpenProfil
     ? { ...computedTable, score: cachedScore.score, capped: cachedScore.capped, uncertain: cachedScore.uncertain }
     : computedTable;
   const tableEl = scoreDisplayReady && prefTable.score !== null
-    ? <PreferenceScoreTable table={prefTable} lang={lang} ingredients={result.ingredients ?? []} />
+    ? <PreferenceScoreTable table={prefTable} lang={lang} />
     : null;
 
-  // AI criteria block ("enlarged pores", "dullness", …) intentionally removed:
-  // it duplicated the deterministic table, cost an extra Gemini call and often
-  // arrived in a mixed language. The preference table above is authoritative.
-  if (!tableEl) return null;
+  // AI criteria are a GAP-FILLER: show only those not already covered by the
+  // deterministic table, so the table stays authoritative and no contradictory
+  // duplicate rows appear for the same preference.
+  const tableLabels = new Set(prefTable.columns.map(c => c.label.toLowerCase().trim()));
+
+  // Visible AI criteria (computed outside statusEl so the verdict can use them)
+  const visibleCriteria = (!loading && !error && criteria)
+    ? criteria.filter(c =>
+        c.relevant !== false &&
+        !SKIP_LABELS.test(c.label) &&
+        !tableLabels.has(c.label.toLowerCase().trim())
+      )
+    : null;
+
+  let statusEl: React.ReactNode = null;
+  if (loading || !criteria) {
+    statusEl = (
+      <div className="flex items-center gap-2 py-3">
+        <Loader2 size={13} className="text-[#B8923A] animate-spin" />
+        <span style={{ fontSize: '0.78rem', color: '#B8923A', fontFamily: 'var(--font-sans)' }}>{t(L.analysing, lang)}</span>
+      </div>
+    );
+  } else if (error) {
+    statusEl = (
+      <div className="flex items-center gap-2 py-2">
+        <p className="text-xs text-red-400 italic flex-1">{error}</p>
+        <button onClick={handleRetry} className="text-xs text-[#B8923A] underline">{t(L.retry, lang)}</button>
+      </div>
+    );
+  } else if (visibleCriteria && visibleCriteria.length) {
+    statusEl = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {visibleCriteria.map((c, i) => <CriterionRow key={i} c={c} lang={lang} />)}
+      </div>
+    );
+  }
+
+  if (!tableEl && !statusEl) return null;
+
+  // ── Block verdict: worst circle among EVERYTHING displayed in this section ──
+  // (deterministic table columns + visible AI criteria). Header dot, table chip
+  // and rows agree by construction. null while loading → no dot yet.
+  const allEmojis: VerdictEmoji[] = [
+    ...(tableEl ? prefTable.columns.map(c => c.emoji) : []),
+    ...((visibleCriteria ?? []).map(c => c.emoji as VerdictEmoji)
+        .filter(e => e === '✅' || e === '⚠️' || e === '⛔️')),
+  ];
+  const verdictEmoji = worstVerdict(allEmojis);
+  const verdictColor = verdictEmoji ? VERDICT_COLOR[verdictEmoji] : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <VerdictReporter color={verdictColor} onVerdict={onVerdict} />
       {tableEl}
+      {statusEl}
     </div>
   );
 }
