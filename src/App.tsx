@@ -1,6 +1,6 @@
 import logo from './logo.png'
 import posthog from 'posthog-js'
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Camera, AlertCircle, ShieldCheck, Leaf, Info, Sparkles, AlertTriangle, Zap, RefreshCw, Loader2, Share2, NotebookPen, ShoppingCart, ChevronDown, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -9,13 +9,13 @@ import type { User } from '@supabase/supabase-js';
 import { t, Language, loadLanguage } from './i18n';
 import { analyzeProductImageStream, AnalysisResult, ShopLink, translateAnalysisResult, SerializedProfile, computeProductScore, fetchIngredientDescription, fetchPreferenceExplanation, fetchDetails, applyCanonicalCard } from './services/ai';
 import { getCanonicalScore } from './services/productCache';
-import { computeAutonomousScore } from './lib/personalScore';
+import { computeAutonomousScore, computePreferenceTable } from './lib/personalScore';
+import { toScore100, verdictEmoji100 } from './lib/scoring';
 import { supabase } from './lib/supabase';
 import { LanguageSelector } from './components/LanguageSelector';
 import { CookieBanner } from './components/CookieBanner';
 import { LegalModal, PrivacyPolicyContent, ImpressumContent, AGBContent } from './components/LegalModals';
 import { UserGuideModal } from './components/UserGuideModal';
-import { fetchProductImage } from './lib/productImage';
 import { AlternativesSection } from './components/AlternativesSection';
 import { WhereToBuy } from './components/WhereToBuy';
 import { CollapsibleSection } from './components/CollapsibleSection';
@@ -48,34 +48,51 @@ const DISCLAIMER_BANNER_TEXT: Record<Language, string> = {
   tr: 'Bu analiz yalnızca bilgilendirme amaçlıdır ve tıbbi tavsiye değildir. Cilt bakımı rutininizi değiştirmeden önce bir doktora veya dermatoloğa danışın.',
 };
 
-// Compact score chip rendered in CollapsibleSection headers (always visible)
-// for the Ingredients and Personal Note rows.
+// Emoji-only indicator rendered in CollapsibleSection headers (always visible).
+// The numeric score is still computed internally (weights, caching, sorting)
+// but is NEVER shown to the user — only the 🟢/🟡/🔴 verdict.
+// The internal 0–10 product score is normalized to the unified 0–100 scale:
+// 🟢 ≥ 75, 🟡 ≥ 50, 🔴 < 50 (same thresholds as the preference verdict).
 function ScoreBadge({ score }: { score: number | null }) {
   if (score === null) return null;
-  // Standard mathematical rounding: 3.3→3, 5.7→6
-  const rounded = Math.round(score);
-  const color = score >= 7.5 ? '#2D9B5A' : score >= 5 ? '#E8A020' : '#D94040';
   return (
-    <span
+    <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden>
+      {verdictEmoji100(toScore100(score))}
+    </span>
+  );
+}
+
+// ── Ingredient status legend (shown when the Ingredients section is open) ──
+const ING_LEGEND: Record<Language, { g: string; y: string; r: string }> = {
+  en: { g: 'Good formula',        y: 'Some nuances',              r: 'Has debatable components' },
+  ru: { g: 'Хороший состав',      y: 'Есть нюансы',               r: 'Есть спорные компоненты' },
+  de: { g: 'Gute Formel',         y: 'Einige Nuancen',            r: 'Enthält umstrittene Stoffe' },
+  uk: { g: 'Хороший склад',       y: 'Є нюанси',                  r: 'Є спірні компоненти' },
+  es: { g: 'Buena fórmula',       y: 'Algunos matices',           r: 'Tiene componentes discutibles' },
+  fr: { g: 'Bonne formule',       y: 'Quelques nuances',          r: 'Contient des composants discutables' },
+  it: { g: 'Buona formula',       y: 'Alcune sfumature',          r: 'Contiene componenti discutibili' },
+  tr: { g: 'İyi formül',          y: 'Bazı nüanslar',             r: 'Tartışmalı bileşenler içeriyor' },
+};
+
+// Shows ONE line only — the verdict matching the emoji in the section header,
+// so the legend and the header circle always agree.
+function IngredientLegend({ lang, score }: { lang: Language; score: number | null }) {
+  if (score === null) return null;
+  const l = ING_LEGEND[lang] ?? ING_LEGEND.en;
+  const emoji = verdictEmoji100(toScore100(score));
+  const label = emoji === '🟢' ? l.g : emoji === '🟡' ? l.y : l.r;
+  return (
+    <div
       style={{
-        display: 'inline-flex',
-        alignItems: 'baseline',
-        gap: 1,
-        padding: '3px 9px',
-        borderRadius: 999,
-        background: `${color}18`,
-        border: `1px solid ${color}55`,
-        fontFamily: 'var(--font-sans)',
-        fontWeight: 700,
-        color,
-        fontSize: '0.78rem',
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '10px 14px', marginBottom: 12,
+        background: 'rgba(255,255,255,0.6)',
+        border: '1px solid rgba(221,213,200,0.6)', borderRadius: 14,
       }}
     >
-      {rounded}
-      <span style={{ fontSize: '0.62rem', opacity: 0.75, fontWeight: 600 }}>/10</span>
-    </span>
+      <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>{emoji}</span>
+      <span style={{ fontSize: '0.8rem', color: '#3A3530', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>{label}</span>
+    </div>
   );
 }
 
@@ -285,44 +302,6 @@ function BenefitsSection({ text }: { text: string }) {
   );
 }
 
-function ProductHeroImage({ name, brand, userPhoto }: { name: string; brand: string; userPhoto?: string | null }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchProductImage(name, brand).then((url) => {
-      if (!cancelled) {
-        if (url) { setSrc(url); setState('loaded'); }
-        else if (userPhoto) { setSrc(userPhoto); setState('loaded'); }
-        else { setState('error'); }
-      }
-    });
-    return () => { cancelled = true; };
-  }, [name, brand, userPhoto]);
-
-  if (state === 'error') return null;
-
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-      <div style={{
-        width: 80, height: 80,
-        border: '0.5px solid #DDD5C8',
-        background: '#FAF7F2',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        overflow: 'hidden',
-      }}>
-        {state === 'loading' && (
-          <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid #DDD5C8', borderTopColor: '#2D5A3D' }} className="animate-spin" />
-        )}
-        {state === 'loaded' && src && (
-          <img src={src} alt={name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} onError={() => setState('error')} />
-        )}
-      </div>
-    </div>
-  );
-}
-
 interface ShopConfig {
   platform: string;
   favicon: string;
@@ -376,13 +355,14 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [result, setResult]           = useState<AnalysisResult | null>(null);
-  // Verdict color of the "Pay attention" section (worst displayed circle),
-  // reported by PersonalAnalysis and shown as a dot in the section header.
-  const [noteVerdict, setNoteVerdict] = useState<string | null>(null);
-  useEffect(() => { setNoteVerdict(null); }, [result]);
   // Defer mounting of Compare & WhereToBuy blocks until the browser is idle —
   // they're not on the critical path, so let the main analysis paint first.
   const [secondaryReady, setSecondaryReady] = useState(false);
+  // Two-stage card reveal: after a scan we first show a light card (photo,
+  // name, analysis text, two buttons). The heavy sections mount only when the
+  // user taps "See details" — which gives free "invisible time" to warm up
+  // scores, the preference table and product details in the background.
+  const [showDetails, setShowDetails] = useState(false);
   // Track whether details have been fetched (lazy — only when productInfo opens)
   const [detailsFetched, setDetailsFetched] = useState(false);
   // Store image hash so fetchDetails can use it for cache write
@@ -453,6 +433,37 @@ export default function App() {
     return () => window.clearTimeout(id);
   }, [result]);
 
+  // Background warm-up during the "read" phase (before "See details" is tapped).
+  // Prefetch product details while the user is looking at the light card, so the
+  // full reveal is instant. Runs once per product, only if details aren't loaded.
+  useEffect(() => {
+    if (!result || showDetails || detailsFetched) return;
+    if (result.usage && result.benefits) return; // already have them
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number };
+    let cancelled = false;
+    const warm = () => {
+      if (cancelled) return;
+      setDetailsFetched(true);
+      fetchDetails(result, lang)
+        .then((details) => {
+          if (cancelled) return;
+          setResult(prev => {
+            if (!prev) return prev;
+            const merged: AnalysisResult = { ...prev, ...details };
+            originalResult.current = merged;
+            translationCache.current.set(lang, merged);
+            return merged;
+          });
+        })
+        .catch((e) => console.warn('[warm details] failed:', e));
+    };
+    const id = typeof w.requestIdleCallback === 'function'
+      ? w.requestIdleCallback(warm, { timeout: 2000 })
+      : window.setTimeout(warm, 600);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, showDetails]);
+
   useEffect(() => {
     const loadFromUrl = () => {
       const shareId = new URLSearchParams(window.location.search).get('share');
@@ -476,6 +487,7 @@ export default function App() {
             originalResult.current = r;
             translationCache.current = new Map([[lang, r]]);
             setResult(r);
+            setShowDetails(false);
             setIsSharedView(true);
           }
           setSharedLoading(false);
@@ -597,6 +609,7 @@ export default function App() {
       originalResult.current = analysisWithShops;
       translationCache.current = new Map([[lang, analysisWithShops]]);
       setResult(analysisWithShops);
+      setShowDetails(false);
       setScanPhotoUrl(previewUrl);
       setFile(null);
       setPreviewUrl(null);
@@ -620,12 +633,20 @@ export default function App() {
       } as any);
       await subscription.incrementScans();
 
-      // ── Details are loaded LAZILY ─────────────────────────────────────────
-      // analyzeDetails is intentionally NOT started here anymore. It fires only
-      // when the user opens the "Product info" section (onOpen handler on that
-      // CollapsibleSection below). Scans where the user never opens the block
-      // no longer pay for the Gemini details call at all. Cache-hit scans still
-      // get details instantly via onLateUpdate from the cached row.
+      // ── Load details in background ────────────────────────────────────────
+      const langAtDetails = lang;
+      fetchDetails(analysisWithShops, langAtDetails)
+        .then((details) => {
+          setDetailsFetched(true);
+          setResult(prev => {
+            if (!prev) return prev;
+            const merged: AnalysisResult = { ...prev, ...details };
+            originalResult.current = merged;
+            translationCache.current.set(langAtDetails, merged);
+            return merged;
+          });
+        })
+        .catch((e) => console.warn('[scan] background details failed:', e));
 
       const totalScans = parseInt(localStorage.getItem('totalScanCount') ?? '0', 10) + 1;
       localStorage.setItem('totalScanCount', String(totalScans));
@@ -707,6 +728,19 @@ export default function App() {
 
   const cl = t[lang].collapse;
 
+  // Preference-match score for the "Обрати внимание" header badge (🟢/🟡/🔴).
+  // Memoized at the card level so the O(n×m) ingredient×criterion pass runs
+  // only when the composition, profile, or language changes — not on every
+  // unrelated re-render (typing in AskAI, toggling other sections, etc.).
+  // The section body (PersonalAnalysis) memoizes its own copy the same way,
+  // so the heavy table is no longer computed twice per render.
+  const notePreferenceScore = useMemo<number | null>(() => {
+    if (!result || !userProfile || !result.ingredients?.length) return null;
+    return computePreferenceTable(
+      result.ingredients, userProfile, result.productType ?? '', lang,
+    ).score;
+  }, [result, userProfile, lang]);
+
   /* Subscription page */
   if (showSubscriptionPage && user) {
     return (
@@ -759,6 +793,7 @@ export default function App() {
                     const sourceLang = (scanLang ?? lang) as Language;
                     translationCache.current = new Map([[sourceLang, r]]);
                     setResult(r);
+                    setShowDetails(false);
                     if (scanLang && scanLang !== lang) void setLang(scanLang as Language);
                   }}
                 />
@@ -804,7 +839,8 @@ export default function App() {
           logo={<img src={logo} alt="logo" style={{ width: 30, height: 30, objectFit: 'contain' }} />}
         />
 
-        {/* Hero */}
+        {/* Hero — hidden once a product card is shown (redundant above the card) */}
+        {!result && (
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -818,27 +854,28 @@ export default function App() {
             {t[lang].title}
           </h1>
 
-          {!result && (
-            <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
-              <button
-                onClick={() => setIsGuideOpen(true)}
-                className="gold-btn"
-                style={{ padding: '12px 28px', display: 'inline-flex', alignItems: 'center', gap: 10 }}
-              >
-                <span style={{ fontSize: 9 }}>✦</span>
-                <span>{t[lang].userGuide}</span>
-                <span style={{ fontSize: 9 }}>✦</span>
-              </button>
-            </div>
-          )}
+          <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={() => setIsGuideOpen(true)}
+              className="gold-btn"
+              style={{ padding: '12px 28px', display: 'inline-flex', alignItems: 'center', gap: 10 }}
+            >
+              <span style={{ fontSize: 9 }}>✦</span>
+              <span>{t[lang].userGuide}</span>
+              <span style={{ fontSize: 9 }}>✦</span>
+            </button>
+          </div>
         </motion.div>
+        )}
 
-        {/* Gold ornament divider */}
+        {/* Gold ornament divider — only on the upload screen, with the hero */}
+        {!result && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 20 }}>
           <div style={{ height: '0.5px', width: 48, background: 'linear-gradient(to right, transparent, #B8923A)' }} />
           <span style={{ color: '#B8923A', fontSize: 10 }}>✦</span>
           <div style={{ height: '0.5px', width: 48, background: 'linear-gradient(to left, transparent, #B8923A)' }} />
         </div>
+        )}
       </header>
 
       {/* ── MAIN ── */}
@@ -995,7 +1032,7 @@ export default function App() {
               )}
 
               {/* Product header */}
-              <div style={{ padding: '32px 32px 24px', textAlign: 'center', borderBottom: '0.5px solid #DDD5C8' }}>
+              <div style={{ padding: '20px 32px 16px', textAlign: 'center', borderBottom: '0.5px solid #DDD5C8' }}>
                 {isSharedView && (
                   <div style={{
                     marginBottom: 20,
@@ -1021,29 +1058,30 @@ export default function App() {
                   </div>
                 )}
 
-                <p style={{ fontSize: '0.58rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#8A8078', marginBottom: 16, fontFamily: 'var(--font-sans)' }}>
+                <p style={{ fontSize: '0.55rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#8A8078', marginBottom: 8, fontFamily: 'var(--font-sans)' }}>
                   {t[lang].ingredientAnalysis}
                 </p>
 
-                <ProductHeroImage name={result.productName} brand={result.brand} userPhoto={scanPhotoUrl} />
-
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.5rem, 5vw, 2rem)', fontWeight: 300, color: '#1A1410', marginBottom: 6, letterSpacing: '0.04em' }}>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.25rem, 4.5vw, 1.6rem)', fontWeight: 300, color: '#1A1410', marginBottom: 4, letterSpacing: '0.04em' }}>
                   {originalResult.current?.productName ?? result.productName}
                 </h3>
-                <p style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic', letterSpacing: '0.08em', fontFamily: 'var(--font-serif)' }}>
+                <p style={{ fontSize: '0.7rem', color: '#8A8078', fontStyle: 'italic', letterSpacing: '0.08em', fontFamily: 'var(--font-serif)' }}>
                   {originalResult.current?.brand ?? result.brand}
                 </p>
 
                 {isTranslating && (
-                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#2D5A3D', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#2D5A3D', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
                     <Loader2 size={11} className="animate-spin" />
                     {t[lang].translating}
                   </div>
                 )}
               </div>
 
-              {/* Sections */}
+              {/* Sections — full analysis (Stage 2). Stage 1 is a modal overlay
+                  rendered separately; heavy sections here stay unmounted until
+                  the user taps "See details". */}
               <div>
+                {showDetails && (<>
                 <CollapsibleSection title={t[lang].analysis} icon={<ShieldCheck size={15} />} defaultOpen collapseLabel={cl}>
                   <div className="prose-luxury"><ReactMarkdown>{result.analysis}</ReactMarkdown></div>
                 </CollapsibleSection>
@@ -1065,58 +1103,31 @@ export default function App() {
                            lang === 'tr' ? 'İçerikler bulunamadı. Lütfen INCI etiketini yakından fotoğraflayın.' :
                            'Ingredients not found. Please photograph the INCI label up close.'}
                         </p>
-                      ) : (() => {
-                        const productScore = result.canonicalScore ?? computeProductScore(result.ingredients);
-                        // Standard mathematical rounding: 3.3→3, 5.7→6
-                        const productScoreRounded = productScore !== null ? Math.round(productScore) : null;
-                        const scoreColor = productScore === null ? '#8A8078'
-                          : productScore >= 7.5 ? '#2D9B5A'
-                          : productScore >= 5 ? '#E8A020'
-                          : '#D94040';
-                        const scoreLabel = productScore === null ? '' :
-                          lang === 'ru' ? (productScore >= 7.5 ? 'Отличный состав' : productScore >= 5 ? 'Хороший состав' : 'Состав вызывает опасения') :
-                          lang === 'uk' ? (productScore >= 7.5 ? 'Чудовий склад' : productScore >= 5 ? 'Хороший склад' : 'Склад викликає занепокоєння') :
-                          lang === 'de' ? (productScore >= 7.5 ? 'Ausgezeichnete Formel' : productScore >= 5 ? 'Gute Formel' : 'Formel bedenklich') :
-                          lang === 'es' ? (productScore >= 7.5 ? 'Fórmula excelente' : productScore >= 5 ? 'Buena fórmula' : 'Fórmula preocupante') :
-                          lang === 'fr' ? (productScore >= 7.5 ? 'Excellente formule' : productScore >= 5 ? 'Bonne formule' : 'Formule préoccupante') :
-                          lang === 'it' ? (productScore >= 7.5 ? 'Formula eccellente' : productScore >= 5 ? 'Buona formula' : 'Formula preoccupante') :
-                          lang === 'tr' ? (productScore >= 7.5 ? 'Mükemmel formül' : productScore >= 5 ? 'İyi formül' : 'Formül endişe verici') :
-                          (productScore >= 7.5 ? 'Excellent formula' : productScore >= 5 ? 'Good formula' : 'Formula of concern');
-                        return (
-                          <>
-                            {productScore !== null && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', marginBottom: 12, background: 'rgba(255,255,255,0.6)', borderRadius: 14, border: `1.5px solid ${scoreColor}22` }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 64 }}>
-                                  <span style={{ fontSize: '2rem', fontWeight: 800, color: scoreColor, lineHeight: 1, fontFamily: 'var(--font-sans)', letterSpacing: '-0.03em' }}>
-                                    {productScoreRounded}
-                                  </span>
-                                  <span style={{ fontSize: '0.72rem', color: scoreColor, opacity: 0.75, fontFamily: 'var(--font-sans)', marginTop: 1 }}>/10</span>
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ height: 8, background: 'rgba(0,0,0,0.07)', borderRadius: 8, overflow: 'hidden', marginBottom: 6 }}>
-                                    <div style={{ height: '100%', width: `${productScore * 10}%`, background: scoreColor, borderRadius: 8, transition: 'width 0.6s ease' }} />
-                                  </div>
-                                  <span style={{ fontSize: '0.8rem', color: scoreColor, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>{scoreLabel}</span>
-                                </div>
-                              </div>
-                            )}
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                              {result.ingredients.map((ing, idx) => (
-                                <IngredientItem key={`${ing.name}-${idx}`} ing={ing} lang={lang} />
-                              ))}
-                            </ul>
-                          </>
-                        );
-                      })()}
+                      ) : (
+                        <>
+                          {/* Numeric score is intentionally hidden — the verdict emoji in
+                              the section header is derived from it. Here we only explain
+                              what the per-ingredient 🟢/🟡/🔴 marks mean. */}
+                          <IngredientLegend lang={lang} score={result.canonicalScore ?? computeProductScore(result.ingredients)} />
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                            {result.ingredients.map((ing, idx) => (
+                              <IngredientItem key={`${ing.name}-${idx}`} ing={ing} lang={lang} />
+                            ))}
+                          </ul>
+                        </>
+                      )}
                     </CollapsibleSection>
 
                 <CollapsibleSection
                   title={t[lang].noteSection}
                   icon={<NotebookPen size={15} />}
                   collapseLabel={cl}
-                  headerBadge={noteVerdict
-                    ? <span style={{ width: 10, height: 10, borderRadius: '50%', background: noteVerdict, display: 'inline-block', flexShrink: 0 }} />
-                    : undefined}
+                  headerBadge={(() => {
+                    // Uses the card-level memoized score (see notePreferenceScore) —
+                    // shown ONLY as a 🟢/🟡/🔴 verdict, never as a number.
+                    if (notePreferenceScore === null) return null;
+                    return <span style={{ fontSize: '1.05rem', lineHeight: 1 }} aria-hidden>{verdictEmoji100(notePreferenceScore)}</span>;
+                  })()}
                 >
                   <PersonalAnalysis
                     lang={lang} result={result} user={user} userProfile={userProfile}
@@ -1124,7 +1135,6 @@ export default function App() {
                     onLimitReached={() => setPaywallReason('scans')}
                     onUsed={subscription.incrementNoteAnalysis}
                     onOpenProfile={() => setIsProfileOpen(true)}
-                    onVerdict={setNoteVerdict}
                   />
 
                 </CollapsibleSection>
@@ -1219,14 +1229,12 @@ export default function App() {
                     </CollapsibleSection>
                   </>
                 )}
+                </>)}
               </div>
 
-              {/* Footer actions */}
+              {/* Footer actions — only in the expanded (details) view */}
+              {showDetails && (
               <div style={{ padding: '20px 28px 32px', borderTop: '0.5px solid #DDD5C8' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.7rem', color: 'rgba(138,128,120,0.7)', marginBottom: 20, lineHeight: 1.7 }}>
-                  <span style={{ flexShrink: 0 }}>⚠</span>
-                  <span>{t[lang].aiDisclaimer}</span>
-                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <button
                     onClick={handleShare}
@@ -1245,7 +1253,81 @@ export default function App() {
                     {t[lang].anotherProduct}
                   </button>
                 </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.7rem', color: 'rgba(138,128,120,0.7)', marginTop: 20, lineHeight: 1.7 }}>
+                  <span style={{ flexShrink: 0 }}>⚠</span>
+                  <span>{t[lang].aiDisclaimer}</span>
+                </div>
               </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Stage 1 — preview modal shown right after a scan, before the full
+            card is revealed. Buttons: "See details" opens the full analysis
+            (data warmed in the background); "Another product" resets. */}
+        <AnimatePresence>
+          {result && !showDetails && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={(e) => e.target === e.currentTarget && handleReset()}
+              style={{ background: 'rgba(44,62,50,0.55)', backdropFilter: 'blur(4px)' }}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 32, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.97 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="luxury-card w-full max-w-sm overflow-hidden relative"
+              >
+                {/* Close (X) — back to scanning */}
+                <button
+                  onClick={handleReset}
+                  aria-label="Close"
+                  style={{ position: 'absolute', top: 14, right: 14, width: 44, height: 44, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.05)', border: 'none', cursor: 'pointer', color: '#8A8078', zIndex: 2 }}
+                >
+                  <X size={24} />
+                </button>
+
+                <div style={{ height: 2, background: 'linear-gradient(to right, transparent, #B8923A, transparent)' }} />
+
+                <div className="p-7 flex flex-col gap-5">
+                  {/* Leaf + name + brand */}
+                  <div className="text-center">
+                    <span className="text-3xl">🌿</span>
+                    <h2 className="font-serif text-2xl text-[#1A1410] mt-2 leading-snug" style={{ letterSpacing: '0.04em', fontWeight: 300 }}>
+                      {originalResult.current?.productName ?? result.productName}
+                    </h2>
+                    <p style={{ fontSize: '0.72rem', color: '#8A8078', fontStyle: 'italic', letterSpacing: '0.08em', fontFamily: 'var(--font-serif)', marginTop: 4 }}>
+                      {originalResult.current?.brand ?? result.brand}
+                    </p>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{ height: '0.5px', background: 'linear-gradient(to right, transparent, #D4C3A3, transparent)' }} />
+
+                  {/* Analysis text */}
+                  <div className="prose-luxury"><ReactMarkdown>{result.analysis}</ReactMarkdown></div>
+
+                  {isTranslating && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#2D5A3D', fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                      <Loader2 size={11} className="animate-spin" />
+                      {t[lang].translating}
+                    </div>
+                  )}
+
+                  {/* Action */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button onClick={() => setShowDetails(true)} className="luxury-btn" style={{ width: '100%', padding: 14 }}>
+                      <span>{t[lang].showDetails}</span>
+                      <ChevronDown size={13} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
